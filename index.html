@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Low-Latency Face Runtime</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="stage" aria-label="Expressive agent face">
+        <div class="face-shell" id="faceShell" data-state="idle">
+          <svg class="face" viewBox="0 0 420 360" role="img" aria-labelledby="faceTitle faceDescription">
+            <title id="faceTitle">Minimal expressive agent face</title>
+            <desc id="faceDescription">An abstract face whose eyes, brows, and mouth react to live typed input.</desc>
+            <path class="face-frame" d="M100 72 C146 36 274 36 320 72 C358 102 366 241 319 288 C272 335 148 335 101 288 C54 241 62 102 100 72 Z"></path>
+            <g class="brow-group brow-left-group">
+              <path id="browLeft" class="brow" d="M132 133 C151 122 174 122 193 133"></path>
+            </g>
+            <g class="brow-group brow-right-group">
+              <path id="browRight" class="brow" d="M227 133 C246 122 269 122 288 133"></path>
+            </g>
+            <g id="eyeLeftGroup" class="eye-group eye-left-group">
+              <ellipse id="eyeLeft" class="eye" cx="162" cy="165" rx="18" ry="19"></ellipse>
+              <circle id="pupilLeft" class="pupil" cx="162" cy="165" r="5"></circle>
+            </g>
+            <g id="eyeRightGroup" class="eye-group eye-right-group">
+              <ellipse id="eyeRight" class="eye" cx="258" cy="165" rx="18" ry="19"></ellipse>
+              <circle id="pupilRight" class="pupil" cx="258" cy="165" r="5"></circle>
+            </g>
+            <g id="mouthGroup" class="mouth-group">
+              <path id="mouth" class="mouth" d="M166 238 C185 248 235 248 254 238"></path>
+            </g>
+            <path id="breath" class="breath" d="M112 298 C164 330 256 330 308 298"></path>
+          </svg>
+        </div>
+        <div id="trackingDot" class="tracking-dot" aria-hidden="true"></div>
+        <div id="visionPreview" class="vision-preview" aria-label="Local camera tracking preview" hidden>
+          <video id="faceVideo" class="vision-feed" playsinline muted aria-hidden="true"></video>
+          <div id="faceBox" class="face-box" aria-hidden="true"></div>
+          <output id="visionStatus" class="vision-status" aria-live="polite">off</output>
+        </div>
+
+        <aside class="metrics" id="metricsPanel" aria-label="Latency metrics" hidden>
+          <div class="metric-row">
+            <span>State</span>
+            <output id="metricState">idle</output>
+          </div>
+          <div class="metric-row">
+            <span>Presence</span>
+            <output id="metricPresence">attentive</output>
+          </div>
+          <div class="metric-row">
+            <span>Source</span>
+            <output id="metricSource">idle</output>
+          </div>
+          <div class="metric-row">
+            <span>First expression</span>
+            <output id="metricExpression">--</output>
+          </div>
+          <div class="metric-row">
+            <span>Local read</span>
+            <output id="metricLocal">--</output>
+          </div>
+          <div class="metric-row">
+            <span>Events</span>
+            <output id="metricEvents">0</output>
+          </div>
+          <div class="metric-row">
+            <span>API</span>
+            <output id="metricApi">local</output>
+          </div>
+          <div class="metric-row">
+            <span>Voice</span>
+            <output id="metricVoice">off</output>
+          </div>
+          <div class="metric-row">
+            <span>Lane</span>
+            <output id="metricLane">idle</output>
+          </div>
+          <div class="metric-row">
+            <span>Stream open</span>
+            <output id="metricStream">--</output>
+          </div>
+          <div class="metric-row">
+            <span>First token</span>
+            <output id="metricToken">--</output>
+          </div>
+          <div class="metric-row">
+            <span>First audio</span>
+            <output id="metricAudio">--</output>
+          </div>
+          <div class="metric-row">
+            <span>Speculate</span>
+            <output id="metricSpeculate">--</output>
+          </div>
+          <div class="metric-row">
+            <span>Response</span>
+            <output id="metricResponse">--</output>
+          </div>
+          <div class="metric-row">
+            <span>P50 token</span>
+            <output id="metricTokenP50">--</output>
+          </div>
+          <div class="metric-row">
+            <span>P90 token</span>
+            <output id="metricTokenP90">--</output>
+          </div>
+          <div class="metric-row">
+            <span>Turns</span>
+            <output id="metricTurns">0</output>
+          </div>
+          <div class="metric-row">
+            <span>Attention</span>
+            <output id="metricAttention">0%</output>
+          </div>
+          <div class="metric-row">
+            <span>Arousal</span>
+            <output id="metricArousal">0%</output>
+          </div>
+          <div class="metric-row">
+            <span>Commit</span>
+            <output id="metricComplete">0%</output>
+          </div>
+          <div class="metric-row">
+            <span>Superseded</span>
+            <output id="metricCanceled">0</output>
+          </div>
+          <div class="metric-row">
+            <span>Prepared</span>
+            <output id="metricPrepared">no</output>
+          </div>
+          <div class="metric-row">
+            <span>Face-tracking</span>
+            <output id="metricFace">off</output>
+          </div>
+          <div class="metric-row metric-row-wide">
+            <span>Trace</span>
+            <output id="metricTrace">--</output>
+          </div>
+          <div class="metric-row metric-row-wide">
+            <div class="metric-action-row">
+              <span>Probe</span>
+              <button class="metric-button" id="benchmarkButton" type="button" aria-label="Run latency probe">Run</button>
+            </div>
+            <output id="metricBenchmark">--</output>
+          </div>
+        </aside>
+      </section>
+
+      <section class="response" aria-live="polite" aria-atomic="false">
+        <p id="responseText"></p>
+      </section>
+
+      <form class="composer" id="composer">
+        <div class="control-strip" aria-label="Agent controls">
+          <div class="presence-control" role="radiogroup" aria-label="Presence level">
+            <button class="presence-option" type="button" role="radio" aria-checked="false" data-presence="still">Still</button>
+            <button class="presence-option" type="button" role="radio" aria-checked="true" data-presence="attentive">Attentive</button>
+            <button class="presence-option" type="button" role="radio" aria-checked="false" data-presence="expressive">Expressive</button>
+          </div>
+          <button class="toggle" id="micToggle" type="button" aria-pressed="false" aria-label="Start voice session">
+            <span class="toggle-dot" aria-hidden="true"></span>
+            <span>Voice</span>
+          </button>
+          <button class="toggle" id="speakerToggle" type="button" aria-pressed="false" aria-label="Turn speaker on">
+            <span class="toggle-dot" aria-hidden="true"></span>
+            <span>Speaker</span>
+          </button>
+          <button class="toggle" id="faceToggle" type="button" aria-pressed="false" aria-label="Local face-tracking. Video stays in this browser.">
+            <span class="toggle-dot" aria-hidden="true"></span>
+            <span>Local face-tracking</span>
+          </button>
+          <button class="toggle" id="metricsToggle" type="button" aria-pressed="false">
+            <span class="toggle-dot" aria-hidden="true"></span>
+            <span>Metrics</span>
+          </button>
+        </div>
+
+        <div class="input-row" id="inputRow">
+          <label class="sr-only" for="messageInput">Message</label>
+          <span class="sr-only" id="composerInstruction">Enter sends. Shift Enter inserts a new line.</span>
+          <textarea id="messageInput" rows="1" placeholder="Type..." autocomplete="off" autocapitalize="sentences" enterkeyhint="send" spellcheck="true" aria-describedby="composerInstruction"></textarea>
+          <button class="send-button" id="sendButton" type="submit" aria-label="Send message" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12H18"></path>
+              <path d="M13 7L18 12L13 17"></path>
+            </svg>
+          </button>
+        </div>
+      </form>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
