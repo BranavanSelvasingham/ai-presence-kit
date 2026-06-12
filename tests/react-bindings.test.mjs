@@ -32,8 +32,25 @@ const runtime = createPresenceRuntime({ initialState: PresenceState.IDLE });
 const bindings = createPresenceReactBindings(fakeReact, { runtime });
 
 assert.equal(bindings.usePresenceState(), PresenceState.IDLE);
+assert.equal(typeof bindings.usePresenceControlInputs, "function");
 runtime.send(PresenceEvent.USER_INPUT, { text: "Hello" });
 assert.equal(bindings.usePresenceSnapshot().state, PresenceState.USER_TYPING);
+
+runtime.send(PresenceEvent.SUBMIT);
+const thinkingSnapshot = bindings.usePresenceSnapshot();
+const thinkingInputs = bindings.usePresenceControlInputs(null, { now: thinkingSnapshot.updatedAt });
+assert.equal(thinkingSnapshot.state, PresenceState.THINKING);
+assert.equal(thinkingInputs.state, PresenceState.THINKING);
+assert.equal(thinkingInputs.latencyPhase, "before-output");
+assert.equal(thinkingInputs.attentionTarget, "response");
+
+runtime.send(PresenceEvent.STREAM_OPEN);
+const waitingInputs = bindings.usePresenceControlInputs(runtime, {
+  now: runtime.getSnapshot().updatedAt,
+});
+assert.equal(waitingInputs.state, PresenceState.WAITING);
+assert.equal(waitingInputs.latencyPhase, "before-output");
+assert.equal(waitingInputs.attentionTarget, "response");
 
 const providerElement = bindings.PresenceProvider({
   runtime,
@@ -47,7 +64,7 @@ const rendered = bindings.PresenceRenderer({
   children: (snapshot) => snapshot.state,
 });
 
-assert.equal(rendered, PresenceState.USER_TYPING);
+assert.equal(rendered, PresenceState.WAITING);
 
 assert.throws(
   () => createPresenceReactBindings({}),

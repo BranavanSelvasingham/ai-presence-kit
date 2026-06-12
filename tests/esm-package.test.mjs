@@ -39,6 +39,33 @@ assert.equal(runtime.getSnapshot().state, core.PresenceState.WAITING);
 assert.equal(typeof react.createPresenceReactBindings, "function");
 assert.equal(react.default.createPresenceReactBindings, react.createPresenceReactBindings);
 
+let contextValue = null;
+const fakeReact = {
+  createContext(defaultValue) {
+    contextValue = defaultValue;
+    return {
+      Provider: "PresenceProvider",
+      defaultValue,
+    };
+  },
+  createElement(type, props, children) {
+    contextValue = props.value;
+    return { type, props, children };
+  },
+  useContext(context) {
+    return contextValue || context.defaultValue;
+  },
+  useSyncExternalStore(subscribe, getSnapshot) {
+    const unsubscribe = subscribe(() => {});
+    unsubscribe();
+    return getSnapshot();
+  },
+};
+const reactBindings = react.createPresenceReactBindings(fakeReact);
+assert.equal(typeof reactBindings.usePresenceControlInputs, "function");
+reactBindings.defaultRuntime.send(core.PresenceEvent.SUBMIT);
+assert.equal(reactBindings.usePresenceControlInputs().attentionTarget, "response");
+
 const consumerRoot = mkdtempSync(resolve(tmpdir(), "ai-presence-esm-consumer-"));
 
 try {
@@ -70,6 +97,15 @@ try {
       "if (faceControlsForPresence(runtime.getSnapshot()).mouth.shape !== 'speaking') throw new Error('face controls mismatch');",
       "if (faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision mismatch');",
       "if (typeof createPresenceReactBindings !== 'function') throw new Error('react export mismatch');",
+      "let contextValue = null;",
+      "const React = {",
+      "  createContext(defaultValue) { contextValue = defaultValue; return { Provider: 'PresenceProvider', defaultValue }; },",
+      "  createElement(type, props, children) { contextValue = props.value; return { type, props, children }; },",
+      "  useContext(context) { return contextValue || context.defaultValue; },",
+      "  useSyncExternalStore(subscribe, getSnapshot) { const unsubscribe = subscribe(() => {}); unsubscribe(); return getSnapshot(); },",
+      "};",
+      "const bindings = createPresenceReactBindings(React, { runtime });",
+      "if (bindings.usePresenceControlInputs().latencyPhase !== 'output') throw new Error('react hook mismatch');",
       "console.log('specifier import ok');",
       "",
     ].join("\n"),

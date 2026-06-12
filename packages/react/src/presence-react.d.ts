@@ -1,4 +1,11 @@
-import type { PresenceRuntime, PresenceRuntimeOptions, PresenceSnapshot, PresenceStateValue } from "@ai-presence/core";
+import type {
+  PresenceControlInputOptions,
+  PresenceControlInputs,
+  PresenceRuntime,
+  PresenceRuntimeOptions,
+  PresenceSnapshot,
+  PresenceStateValue,
+} from "@ai-presence/core";
 
 export interface ReactLike {
   createContext(defaultValue: PresenceRuntime): unknown;
@@ -26,6 +33,10 @@ export interface PresenceReactBindings {
   PresenceProvider(props: PresenceProviderProps): unknown;
   PresenceRenderer(props: PresenceRendererProps): unknown;
   defaultRuntime: PresenceRuntime;
+  usePresenceControlInputs(
+    runtime?: PresenceRuntime | null,
+    options?: PresenceControlInputOptions,
+  ): PresenceControlInputs;
   usePresenceRuntime(): PresenceRuntime;
   usePresenceSnapshot(runtime?: PresenceRuntime | null): PresenceSnapshot;
   usePresenceState(runtime?: PresenceRuntime | null): PresenceStateValue;
