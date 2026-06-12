@@ -51,6 +51,7 @@ const releasePolicy = readFileSync(resolve(root, "docs/RELEASE_POLICY.md"), "utf
 assert.match(releasePolicy, /0\.1\.0/);
 assert.match(releasePolicy, /npm run release:check-names/);
 assert.match(releasePolicy, /@ai-presence\/core -> npm E404/);
+assert.match(releasePolicy, /2026-06-12/);
 assert.match(releasePolicy, /scope/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
@@ -59,6 +60,7 @@ assert.match(releaseReadiness, /motionScale/);
 assert.match(releaseReadiness, /renderPresenceFaceSvg/);
 assert.match(releaseReadiness, /usePresenceFrameTime/);
 assert.match(releaseReadiness, /before the first visible token/);
+assert.match(releaseReadiness, /2026-06-12/);
 
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);

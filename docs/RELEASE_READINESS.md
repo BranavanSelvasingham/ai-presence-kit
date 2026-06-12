@@ -89,7 +89,7 @@ Release policy and package-name checks:
 npm run release:check-names
 ```
 
-See `docs/RELEASE_POLICY.md`.
+The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished. See `docs/RELEASE_POLICY.md`.
 
 ## Remaining Before Public Release
 
