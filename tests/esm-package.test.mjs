@@ -29,6 +29,8 @@ assert.equal(trace.getEntries().at(-1).state, core.PresenceState.THINKING);
 assert.equal(core.presenceControlInputsForSnapshot(runtime.getSnapshot()).latencyPhase, "before-output");
 assert.equal(face.faceExpressionForPresence(runtime.getSnapshot()), face.FaceExpression.THINKING);
 assert.equal(face.faceControlsForPresence(runtime.getSnapshot()).gaze.target, "middle-distance");
+assert.equal(face.faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.gaze.controller, "gaze-controller");
+assert.deepEqual(face.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
 const adapter = adapters.createRuntimeSignalAdapter(runtime);
 adapter.send({ type: adapters.RuntimeSignal.STREAM_OPEN });
@@ -54,7 +56,7 @@ try {
       'import { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";',
       'import { presenceControlInputsForSnapshot } from "@ai-presence/core";',
       'import { RuntimeSignal, createRuntimeSignalAdapter } from "@ai-presence/adapters";',
-      'import { FaceExpression, faceControlsForPresence, faceExpressionForPresence } from "@ai-presence/face";',
+      'import { FaceExpression, faceControllerDecisionsForPresence, faceControlsForPresence, faceExpressionForPresence } from "@ai-presence/face";',
       'import { createPresenceReactBindings } from "@ai-presence/react";',
       "const runtime = createPresenceRuntime();",
       "const trace = createPresenceTrace({ limit: 4 });",
@@ -66,6 +68,7 @@ try {
       "if (presenceControlInputsForSnapshot(runtime.getSnapshot()).speechActivity <= 0) throw new Error('control inputs mismatch');",
       "if (faceExpressionForPresence(runtime.getSnapshot()) !== FaceExpression.SPEAKING) throw new Error('face mismatch');",
       "if (faceControlsForPresence(runtime.getSnapshot()).mouth.shape !== 'speaking') throw new Error('face controls mismatch');",
+      "if (faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision mismatch');",
       "if (typeof createPresenceReactBindings !== 'function') throw new Error('react export mismatch');",
       "console.log('specifier import ok');",
       "",

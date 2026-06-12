@@ -81,7 +81,15 @@ const packages = [
     dir: "packages/face",
     name: "@ai-presence/face",
     types: "src/presence-face.d.ts",
-    exports: ["createFaceControllerRuntime", "createFaceRenderer", "faceControlsForPresence", "faceExpressionForPresence", "FaceExpression"],
+    exports: [
+      "FACE_CONTROL_CHANNELS",
+      "FaceExpression",
+      "createFaceControllerRuntime",
+      "createFaceRenderer",
+      "faceControllerDecisionsForPresence",
+      "faceControlsForPresence",
+      "faceExpressionForPresence",
+    ],
   },
   {
     dir: "packages/adapters",
@@ -115,5 +123,9 @@ for (const packageInfo of packages) {
     assert.ok(esmApi[exportName], `${packageInfo.name} ESM missing ${exportName}`);
   }
 }
+
+const faceGlobal = globalThis.AIPresenceFace;
+assert.equal(typeof faceGlobal.faceControllerDecisionsForPresence, "function");
+assert.deepEqual(faceGlobal.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
 console.log("package-surface ok");

@@ -40,6 +40,17 @@
     settleMs: 160,
   });
 
+  const FACE_CONTROL_CHANNELS = Object.freeze(["gaze", "blink", "brows", "mouth", "posture", "motion"]);
+
+  const FACE_CONTROLLER_READS = Object.freeze({
+    gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "ageMs"]),
+    blink: Object.freeze(["state", "profile.blinkCadenceMs"]),
+    brows: Object.freeze(["state", "detail.question", "detail.revision"]),
+    mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery"]),
+    posture: Object.freeze(["state", "energy", "recovery", "interruption", "latencyPhase"]),
+    motion: Object.freeze(["state", "profile.drift", "profile.settleMs", "energy", "anticipation", "recovery", "speechActivity", "latencyPhase", "ageMs"]),
+  });
+
   function resolveCore(scope) {
     if (scope?.AIPresenceCore) return scope.AIPresenceCore;
     if (typeof require === "function") {
@@ -178,6 +189,10 @@
     return Number.isFinite(value) ? value : fallback;
   }
 
+  function isReadyState(stateName) {
+    return stateName === PresenceState.READY || stateName === "ready";
+  }
+
   function faceAttentionTarget(stateName, detail, inputs, fallback) {
     if (detail.question && (stateName === PresenceState.READING || stateName === "reading")) {
       return "question";
@@ -197,186 +212,8 @@
     }
   }
 
-  function controlsForState(state, detail, profile, inputs) {
-    const stateName = state || PresenceState.IDLE || "idle";
-    const base = {
-      gaze: {
-        target: faceAttentionTarget(stateName, detail, inputs, "user"),
-        x: inputNumber(inputs, "attentionX", 0),
-        y: inputNumber(inputs, "attentionY", 0),
-        focus: inputNumber(inputs, "focus", 0.56),
-      },
-      blink: { openness: 1, cadenceMs: profile.blinkCadenceMs, pulse: false },
-      brows: { lift: 0, pinch: 0, asymmetry: 0 },
-      mouth: { shape: "rest", openness: 0, activity: inputNumber(inputs, "speechActivity", 0), tension: inputNumber(inputs, "tension", 0) },
-      posture: { lean: 0, turn: 0, energy: inputNumber(inputs, "energy", 0.2), recovery: inputNumber(inputs, "recovery", 0) },
-      motion: {
-        energy: inputNumber(inputs, "energy", 0.2),
-        drift: profile.drift,
-        anticipation: inputNumber(inputs, "anticipation", 0),
-        recovery: inputNumber(inputs, "recovery", 0),
-        settleMs: profile.settleMs,
-      },
-    };
-
-    switch (stateName) {
-      case PresenceState.USER_TYPING:
-      case "user-typing":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "input"),
-            x: inputNumber(inputs, "attentionX", -0.18),
-            y: inputNumber(inputs, "attentionY", 0.18),
-            focus: inputNumber(inputs, "focus", 0.7),
-          },
-          blink: { openness: 1, cadenceMs: 4400, pulse: false },
-          brows: { lift: 0.08, pinch: 0.06, asymmetry: 0 },
-          mouth: { shape: "listening", openness: 0.03, activity: 0.05, tension: inputNumber(inputs, "tension", 0.08) },
-          posture: { lean: 0.1, turn: -0.04, energy: inputNumber(inputs, "energy", 0.38), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: { energy: 0.34, drift: profile.drift + 0.04, anticipation: inputNumber(inputs, "anticipation", 0.18), recovery: inputNumber(inputs, "recovery", 0), settleMs: profile.settleMs },
-        };
-
-      case PresenceState.READING:
-      case "reading":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "content"),
-            x: inputNumber(inputs, "attentionX", -0.2),
-            y: inputNumber(inputs, "attentionY", 0.28),
-            focus: inputNumber(inputs, "focus", 0.76),
-          },
-          blink: { openness: 0.94, cadenceMs: 5200, pulse: false },
-          brows: { lift: detail.question ? 0.22 : 0.08, pinch: detail.revision ? 0.2 : 0.12, asymmetry: detail.question ? 0.16 : 0 },
-          mouth: { shape: detail.question ? "curious" : "held", openness: 0.04, activity: 0.08, tension: inputNumber(inputs, "tension", detail.revision ? 0.32 : 0.12) },
-          posture: { lean: 0.14, turn: -0.06, energy: inputNumber(inputs, "energy", 0.42), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: { energy: 0.34, drift: profile.drift + 0.02, anticipation: inputNumber(inputs, "anticipation", 0.22), recovery: inputNumber(inputs, "recovery", 0), settleMs: profile.settleMs },
-        };
-
-      case PresenceState.WAITING:
-      case "waiting":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "response-origin"),
-            x: inputNumber(inputs, "attentionX", -0.08),
-            y: inputNumber(inputs, "attentionY", -0.04),
-            focus: inputNumber(inputs, "focus", 0.66),
-          },
-          blink: { openness: 0.9, cadenceMs: 3400, pulse: false },
-          brows: { lift: 0.02, pinch: 0.28, asymmetry: 0.04 },
-          mouth: { shape: "preparing", openness: 0.03, activity: 0.16, tension: inputNumber(inputs, "tension", 0.34) },
-          posture: { lean: 0.24, turn: 0, energy: inputNumber(inputs, "energy", 0.5), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: { energy: 0.46, drift: profile.drift + 0.08, anticipation: inputNumber(inputs, "anticipation", 0.62), recovery: inputNumber(inputs, "recovery", 0), settleMs: 120 },
-        };
-
-      case PresenceState.THINKING:
-      case "thinking":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "middle-distance"),
-            x: inputNumber(inputs, "attentionX", 0.16),
-            y: inputNumber(inputs, "attentionY", -0.02),
-            focus: inputNumber(inputs, "focus", 0.58),
-          },
-          blink: { openness: 0.82, cadenceMs: 3800, pulse: false },
-          brows: { lift: -0.04, pinch: 0.36, asymmetry: 0.08 },
-          mouth: { shape: "pressed", openness: 0.02, activity: 0.12, tension: inputNumber(inputs, "tension", 0.42) },
-          posture: { lean: 0.18, turn: 0.05, energy: inputNumber(inputs, "energy", 0.48), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: { energy: 0.42, drift: profile.drift + 0.05, anticipation: inputNumber(inputs, "anticipation", 0.52), recovery: inputNumber(inputs, "recovery", 0), settleMs: 140 },
-        };
-
-      case PresenceState.STREAMING:
-      case "streaming":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "audience"),
-            x: inputNumber(inputs, "attentionX", 0),
-            y: inputNumber(inputs, "attentionY", 0),
-            focus: inputNumber(inputs, "focus", 0.74),
-          },
-          blink: { openness: 0.98, cadenceMs: 6800, pulse: false },
-          brows: { lift: 0.08, pinch: 0.08, asymmetry: 0 },
-          mouth: { shape: "speaking", openness: 0.34, activity: inputNumber(inputs, "speechActivity", 0.82), tension: inputNumber(inputs, "tension", 0.06) },
-          posture: { lean: 0.14, turn: 0, energy: inputNumber(inputs, "energy", 0.72), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: { energy: 0.78, drift: profile.drift + 0.1, anticipation: inputNumber(inputs, "anticipation", 0.12), recovery: inputNumber(inputs, "recovery", 0), settleMs: 90 },
-        };
-
-      case PresenceState.SPEAKING:
-      case "speaking":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "audience"),
-            x: inputNumber(inputs, "attentionX", 0),
-            y: inputNumber(inputs, "attentionY", -0.02),
-            focus: inputNumber(inputs, "focus", 0.78),
-          },
-          blink: { openness: 0.98, cadenceMs: 7200, pulse: false },
-          brows: { lift: 0.12, pinch: 0.04, asymmetry: 0 },
-          mouth: { shape: "speaking", openness: 0.42, activity: inputNumber(inputs, "speechActivity", 1), tension: inputNumber(inputs, "tension", 0.04) },
-          posture: { lean: 0.12, turn: 0, energy: inputNumber(inputs, "energy", 0.78), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: { energy: 0.86, drift: profile.drift + 0.12, anticipation: inputNumber(inputs, "anticipation", 0), recovery: inputNumber(inputs, "recovery", 0), settleMs: 80 },
-        };
-
-      case PresenceState.INTERRUPTED:
-      case "interrupted":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "user"),
-            x: inputNumber(inputs, "attentionX", -0.26),
-            y: inputNumber(inputs, "attentionY", -0.08),
-            focus: inputNumber(inputs, "focus", 0.88),
-          },
-          blink: { openness: 0.72, cadenceMs: 900, pulse: true },
-          brows: { lift: -0.12, pinch: 0.54, asymmetry: 0.34 },
-          mouth: { shape: "held", openness: 0.07, activity: 0.04, tension: inputNumber(inputs, "tension", 0.72) },
-          posture: { lean: -0.22, turn: -0.08, energy: inputNumber(inputs, "energy", 0.62), recovery: Math.max(inputNumber(inputs, "recovery", 0), 0.16) },
-          motion: { energy: 0.54, drift: profile.drift + 0.04, anticipation: inputNumber(inputs, "anticipation", 0), recovery: inputNumber(inputs, "recovery", 1), settleMs: 90 },
-        };
-
-      case PresenceState.READY:
-      case "ready":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "user"),
-            x: inputNumber(inputs, "attentionX", 0),
-            y: inputNumber(inputs, "attentionY", 0),
-            focus: inputNumber(inputs, "focus", 0.68),
-          },
-          blink: { openness: 1, cadenceMs: 4600, pulse: false },
-          brows: { lift: 0.1, pinch: 0, asymmetry: 0 },
-          mouth: { shape: "soft-smile", openness: 0.12, activity: inputNumber(inputs, "speechActivity", 0.1), tension: inputNumber(inputs, "tension", 0) },
-          posture: { lean: 0.02, turn: 0, energy: inputNumber(inputs, "energy", 0.3), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: {
-            energy: clamp(inputNumber(inputs, "energy", 0.3) - 0.06, 0.16, 1),
-            drift: profile.drift,
-            anticipation: inputNumber(inputs, "anticipation", 0),
-            recovery: inputNumber(inputs, "recovery", 0),
-            settleMs: profile.settleMs + 40,
-          },
-        };
-
-      case PresenceState.ERROR:
-      case "error":
-        return {
-          gaze: {
-            target: faceAttentionTarget(stateName, detail, inputs, "status"),
-            x: inputNumber(inputs, "attentionX", 0),
-            y: inputNumber(inputs, "attentionY", 0.18),
-            focus: inputNumber(inputs, "focus", 0.8),
-          },
-          blink: { openness: 0.86, cadenceMs: 3000, pulse: false },
-          brows: { lift: -0.08, pinch: 0.5, asymmetry: 0.08 },
-          mouth: { shape: "downturned", openness: 0.03, activity: 0, tension: inputNumber(inputs, "tension", 0.66) },
-          posture: { lean: -0.12, turn: 0, energy: inputNumber(inputs, "energy", 0.42), recovery: inputNumber(inputs, "recovery", 0) },
-          motion: { energy: 0.18, drift: profile.drift * 0.6, anticipation: inputNumber(inputs, "anticipation", 0), recovery: Math.max(inputNumber(inputs, "recovery", 0), 0.24), settleMs: profile.settleMs + 80 },
-        };
-
-      default:
-        return base;
-    }
-  }
-
-  function applyHistoryAdjustments(controls, snapshot, history, now, inputs) {
-    const ageMs = inputs ? inputs.ageMs : stateAgeMs(snapshot, history, now);
+  function recoverySignalsForContext(context) {
+    const { inputs, snapshot, history, now } = context;
     const recentlyInterrupted = inputs
       ? inputs.latencyPhase === "recovery" && inputs.recovery >= 0.4
       : includesRecentState(snapshot, history, PresenceState.INTERRUPTED || "interrupted", 2400, now);
@@ -385,48 +222,575 @@
       : includesRecentState(snapshot, history, PresenceState.STREAMING || "streaming", 1800, now)
         || includesRecentState(snapshot, history, PresenceState.SPEAKING || "speaking", 1800, now);
 
-    if ((snapshot.state === PresenceState.READY || snapshot.state === "ready") && recentlyInterrupted) {
-      controls.posture.recovery = Math.max(controls.posture.recovery, 0.42);
-      controls.motion.recovery = Math.max(controls.motion.recovery, 0.38);
-      controls.motion.settleMs = Math.max(controls.motion.settleMs, 220);
-      controls.mouth.tension = Math.max(controls.mouth.tension, 0.18);
-    } else if ((snapshot.state === PresenceState.READY || snapshot.state === "ready") && recentlySpoke) {
-      controls.mouth.shape = "release";
-      controls.mouth.activity = 0.18;
-      controls.motion.settleMs = Math.max(controls.motion.settleMs, 210);
-    }
-
-    if (!inputs && (snapshot.state === PresenceState.READY || snapshot.state === "ready")) {
-      const softness = clamp(ageMs / 1800, 0, 1);
-      controls.gaze.focus = clamp(controls.gaze.focus - softness * 0.1, 0.5, 0.72);
-      controls.motion.energy = clamp(controls.motion.energy - softness * 0.08, 0.16, 1);
-    }
-
-    return controls;
+    return { recentlyInterrupted, recentlySpoke };
   }
 
-  function freezeControls(controls) {
-    return Object.freeze({
-      expression: controls.expression,
-      gaze: Object.freeze({ ...controls.gaze }),
-      blink: Object.freeze({ ...controls.blink }),
-      brows: Object.freeze({ ...controls.brows }),
-      mouth: Object.freeze({ ...controls.mouth }),
-      posture: Object.freeze({ ...controls.posture }),
-      motion: Object.freeze({ ...controls.motion }),
-    });
-  }
-
-  function faceControlsForPresence(snapshotOrState, options = {}) {
+  function createFaceControllerContext(snapshotOrState, options = {}) {
     const snapshot = normalizeSnapshotInput(snapshotOrState, options);
     const history = readHistory(options);
     const now = resolveNow(options, snapshot, history);
     const profile = controlProfile(options);
     const inputs = controlInputsForPresence(snapshot, { ...options, history, now });
-    const controls = controlsForState(snapshot.state, snapshot.detail, profile, inputs);
+    const stateName = snapshot.state || PresenceState.IDLE || "idle";
 
-    controls.expression = faceExpressionForPresence(snapshotOrState, options);
-    return freezeControls(applyHistoryAdjustments(controls, snapshot, history, now, inputs));
+    return {
+      snapshot,
+      snapshotOrState,
+      stateName,
+      detail: snapshot.detail,
+      history,
+      now,
+      profile,
+      inputs,
+      ageMs: inputs ? inputs.ageMs : stateAgeMs(snapshot, history, now),
+    };
+  }
+
+  function decideGaze(context) {
+    const { stateName, detail, inputs } = context;
+    let control;
+
+    switch (stateName) {
+      case PresenceState.USER_TYPING:
+      case "user-typing":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "input"),
+          x: inputNumber(inputs, "attentionX", -0.18),
+          y: inputNumber(inputs, "attentionY", 0.18),
+          focus: inputNumber(inputs, "focus", 0.7),
+        };
+        break;
+
+      case PresenceState.READING:
+      case "reading":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "content"),
+          x: inputNumber(inputs, "attentionX", -0.2),
+          y: inputNumber(inputs, "attentionY", 0.28),
+          focus: inputNumber(inputs, "focus", 0.76),
+        };
+        break;
+
+      case PresenceState.WAITING:
+      case "waiting":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "response-origin"),
+          x: inputNumber(inputs, "attentionX", -0.08),
+          y: inputNumber(inputs, "attentionY", -0.04),
+          focus: inputNumber(inputs, "focus", 0.66),
+        };
+        break;
+
+      case PresenceState.THINKING:
+      case "thinking":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "middle-distance"),
+          x: inputNumber(inputs, "attentionX", 0.16),
+          y: inputNumber(inputs, "attentionY", -0.02),
+          focus: inputNumber(inputs, "focus", 0.58),
+        };
+        break;
+
+      case PresenceState.STREAMING:
+      case "streaming":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "audience"),
+          x: inputNumber(inputs, "attentionX", 0),
+          y: inputNumber(inputs, "attentionY", 0),
+          focus: inputNumber(inputs, "focus", 0.74),
+        };
+        break;
+
+      case PresenceState.SPEAKING:
+      case "speaking":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "audience"),
+          x: inputNumber(inputs, "attentionX", 0),
+          y: inputNumber(inputs, "attentionY", -0.02),
+          focus: inputNumber(inputs, "focus", 0.78),
+        };
+        break;
+
+      case PresenceState.INTERRUPTED:
+      case "interrupted":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "user"),
+          x: inputNumber(inputs, "attentionX", -0.26),
+          y: inputNumber(inputs, "attentionY", -0.08),
+          focus: inputNumber(inputs, "focus", 0.88),
+        };
+        break;
+
+      case PresenceState.READY:
+      case "ready":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "user"),
+          x: inputNumber(inputs, "attentionX", 0),
+          y: inputNumber(inputs, "attentionY", 0),
+          focus: inputNumber(inputs, "focus", 0.68),
+        };
+        break;
+
+      case PresenceState.ERROR:
+      case "error":
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "status"),
+          x: inputNumber(inputs, "attentionX", 0),
+          y: inputNumber(inputs, "attentionY", 0.18),
+          focus: inputNumber(inputs, "focus", 0.8),
+        };
+        break;
+
+      default:
+        control = {
+          target: faceAttentionTarget(stateName, detail, inputs, "user"),
+          x: inputNumber(inputs, "attentionX", 0),
+          y: inputNumber(inputs, "attentionY", 0),
+          focus: inputNumber(inputs, "focus", 0.56),
+        };
+        break;
+    }
+
+    if (!inputs && isReadyState(stateName)) {
+      const softness = clamp(context.ageMs / 1800, 0, 1);
+      control.focus = clamp(control.focus - softness * 0.1, 0.5, 0.72);
+    }
+
+    return control;
+  }
+
+  function decideBlink(context) {
+    const { stateName, profile } = context;
+
+    switch (stateName) {
+      case PresenceState.USER_TYPING:
+      case "user-typing":
+        return { openness: 1, cadenceMs: 4400, pulse: false };
+
+      case PresenceState.READING:
+      case "reading":
+        return { openness: 0.94, cadenceMs: 5200, pulse: false };
+
+      case PresenceState.WAITING:
+      case "waiting":
+        return { openness: 0.9, cadenceMs: 3400, pulse: false };
+
+      case PresenceState.THINKING:
+      case "thinking":
+        return { openness: 0.82, cadenceMs: 3800, pulse: false };
+
+      case PresenceState.STREAMING:
+      case "streaming":
+        return { openness: 0.98, cadenceMs: 6800, pulse: false };
+
+      case PresenceState.SPEAKING:
+      case "speaking":
+        return { openness: 0.98, cadenceMs: 7200, pulse: false };
+
+      case PresenceState.INTERRUPTED:
+      case "interrupted":
+        return { openness: 0.72, cadenceMs: 900, pulse: true };
+
+      case PresenceState.ERROR:
+      case "error":
+        return { openness: 0.86, cadenceMs: 3000, pulse: false };
+
+      case PresenceState.READY:
+      case "ready":
+      default:
+        return { openness: 1, cadenceMs: profile.blinkCadenceMs, pulse: false };
+    }
+  }
+
+  function decideBrows(context) {
+    const { stateName, detail } = context;
+
+    switch (stateName) {
+      case PresenceState.USER_TYPING:
+      case "user-typing":
+        return { lift: 0.08, pinch: 0.06, asymmetry: 0 };
+
+      case PresenceState.READING:
+      case "reading":
+        return {
+          lift: detail.question ? 0.22 : 0.08,
+          pinch: detail.revision ? 0.2 : 0.12,
+          asymmetry: detail.question ? 0.16 : 0,
+        };
+
+      case PresenceState.WAITING:
+      case "waiting":
+        return { lift: 0.02, pinch: 0.28, asymmetry: 0.04 };
+
+      case PresenceState.THINKING:
+      case "thinking":
+        return { lift: -0.04, pinch: 0.36, asymmetry: 0.08 };
+
+      case PresenceState.STREAMING:
+      case "streaming":
+        return { lift: 0.08, pinch: 0.08, asymmetry: 0 };
+
+      case PresenceState.SPEAKING:
+      case "speaking":
+        return { lift: 0.12, pinch: 0.04, asymmetry: 0 };
+
+      case PresenceState.INTERRUPTED:
+      case "interrupted":
+        return { lift: -0.12, pinch: 0.54, asymmetry: 0.34 };
+
+      case PresenceState.READY:
+      case "ready":
+        return { lift: 0.1, pinch: 0, asymmetry: 0 };
+
+      case PresenceState.ERROR:
+      case "error":
+        return { lift: -0.08, pinch: 0.5, asymmetry: 0.08 };
+
+      default:
+        return { lift: 0, pinch: 0, asymmetry: 0 };
+    }
+  }
+
+  function decideMouth(context) {
+    const { stateName, detail, inputs } = context;
+    let control;
+
+    switch (stateName) {
+      case PresenceState.USER_TYPING:
+      case "user-typing":
+        control = { shape: "listening", openness: 0.03, activity: 0.05, tension: inputNumber(inputs, "tension", 0.08) };
+        break;
+
+      case PresenceState.READING:
+      case "reading":
+        control = {
+          shape: detail.question ? "curious" : "held",
+          openness: 0.04,
+          activity: 0.08,
+          tension: inputNumber(inputs, "tension", detail.revision ? 0.32 : 0.12),
+        };
+        break;
+
+      case PresenceState.WAITING:
+      case "waiting":
+        control = { shape: "preparing", openness: 0.03, activity: 0.16, tension: inputNumber(inputs, "tension", 0.34) };
+        break;
+
+      case PresenceState.THINKING:
+      case "thinking":
+        control = { shape: "pressed", openness: 0.02, activity: 0.12, tension: inputNumber(inputs, "tension", 0.42) };
+        break;
+
+      case PresenceState.STREAMING:
+      case "streaming":
+        control = {
+          shape: "speaking",
+          openness: 0.34,
+          activity: inputNumber(inputs, "speechActivity", 0.82),
+          tension: inputNumber(inputs, "tension", 0.06),
+        };
+        break;
+
+      case PresenceState.SPEAKING:
+      case "speaking":
+        control = {
+          shape: "speaking",
+          openness: 0.42,
+          activity: inputNumber(inputs, "speechActivity", 1),
+          tension: inputNumber(inputs, "tension", 0.04),
+        };
+        break;
+
+      case PresenceState.INTERRUPTED:
+      case "interrupted":
+        control = { shape: "held", openness: 0.07, activity: 0.04, tension: inputNumber(inputs, "tension", 0.72) };
+        break;
+
+      case PresenceState.READY:
+      case "ready":
+        control = {
+          shape: "soft-smile",
+          openness: 0.12,
+          activity: inputNumber(inputs, "speechActivity", 0.1),
+          tension: inputNumber(inputs, "tension", 0),
+        };
+        break;
+
+      case PresenceState.ERROR:
+      case "error":
+        control = { shape: "downturned", openness: 0.03, activity: 0, tension: inputNumber(inputs, "tension", 0.66) };
+        break;
+
+      default:
+        control = { shape: "rest", openness: 0, activity: inputNumber(inputs, "speechActivity", 0), tension: inputNumber(inputs, "tension", 0) };
+        break;
+    }
+
+    const { recentlyInterrupted, recentlySpoke } = recoverySignalsForContext(context);
+    if (isReadyState(stateName) && recentlyInterrupted) {
+      control.tension = Math.max(control.tension, 0.18);
+    } else if (isReadyState(stateName) && recentlySpoke) {
+      control.shape = "release";
+      control.activity = 0.18;
+    }
+
+    return control;
+  }
+
+  function decidePosture(context) {
+    const { stateName, inputs } = context;
+    let control;
+
+    switch (stateName) {
+      case PresenceState.USER_TYPING:
+      case "user-typing":
+        control = { lean: 0.1, turn: -0.04, energy: inputNumber(inputs, "energy", 0.38), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      case PresenceState.READING:
+      case "reading":
+        control = { lean: 0.14, turn: -0.06, energy: inputNumber(inputs, "energy", 0.42), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      case PresenceState.WAITING:
+      case "waiting":
+        control = { lean: 0.24, turn: 0, energy: inputNumber(inputs, "energy", 0.5), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      case PresenceState.THINKING:
+      case "thinking":
+        control = { lean: 0.18, turn: 0.05, energy: inputNumber(inputs, "energy", 0.48), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      case PresenceState.STREAMING:
+      case "streaming":
+        control = { lean: 0.14, turn: 0, energy: inputNumber(inputs, "energy", 0.72), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      case PresenceState.SPEAKING:
+      case "speaking":
+        control = { lean: 0.12, turn: 0, energy: inputNumber(inputs, "energy", 0.78), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      case PresenceState.INTERRUPTED:
+      case "interrupted":
+        control = {
+          lean: -0.22,
+          turn: -0.08,
+          energy: inputNumber(inputs, "energy", 0.62),
+          recovery: Math.max(inputNumber(inputs, "recovery", 0), 0.16),
+        };
+        break;
+
+      case PresenceState.READY:
+      case "ready":
+        control = { lean: 0.02, turn: 0, energy: inputNumber(inputs, "energy", 0.3), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      case PresenceState.ERROR:
+      case "error":
+        control = { lean: -0.12, turn: 0, energy: inputNumber(inputs, "energy", 0.42), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+
+      default:
+        control = { lean: 0, turn: 0, energy: inputNumber(inputs, "energy", 0.2), recovery: inputNumber(inputs, "recovery", 0) };
+        break;
+    }
+
+    if (isReadyState(stateName) && recoverySignalsForContext(context).recentlyInterrupted) {
+      control.recovery = Math.max(control.recovery, 0.42);
+    }
+
+    return control;
+  }
+
+  function decideMotion(context) {
+    const { stateName, inputs, profile } = context;
+    let control;
+
+    switch (stateName) {
+      case PresenceState.USER_TYPING:
+      case "user-typing":
+        control = {
+          energy: 0.34,
+          drift: profile.drift + 0.04,
+          anticipation: inputNumber(inputs, "anticipation", 0.18),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: profile.settleMs,
+        };
+        break;
+
+      case PresenceState.READING:
+      case "reading":
+        control = {
+          energy: 0.34,
+          drift: profile.drift + 0.02,
+          anticipation: inputNumber(inputs, "anticipation", 0.22),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: profile.settleMs,
+        };
+        break;
+
+      case PresenceState.WAITING:
+      case "waiting":
+        control = {
+          energy: 0.46,
+          drift: profile.drift + 0.08,
+          anticipation: inputNumber(inputs, "anticipation", 0.62),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: 120,
+        };
+        break;
+
+      case PresenceState.THINKING:
+      case "thinking":
+        control = {
+          energy: 0.42,
+          drift: profile.drift + 0.05,
+          anticipation: inputNumber(inputs, "anticipation", 0.52),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: 140,
+        };
+        break;
+
+      case PresenceState.STREAMING:
+      case "streaming":
+        control = {
+          energy: 0.78,
+          drift: profile.drift + 0.1,
+          anticipation: inputNumber(inputs, "anticipation", 0.12),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: 90,
+        };
+        break;
+
+      case PresenceState.SPEAKING:
+      case "speaking":
+        control = {
+          energy: 0.86,
+          drift: profile.drift + 0.12,
+          anticipation: inputNumber(inputs, "anticipation", 0),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: 80,
+        };
+        break;
+
+      case PresenceState.INTERRUPTED:
+      case "interrupted":
+        control = {
+          energy: 0.54,
+          drift: profile.drift + 0.04,
+          anticipation: inputNumber(inputs, "anticipation", 0),
+          recovery: inputNumber(inputs, "recovery", 1),
+          settleMs: 90,
+        };
+        break;
+
+      case PresenceState.READY:
+      case "ready":
+        control = {
+          energy: clamp(inputNumber(inputs, "energy", 0.3) - 0.06, 0.16, 1),
+          drift: profile.drift,
+          anticipation: inputNumber(inputs, "anticipation", 0),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: profile.settleMs + 40,
+        };
+        break;
+
+      case PresenceState.ERROR:
+      case "error":
+        control = {
+          energy: 0.18,
+          drift: profile.drift * 0.6,
+          anticipation: inputNumber(inputs, "anticipation", 0),
+          recovery: Math.max(inputNumber(inputs, "recovery", 0), 0.24),
+          settleMs: profile.settleMs + 80,
+        };
+        break;
+
+      default:
+        control = {
+          energy: inputNumber(inputs, "energy", 0.2),
+          drift: profile.drift,
+          anticipation: inputNumber(inputs, "anticipation", 0),
+          recovery: inputNumber(inputs, "recovery", 0),
+          settleMs: profile.settleMs,
+        };
+        break;
+    }
+
+    const { recentlyInterrupted, recentlySpoke } = recoverySignalsForContext(context);
+    if (isReadyState(stateName) && recentlyInterrupted) {
+      control.recovery = Math.max(control.recovery, 0.38);
+      control.settleMs = Math.max(control.settleMs, 220);
+    } else if (isReadyState(stateName) && recentlySpoke) {
+      control.settleMs = Math.max(control.settleMs, 210);
+    }
+
+    if (!inputs && isReadyState(stateName)) {
+      const softness = clamp(context.ageMs / 1800, 0, 1);
+      control.energy = clamp(control.energy - softness * 0.08, 0.16, 1);
+    }
+
+    return control;
+  }
+
+  const faceControllerDeciders = Object.freeze({
+    gaze: decideGaze,
+    blink: decideBlink,
+    brows: decideBrows,
+    mouth: decideMouth,
+    posture: decidePosture,
+    motion: decideMotion,
+  });
+
+  function composeFaceControllerDecisions(context) {
+    const decisions = {};
+    for (const channel of FACE_CONTROL_CHANNELS) {
+      decisions[channel] = Object.freeze({
+        channel,
+        controller: `${channel}-controller`,
+        reads: FACE_CONTROLLER_READS[channel],
+        control: Object.freeze(faceControllerDeciders[channel](context)),
+      });
+    }
+    return Object.freeze(decisions);
+  }
+
+  function freezeSharedControlInputs(inputs) {
+    if (!inputs) return null;
+    return Object.freeze({
+      ...inputs,
+      recentStates: Object.freeze([...(inputs.recentStates || [])]),
+    });
+  }
+
+  function freezeControlsFromDecisions(expression, decisions) {
+    return Object.freeze({
+      expression,
+      gaze: decisions.gaze.control,
+      blink: decisions.blink.control,
+      brows: decisions.brows.control,
+      mouth: decisions.mouth.control,
+      posture: decisions.posture.control,
+      motion: decisions.motion.control,
+    });
+  }
+
+  function faceControllerDecisionsForPresence(snapshotOrState, options = {}) {
+    const context = createFaceControllerContext(snapshotOrState, options);
+    const expression = faceExpressionForPresence(context.snapshotOrState, options);
+    return Object.freeze({
+      state: context.stateName,
+      expression,
+      sharedInputs: freezeSharedControlInputs(context.inputs),
+      decisions: composeFaceControllerDecisions(context),
+    });
+  }
+
+  function faceControlsForPresence(snapshotOrState, options = {}) {
+    const report = faceControllerDecisionsForPresence(snapshotOrState, options);
+    return freezeControlsFromDecisions(report.expression, report.decisions);
   }
 
   function createFaceControllerRuntime(options = {}) {
@@ -470,8 +834,10 @@
     FaceExpression,
     FACE_EXPRESSIONS,
     DEFAULT_FACE_MAP,
+    FACE_CONTROL_CHANNELS,
     createFaceControllerRuntime,
     createFaceRenderer,
+    faceControllerDecisionsForPresence,
     faceControlsForPresence,
     faceExpressionForPresence,
     isFaceExpression,
