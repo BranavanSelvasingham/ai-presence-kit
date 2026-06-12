@@ -11,13 +11,14 @@ const {
   PresenceProvider,
   PresenceRenderer,
   usePresenceControlInputs,
+  usePresenceFrameTime,
   usePresenceSnapshot,
   usePresenceState,
 } =
   createPresenceReactBindings(React);
 ```
 
-The factory expects React to provide `createContext`, `createElement`, `useContext`, and `useSyncExternalStore`. The presence runtime itself comes from `@ai-presence/core`, so renderers remain replaceable.
+The factory expects React to provide `createContext`, `createElement`, `useContext`, `useEffect`, `useState`, and `useSyncExternalStore`. The presence runtime itself comes from `@ai-presence/core`, so renderers remain replaceable.
 
 Use `usePresenceControlInputs()` when a React surface needs the shared renderer-agnostic control layer:
 
@@ -30,4 +31,17 @@ function PresenceStatus() {
 
 For before-output postures such as `thinking` and `waiting`, the hook exposes inputs like `latencyPhase: "before-output"` and `attentionTarget: "response"` without importing the face renderer.
 
-The local browser example at `examples/react-browser.html` uses actual React and ReactDOM UMD builds to exercise the provider, snapshot hook, renderer slot, AI SDK adapter, and face renderer mapping.
+Use `usePresenceFrameTime()` when a React renderer needs a live millisecond clock for temporal frames between presence state changes:
+
+```js
+function PresenceSurface() {
+  const snapshot = usePresenceSnapshot();
+  const frameTimeMs = usePresenceFrameTime();
+
+  return render(snapshot, { now: frameTimeMs, timeMs: frameTimeMs });
+}
+```
+
+The hook defaults to `Date.now()` so it shares the same epoch as presence runtime snapshots. Pass `{ now }` in tests or deterministic renderers.
+
+The local browser example at `examples/react-browser.html` uses actual React and ReactDOM UMD builds to exercise the provider, snapshot hook, renderer slot, frame-time hook, AI SDK adapter, and face renderer mapping.
