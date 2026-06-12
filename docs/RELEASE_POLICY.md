@@ -22,6 +22,15 @@ Registry check on 2026-05-30:
 @ai-presence/react -> npm E404, not published
 ```
 
+Registry recheck on 2026-06-12:
+
+```text
+@ai-presence/core -> npm E404, not published
+@ai-presence/face -> npm E404, not published
+@ai-presence/adapters -> npm E404, not published
+@ai-presence/react -> npm E404, not published
+```
+
 Run this again immediately before publishing:
 
 ```bash
