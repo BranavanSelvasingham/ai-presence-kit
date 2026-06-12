@@ -6,11 +6,20 @@
 
 - Added root orchestration artifacts: `AGENTS.md`, `CORE_PILLARS.md`, `OPERATING_MANUAL.md`, `VALIDATION.md`, and `docs/ORCHESTRATION_LOOP.md`.
 - Added `createPresenceTrace` to `@ai-presence/core` for bounded transition timelines with elapsed timing.
+- Added shared renderer-agnostic control inputs for attention, tension, energy, anticipation, recovery, speech activity, interruption, latency phase, and recent state history.
+- Added parallel face controller decisions for gaze, blink, brows, mouth, posture, and motion in `@ai-presence/face`.
+- Added deterministic temporal frame APIs in `@ai-presence/face`, including `faceControllerFrameForPresence` and `createFaceControllerFrameRuntime`.
+- Added the no-DOM `renderPresenceFaceSvg` reference renderer API with inspectable six-channel frame evidence.
+- Added `usePresenceControlInputs()` and `usePresenceFrameTime()` to the React binding factory.
+- Added browser demo evidence for controller composition, temporal frame sequences, before-first-token presence, and React-to-SVG renderer wiring.
 - Reframed the main objective around a low-latency facial presence engine driven by parallel micro-decisions.
 
 ### Validation
 
 - Added package-surface and ESM tests for the core trace export.
+- Added controller-gallery, face-renderer, comparison-before-token, React binding, React browser, package-surface, and ESM coverage for the current package surface.
+- Added README media validation for the comparison and React browser demo screenshots.
+- Expanded release readiness docs around browser smoke routes, package dry-runs, and package-name checks.
 
 ## 0.0.0
 

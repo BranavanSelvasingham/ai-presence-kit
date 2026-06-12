@@ -53,6 +53,18 @@ assert.match(releasePolicy, /npm run release:check-names/);
 assert.match(releasePolicy, /@ai-presence\/core -> npm E404/);
 assert.match(releasePolicy, /scope/);
 
+const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
+assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
+assert.match(releaseReadiness, /renderPresenceFaceSvg/);
+assert.match(releaseReadiness, /usePresenceFrameTime/);
+assert.match(releaseReadiness, /before the first visible token/);
+
+const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
+assert.match(changelog, /parallel face controller decisions/);
+assert.match(changelog, /renderPresenceFaceSvg/);
+assert.match(changelog, /usePresenceFrameTime/);
+assert.match(changelog, /before-first-token presence/);
+
 for (const mediaFile of [
   "docs/media/presence-comparison.jpg",
   "docs/media/react-browser-demo.jpg",

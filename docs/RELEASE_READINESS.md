@@ -20,6 +20,13 @@ Each package has:
 - README
 - `files` allowlist
 
+Current public API proof points:
+
+- `@ai-presence/core` owns canonical states, events, runtimes, traces, and renderer-agnostic control inputs.
+- `@ai-presence/face` owns expression mapping, parallel controller decisions, temporal frame reports, and `renderPresenceFaceSvg`.
+- `@ai-presence/adapters` owns plain-object bridges for generic runtime signals, Vercel AI SDK status, OpenAI Realtime events, and generic chat events.
+- `@ai-presence/react` owns provider/runtime/snapshot hooks, renderer slots, shared control-input access, and the renderer-agnostic `usePresenceFrameTime()` hook.
+
 ## Demo Surfaces
 
 ```text
@@ -66,9 +73,12 @@ Also run `git diff --check` before committing.
 Then browser-smoke:
 
 - Reference demo loads with no console warnings or errors.
+- Metrics route exposes canonical `Presence state`, controller composition, controller evidence, and live controller frame evidence.
 - Comparison route completes with equal first-token timing on both panes.
+- Comparison route confirms the presence side exposes state and frame channels before the first visible token.
 - Mobile comparison route has no horizontal overflow.
 - React browser demo loads with actual React/ReactDOM, runs a simulated AI SDK turn, and returns to `ready`.
+- React browser demo uses `@ai-presence/face` SVG output and proves frame time can advance while the presence state is stable.
 - README media exists for the A/B comparison and React browser demo.
 
 GitHub Actions runs `npm ci` and `npm run validate` on pushes to `main` and pull requests.
