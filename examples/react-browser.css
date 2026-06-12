@@ -81,11 +81,10 @@ h1 {
 .react-face {
   display: block;
   width: min(260px, 82%);
+  height: auto;
   margin: 26px auto 18px;
   fill: none;
-  stroke: var(--green);
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  color: var(--green);
   transition: transform 180ms ease;
 }
 
@@ -98,25 +97,10 @@ h1 {
   transform: rotate(0.9deg);
 }
 
-.react-face-frame {
-  stroke-width: 1.4;
-}
-
-.react-eye {
-  fill: var(--ink);
-  stroke-width: 0;
-}
-
-.react-face[data-face-expression="thinking"] .react-eye {
-  transform: translateX(-2px);
-}
-
-.react-face[data-face-expression="reading"] .react-eye {
-  transform: translateY(-1px);
-}
-
-.react-mouth {
-  stroke-width: 2;
+.face-renderer-slot {
+  min-height: 224px;
+  display: grid;
+  place-items: center;
 }
 
 .presence-readout {
