@@ -55,6 +55,7 @@ assert.match(releasePolicy, /scope/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
+assert.match(releaseReadiness, /motionScale/);
 assert.match(releaseReadiness, /renderPresenceFaceSvg/);
 assert.match(releaseReadiness, /usePresenceFrameTime/);
 assert.match(releaseReadiness, /before the first visible token/);
@@ -62,6 +63,7 @@ assert.match(releaseReadiness, /before the first visible token/);
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
 assert.match(changelog, /renderPresenceFaceSvg/);
+assert.match(changelog, /motionScale/);
 assert.match(changelog, /usePresenceFrameTime/);
 assert.match(changelog, /before-first-token presence/);
 

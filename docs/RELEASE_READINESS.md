@@ -23,7 +23,7 @@ Each package has:
 Current public API proof points:
 
 - `@ai-presence/core` owns canonical states, events, runtimes, traces, and renderer-agnostic control inputs.
-- `@ai-presence/face` owns expression mapping, parallel controller decisions, temporal frame reports, and `renderPresenceFaceSvg`.
+- `@ai-presence/face` owns expression mapping, parallel controller decisions, temporal frame reports, the `motionScale` reduced-motion option, and `renderPresenceFaceSvg`.
 - `@ai-presence/adapters` owns plain-object bridges for generic runtime signals, Vercel AI SDK status, OpenAI Realtime events, and generic chat events.
 - `@ai-presence/react` owns provider/runtime/snapshot hooks, renderer slots, shared control-input access, and the renderer-agnostic `usePresenceFrameTime()` hook.
 

@@ -10,6 +10,7 @@
 - Added parallel face controller decisions for gaze, blink, brows, mouth, posture, and motion in `@ai-presence/face`.
 - Added deterministic temporal frame APIs in `@ai-presence/face`, including `faceControllerFrameForPresence` and `createFaceControllerFrameRuntime`.
 - Added the no-DOM `renderPresenceFaceSvg` reference renderer API with inspectable six-channel frame evidence.
+- Added `motionScale` to `@ai-presence/face` frame and SVG renderer APIs for reduced-motion/still output without removing controller evidence.
 - Added `usePresenceControlInputs()` and `usePresenceFrameTime()` to the React binding factory.
 - Added browser demo evidence for controller composition, temporal frame sequences, before-first-token presence, and React-to-SVG renderer wiring.
 - Reframed the main objective around a low-latency facial presence engine driven by parallel micro-decisions.
