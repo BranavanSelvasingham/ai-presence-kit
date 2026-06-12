@@ -10,7 +10,9 @@ import type {
 export interface ReactLike {
   createContext(defaultValue: PresenceRuntime): unknown;
   createElement(type: unknown, props: Record<string, unknown>, children: unknown): unknown;
+  useEffect(effect: () => void | (() => void), deps?: ReadonlyArray<unknown>): void;
   useContext(context: unknown): PresenceRuntime;
+  useState<T>(initialState: T | (() => T)): [T, (value: T) => void];
   useSyncExternalStore(
     subscribe: (listener: () => void) => () => void,
     getSnapshot: () => PresenceSnapshot,
@@ -28,6 +30,10 @@ export interface PresenceRendererProps {
   children?: (snapshot: PresenceSnapshot) => unknown;
 }
 
+export interface PresenceFrameTimeOptions {
+  now?: () => number;
+}
+
 export interface PresenceReactBindings {
   PresenceContext: unknown;
   PresenceProvider(props: PresenceProviderProps): unknown;
@@ -37,6 +43,7 @@ export interface PresenceReactBindings {
     runtime?: PresenceRuntime | null,
     options?: PresenceControlInputOptions,
   ): PresenceControlInputs;
+  usePresenceFrameTime(options?: PresenceFrameTimeOptions): number;
   usePresenceRuntime(): PresenceRuntime;
   usePresenceSnapshot(runtime?: PresenceRuntime | null): PresenceSnapshot;
   usePresenceState(runtime?: PresenceRuntime | null): PresenceStateValue;

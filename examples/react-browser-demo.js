@@ -143,9 +143,11 @@
   }
 
   function FaceRendererSlot({ snapshot }) {
+    const frameTimeMs = bindings.usePresenceFrameTime();
     const renderedFace = renderPresenceFaceSvg(snapshot, {
       className: "react-face",
-      timeMs: snapshot.updatedAt,
+      now: frameTimeMs,
+      timeMs: frameTimeMs,
       title: `Reference face rendering ${snapshot.state}`,
     });
 
@@ -156,6 +158,8 @@
         "data-face-svg-renderer": "@ai-presence/face",
         "data-face-svg-state": renderedFace.state,
         "data-face-svg-channels": renderedFace.attributes.channels,
+        "data-face-svg-frame-time": String(frameTimeMs),
+        "data-face-svg-motion-energy": renderedFace.attributes.motionEnergy,
         "data-renderer-slot-face": "",
         dangerouslySetInnerHTML: { __html: renderedFace.svg },
       },
