@@ -31,6 +31,15 @@
     }
   }
 
+  function assertFrameReact(React) {
+    const missing = [];
+    if (!React?.useEffect) missing.push("useEffect");
+    if (!React?.useState) missing.push("useState");
+    if (missing.length) {
+      throw new TypeError(`usePresenceFrameTime requires React with ${missing.join(", ")}.`);
+    }
+  }
+
   function assertCore() {
     if (!core?.createPresenceRuntime || !core?.presenceControlInputsForSnapshot) {
       throw new Error("AI Presence core is required before creating React bindings.");
@@ -69,6 +78,44 @@
       return core.presenceControlInputsForSnapshot(usePresenceSnapshot(runtime), options);
     }
 
+    function usePresenceFrameTime(options = {}) {
+      assertFrameReact(React);
+      const now = typeof options.now === "function" ? options.now : Date.now;
+      const [timeMs, setTimeMs] = React.useState(() => now());
+
+      React.useEffect(() => {
+        let active = true;
+        let frameId = null;
+        let timeoutId = null;
+        const requestFrame = globalScope.requestAnimationFrame;
+        const cancelFrame = globalScope.cancelAnimationFrame;
+
+        function scheduleNextFrame() {
+          if (typeof requestFrame === "function") {
+            frameId = requestFrame(tick);
+            return;
+          }
+          timeoutId = setTimeout(tick, 16);
+        }
+
+        function tick() {
+          if (!active) return;
+          setTimeMs(now());
+          scheduleNextFrame();
+        }
+
+        scheduleNextFrame();
+
+        return () => {
+          active = false;
+          if (frameId !== null && typeof cancelFrame === "function") cancelFrame(frameId);
+          if (timeoutId !== null) clearTimeout(timeoutId);
+        };
+      }, [now]);
+
+      return timeMs;
+    }
+
     function PresenceRenderer({ runtime = null, children }) {
       const snapshot = usePresenceSnapshot(runtime);
       return typeof children === "function" ? children(snapshot) : null;
@@ -80,6 +127,7 @@
       PresenceRenderer,
       defaultRuntime,
       usePresenceControlInputs,
+      usePresenceFrameTime,
       usePresenceRuntime,
       usePresenceSnapshot,
       usePresenceState,

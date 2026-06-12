@@ -24,12 +24,16 @@ assert.match(script, /usePresenceControlInputs\(null, \{ now: snapshot\.updatedA
 assert.match(script, /data-presence-phase/);
 assert.match(script, /data-presence-attention/);
 assert.match(script, /faceExpressionForPresence\(snapshot\)/);
+assert.match(script, /usePresenceFrameTime\(\)/);
 assert.match(script, /renderPresenceFaceSvg\(snapshot, \{/);
-assert.match(script, /timeMs: snapshot\.updatedAt/);
+assert.match(script, /now: frameTimeMs/);
+assert.match(script, /timeMs: frameTimeMs/);
 assert.match(script, /dangerouslySetInnerHTML: \{ __html: renderedFace\.svg \}/);
 assert.match(script, /data-face-svg-renderer/);
 assert.match(script, /data-face-svg-state/);
 assert.match(script, /data-face-svg-channels/);
+assert.match(script, /data-face-svg-frame-time/);
+assert.match(script, /data-face-svg-motion-energy/);
 assert.match(script, /data-renderer-slot-face/);
 assert.match(script, /@ai-presence\/face/);
 assert.doesNotMatch(script, /emotion/i);

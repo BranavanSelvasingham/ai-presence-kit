@@ -152,6 +152,15 @@ const fakeReact = {
   useContext(context) {
     return contextValue || context.defaultValue;
   },
+  useEffect(effect) {
+    const cleanup = effect();
+    if (typeof cleanup === "function") cleanup();
+    return cleanup;
+  },
+  useState(initialState) {
+    const state = typeof initialState === "function" ? initialState() : initialState;
+    return [state, () => {}];
+  },
   useSyncExternalStore(subscribe, getSnapshot) {
     const unsubscribe = subscribe(() => {});
     unsubscribe();
@@ -162,12 +171,20 @@ const fakeReact = {
 const reactApi = require(resolve(root, "packages/react"));
 const reactBindings = reactApi.createPresenceReactBindings(fakeReact);
 assert.equal(typeof reactBindings.usePresenceControlInputs, "function");
+assert.equal(typeof reactBindings.usePresenceFrameTime, "function");
 reactBindings.defaultRuntime.send(coreApi.PresenceEvent.SUBMIT);
 assert.equal(reactBindings.usePresenceControlInputs().latencyPhase, "before-output");
+
+const reactEsmApi = await import(pathToFileURL(resolve(root, "packages/react/dist/index.mjs")).href);
+const reactEsmBindings = reactEsmApi.createPresenceReactBindings(fakeReact);
+assert.equal(typeof reactEsmBindings.usePresenceFrameTime, "function");
+assert.equal(reactEsmBindings.usePresenceFrameTime({ now: () => 1200 }), 1200);
 
 const reactTypes = readFileSync(resolve(root, "packages/react/src/presence-react.d.ts"), "utf8");
 assert.match(reactTypes, /PresenceControlInputOptions/);
 assert.match(reactTypes, /PresenceControlInputs/);
 assert.match(reactTypes, /usePresenceControlInputs/);
+assert.match(reactTypes, /PresenceFrameTimeOptions/);
+assert.match(reactTypes, /usePresenceFrameTime/);
 
 console.log("package-surface ok");

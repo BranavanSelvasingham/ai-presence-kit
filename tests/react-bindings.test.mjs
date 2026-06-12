@@ -6,6 +6,8 @@ const { PresenceEvent, PresenceState, createPresenceRuntime } = require("../pack
 const { createPresenceReactBindings } = require("../packages/react/src/presence-react.js");
 
 let contextValue = null;
+let latestStateValue = null;
+let latestEffectCleanup = null;
 const fakeReact = {
   createContext(defaultValue) {
     contextValue = defaultValue;
@@ -21,6 +23,18 @@ const fakeReact = {
   useContext(context) {
     return contextValue || context.defaultValue;
   },
+  useEffect(effect) {
+    latestEffectCleanup = effect();
+  },
+  useState(initialState) {
+    latestStateValue = typeof initialState === "function" ? initialState() : initialState;
+    return [
+      latestStateValue,
+      (value) => {
+        latestStateValue = value;
+      },
+    ];
+  },
   useSyncExternalStore(subscribe, getSnapshot) {
     const unsubscribe = subscribe(() => {});
     unsubscribe();
@@ -33,6 +47,7 @@ const bindings = createPresenceReactBindings(fakeReact, { runtime });
 
 assert.equal(bindings.usePresenceState(), PresenceState.IDLE);
 assert.equal(typeof bindings.usePresenceControlInputs, "function");
+assert.equal(typeof bindings.usePresenceFrameTime, "function");
 runtime.send(PresenceEvent.USER_INPUT, { text: "Hello" });
 assert.equal(bindings.usePresenceSnapshot().state, PresenceState.USER_TYPING);
 
@@ -51,6 +66,33 @@ const waitingInputs = bindings.usePresenceControlInputs(runtime, {
 assert.equal(waitingInputs.state, PresenceState.WAITING);
 assert.equal(waitingInputs.latencyPhase, "before-output");
 assert.equal(waitingInputs.attentionTarget, "response");
+
+const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+const originalCancelAnimationFrame = globalThis.cancelAnimationFrame;
+let queuedFrame = null;
+let cancelledFrame = null;
+globalThis.requestAnimationFrame = (callback) => {
+  queuedFrame = callback;
+  return 42;
+};
+globalThis.cancelAnimationFrame = (frameId) => {
+  cancelledFrame = frameId;
+};
+let frameNow = 1000;
+const frameTime = bindings.usePresenceFrameTime({
+  now: () => {
+    frameNow += 16;
+    return frameNow;
+  },
+});
+assert.equal(frameTime, 1016);
+assert.equal(typeof queuedFrame, "function");
+queuedFrame();
+assert.equal(latestStateValue, 1032);
+latestEffectCleanup();
+assert.equal(cancelledFrame, 42);
+globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+globalThis.cancelAnimationFrame = originalCancelAnimationFrame;
 
 const providerElement = bindings.PresenceProvider({
   runtime,
