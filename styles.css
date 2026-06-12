@@ -67,7 +67,9 @@ button {
   display: grid;
   place-items: center;
   --breath-duration: 4.8s;
-  transform: translateY(0) rotate(var(--face-tilt, 0deg));
+  --face-offset-x: 0px;
+  --face-offset-y: 0px;
+  transform: translate(var(--face-offset-x), var(--face-offset-y)) rotate(var(--face-tilt, 0deg));
   transition: width var(--slow), transform var(--slow);
 }
 
@@ -553,7 +555,7 @@ textarea::placeholder {
 
 .stage:has(.metrics:not([hidden])) .face-shell {
   width: min(54vw, 455px);
-  transform: translateX(clamp(-112px, -9vw, -56px)) rotate(var(--face-tilt, 0deg));
+  transform: translateX(clamp(-112px, -9vw, -56px)) translate(var(--face-offset-x), var(--face-offset-y)) rotate(var(--face-tilt, 0deg));
 }
 
 .metric-row {
@@ -1125,7 +1127,7 @@ body.comparison-mode .app {
 
   .stage:has(.metrics:not([hidden])) .face-shell {
     width: min(84vw, 400px);
-    transform: rotate(var(--face-tilt, 0deg));
+    transform: translate(var(--face-offset-x), var(--face-offset-y)) rotate(var(--face-tilt, 0deg));
   }
 
   .metrics {

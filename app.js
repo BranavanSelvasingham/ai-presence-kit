@@ -125,6 +125,8 @@ const runtime = {
   faceControllerRuntime: null,
   faceControls: null,
   faceDecisionReport: null,
+  faceFrameReport: null,
+  faceFrameAnimation: null,
   defaultRendererState: "idle",
   state: "idle",
   expressionSource: "idle",
@@ -563,19 +565,33 @@ function faceControlProfile() {
   };
 }
 
-function updateFaceControls(snapshot) {
-  if (!runtime.faceControllerRuntime) return null;
-  const options = {
+function faceControllerOptions(now = performance.now()) {
+  return {
     trace: runtime.presenceTrace,
-    now: performance.now(),
+    now,
+    timeMs: now,
     profile: faceControlProfile(),
   };
+}
+
+function updateFaceControls(snapshot) {
+  if (!runtime.faceControllerRuntime) return null;
+  const options = faceControllerOptions();
   const controls = runtime.faceControllerRuntime.update(snapshot, options);
   runtime.faceDecisionReport = typeof PresenceFace.faceControllerDecisionsForPresence === "function"
     ? PresenceFace.faceControllerDecisionsForPresence(snapshot, options)
     : null;
+  runtime.faceFrameReport = typeof PresenceFace.faceControllerFrameForPresence === "function"
+    ? PresenceFace.faceControllerFrameForPresence(snapshot, options)
+    : null;
   runtime.faceControls = controls;
   return controls;
+}
+
+function updateFaceFrameReport(snapshot = runtime.presenceSnapshot) {
+  if (!snapshot || typeof PresenceFace.faceControllerFrameForPresence !== "function") return null;
+  runtime.faceFrameReport = PresenceFace.faceControllerFrameForPresence(snapshot, faceControllerOptions());
+  return runtime.faceFrameReport;
 }
 
 function activeFaceControls() {
@@ -584,6 +600,14 @@ function activeFaceControls() {
 
 function activeFaceDecisionReport() {
   return runtime.faceDecisionReport || null;
+}
+
+function activeFaceFrameReport() {
+  return runtime.faceFrameReport || null;
+}
+
+function activeFaceFrame() {
+  return activeFaceFrameReport()?.frame || null;
 }
 
 function controlsFromDecisionReport(report) {
@@ -614,6 +638,33 @@ function shortPercent(value) {
 function signedNumber(value) {
   const rounded = Number(value || 0).toFixed(2);
   return rounded === "-0.00" ? "0.00" : rounded;
+}
+
+function frameChannelText(channel, frameControl) {
+  if (!frameControl) return "none";
+  switch (channel) {
+    case "gaze":
+      return `target ${frameControl.target} x ${signedNumber(frameControl.x)} y ${signedNumber(frameControl.y)} focus ${shortPercent(frameControl.focus)}% drift ${signedNumber(frameControl.driftX)},${signedNumber(frameControl.driftY)}`;
+    case "blink":
+      return `open ${shortPercent(frameControl.openness)}% phase ${shortPercent(frameControl.phase)}% pulse ${frameControl.pulse ? "yes" : "no"}`;
+    case "brows":
+      return `lift ${signedNumber(frameControl.lift)} pinch ${signedNumber(frameControl.pinch)} asym ${signedNumber(frameControl.asymmetry)}`;
+    case "mouth":
+      return `${frameControl.shape} open ${shortPercent(frameControl.openness)}% activity ${shortPercent(frameControl.activity)}% beat ${shortPercent(frameControl.beat)}%`;
+    case "posture":
+      return `lean ${signedNumber(frameControl.lean)} turn ${signedNumber(frameControl.turn)} breath ${shortPercent(frameControl.breath)}%`;
+    case "motion":
+      return `offset ${signedNumber(frameControl.offsetX)},${signedNumber(frameControl.offsetY)} energy ${shortPercent(frameControl.energy)}% recovery ${shortPercent(frameControl.recovery)}%`;
+    default:
+      return JSON.stringify(frameControl);
+  }
+}
+
+function frameSummary(report = activeFaceFrameReport()) {
+  if (!report?.frame) return "none";
+  return FACE_CONTROL_CHANNELS
+    .map((channel) => `${channel}:${frameChannelText(channel, report.frame[channel])}`)
+    .join(" | ");
 }
 
 function decisionForChannel(report, channel) {
@@ -673,6 +724,7 @@ function syncPresenceSnapshot(snapshot) {
   faceShell.dataset.faceControls = controls ? controlsSummary(controls) : "none";
   faceShell.dataset.controllerComposition = controllerCompositionText();
   faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
+  faceShell.dataset.controllerFrame = frameSummary();
   if (controls?.expression && controls.expression !== runtime.state) {
     setExpression(controls.expression, null, "face-controller", {
       immediate: snapshot.changed || controls.motion.settleMs <= 140,
@@ -735,6 +787,7 @@ function setPresence(level) {
       faceShell.dataset.faceControls = controlsSummary(controls);
       faceShell.dataset.controllerComposition = controllerCompositionText();
       faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
+      faceShell.dataset.controllerFrame = frameSummary();
     }
   }
   setExpression(runtime.state, null, runtime.expressionSource, { immediate: true });
@@ -778,14 +831,19 @@ function applyExpression(name, eventStartedAt = null, source = runtime.expressio
   const expression = expressions[name] || expressions.idle;
   const profile = currentPresenceProfile();
   const controls = activeFaceControls();
+  const frame = runtime.motionOk ? updateFaceFrameReport()?.frame : null;
+  const posture = frame?.posture || controls?.posture;
+  const motion = frame?.motion || controls?.motion;
   const eyes = scaleEyes(expression.eyes, profile.gain);
-  const postureTilt = controls
-    ? (controls.posture.turn * 12) - (controls.posture.lean * 4) + (controls.motion.recovery * 1.5)
+  const postureTilt = posture && motion
+    ? (posture.turn * 12) - (posture.lean * 4) + (motion.recovery * 1.5)
     : 0;
   const tilt = scaleValue((expressionTilts[name] || 0) + postureTilt, profile.tilt);
-  const breathFactor = controls
-    ? clamp(0.84 + controls.motion.energy * 0.38 + controls.motion.anticipation * 0.12 - controls.motion.recovery * 0.08, 0.7, 1.3)
+  const breathFactor = motion
+    ? clamp(0.84 + motion.energy * 0.38 + motion.anticipation * 0.12 + (posture?.breath || 0) * 0.16 - motion.recovery * 0.08, 0.7, 1.38)
     : 1;
+  const frameOffsetX = frame ? scaleValue(frame.motion.offsetX * 8.4, profile.tilt) : 0;
+  const frameOffsetY = frame ? scaleValue(frame.motion.offsetY * 5.8, profile.tilt) : 0;
 
   runtime.state = name;
   runtime.expressionSource = source;
@@ -793,7 +851,10 @@ function applyExpression(name, eventStartedAt = null, source = runtime.expressio
   faceShell.dataset.state = name;
   faceShell.dataset.rendererState = name;
   faceShell.dataset.presence = runtime.presence;
+  faceShell.dataset.controllerFrame = frameSummary();
   faceShell.style.setProperty("--face-tilt", `${tilt.toFixed(2)}deg`);
+  faceShell.style.setProperty("--face-offset-x", `${frameOffsetX.toFixed(2)}px`);
+  faceShell.style.setProperty("--face-offset-y", `${frameOffsetY.toFixed(2)}px`);
   faceShell.style.setProperty("--breath-duration", `${(4.8 / (profile.breath * breathFactor)).toFixed(2)}s`);
   document.documentElement.style.setProperty("--fast", `${profile.fast}ms cubic-bezier(0.2, 0.8, 0.2, 1)`);
   document.documentElement.style.setProperty("--slow", `${profile.slow}ms cubic-bezier(0.2, 0.8, 0.2, 1)`);
@@ -801,8 +862,8 @@ function applyExpression(name, eventStartedAt = null, source = runtime.expressio
   faceSvg.style.color = expression.color;
   browLeft.setAttribute("d", expression.brows[0]);
   browRight.setAttribute("d", expression.brows[1]);
-  applyBrowControls(controls, profile);
-  renderMouth(expression.mouth, profile);
+  applyBrowControls(frame ? { brows: frame.brows } : controls, profile);
+  renderMouth(expression.mouth, profile, frame);
   breath.setAttribute("d", expression.breath);
 
   eyeLeft.setAttribute("rx", formatSvgNumber(eyes.rx));
@@ -810,15 +871,15 @@ function applyExpression(name, eventStartedAt = null, source = runtime.expressio
   eyeRight.setAttribute("rx", formatSvgNumber(eyes.rx));
   eyeRight.setAttribute("ry", formatSvgNumber(eyes.ry));
   runtime.currentEyes = eyes;
-  renderEyeMotion();
+  renderEyeMotion(frame);
   browLeft.style.strokeWidth = formatSvgNumber(6.5 * profile.line);
   browRight.style.strokeWidth = formatSvgNumber(6.5 * profile.line);
   breath.style.strokeWidth = formatSvgNumber(3 * profile.line);
   breath.style.opacity = formatSvgNumber(0.18 * profile.breath);
 
-  const frame = document.querySelector(".face-frame");
-  frame.style.stroke = expression.color;
-  frame.style.fill = colorWash(expression.color, profile.color);
+  const faceFramePath = document.querySelector(".face-frame");
+  faceFramePath.style.stroke = expression.color;
+  faceFramePath.style.fill = colorWash(expression.color, profile.color);
   breath.style.stroke = expression.color;
 
   if (eventStartedAt !== null) {
@@ -858,22 +919,23 @@ function applyBrowControls(controls, profile = currentPresenceProfile()) {
   browRight.style.transform = `translate(${formatSvgNumber(pinch)}px, ${formatSvgNumber(lift + asymmetry)}px)`;
 }
 
-function renderMouth(shape, profile = currentPresenceProfile()) {
+function renderMouth(shape, profile = currentPresenceProfile(), frame = runtime.motionOk ? activeFaceFrame() : null) {
   const mouthShape = normalizeMouth(shape);
   const controls = activeFaceControls();
-  const mouthControl = controls?.mouth;
+  const mouthControl = frame?.mouth || controls?.mouth;
   const controlOpen = mouthControl ? mouthControl.openness : 0;
   const controlActivity = mouthControl ? mouthControl.activity : 0;
   const controlTension = mouthControl ? mouthControl.tension : 0;
+  const controlBeat = mouthControl?.beat || 0;
   const x = scaleValue(mouthShape.x || 0, profile.gain);
-  const y = scaleValue((mouthShape.y || 0) + controlTension * 1.4 - controlOpen * 0.9, profile.gain);
+  const y = scaleValue((mouthShape.y || 0) + controlTension * 1.4 - controlOpen * 0.9 - controlBeat * 0.45, profile.gain);
   const scaleX = scaleFromNeutral(
-    (mouthShape.scaleX || 1) + controlActivity * 0.035 - controlTension * 0.035,
+    (mouthShape.scaleX || 1) + controlActivity * 0.035 + controlBeat * 0.025 - controlTension * 0.035,
     1,
     profile.gain,
   );
   const scaleY = scaleFromNeutral(
-    (mouthShape.scaleY || 1) + controlOpen * 0.52 + controlActivity * 0.06 - controlTension * 0.09,
+    (mouthShape.scaleY || 1) + controlOpen * 0.52 + controlActivity * 0.06 + controlBeat * 0.18 - controlTension * 0.09,
     1,
     profile.gain,
   );
@@ -1471,13 +1533,24 @@ function scaleEyes(eyes, gain) {
   };
 }
 
-function renderEyeMotion() {
+function blinkPhaseScale(frameBlink) {
+  if (!frameBlink) return 1;
+  const phase = clamp(frameBlink.phase, 0, 1);
+  const closure = phase < 0.08
+    ? 1 - Math.abs(phase - 0.04) / 0.04
+    : phase > 0.92
+      ? (phase - 0.92) / 0.08
+      : 0;
+  return clamp(1 - closure * (frameBlink.pulse ? 0.36 : 0.18), 0.08, 1);
+}
+
+function renderEyeMotion(frame = runtime.motionOk ? activeFaceFrame() : null) {
   const eyes = runtime.currentEyes;
   if (!eyes) return;
 
   const controls = activeFaceControls();
-  const controllerGaze = runtime.motionOk ? controls?.gaze : null;
-  const controllerBlink = runtime.motionOk ? controls?.blink : null;
+  const controllerGaze = runtime.motionOk ? (frame?.gaze || controls?.gaze) : null;
+  const controllerBlink = runtime.motionOk ? (frame?.blink || controls?.blink) : null;
   const blink = runtime.motionOk ? runtime.blinkScale : 1;
   const microX = runtime.motionOk ? runtime.microGaze.x : 0;
   const microY = runtime.motionOk ? runtime.microGaze.y : 0;
@@ -1487,10 +1560,12 @@ function renderEyeMotion() {
   const speechY = runtime.motionOk ? runtime.realtimeSpeechEye.y : 0;
   const audioX = runtime.motionOk ? runtime.realtimeAudioEye.x : 0;
   const audioY = runtime.motionOk ? runtime.realtimeAudioEye.y : 0;
-  const gazeX = controllerGaze ? controllerGaze.x * 9.6 : 0;
-  const gazeY = controllerGaze ? controllerGaze.y * 6.2 : 0;
+  const driftX = frame?.gaze ? frame.gaze.driftX * 4.2 : 0;
+  const driftY = frame?.gaze ? frame.gaze.driftY * 3.2 : 0;
+  const gazeX = controllerGaze ? controllerGaze.x * 9.6 + driftX : 0;
+  const gazeY = controllerGaze ? controllerGaze.y * 6.2 + driftY : 0;
   const blinkOpenness = controllerBlink ? controllerBlink.openness : 1;
-  const scaleY = clamp(eyes.scaleY * blink * blinkOpenness, 0.08, 1.4);
+  const scaleY = clamp(eyes.scaleY * blink * blinkOpenness * blinkPhaseScale(frame?.blink), 0.08, 1.4);
   const trackingActive = Math.abs(visionX) + Math.abs(visionY) > 0.1;
   const speechShare = trackingActive ? 0.34 : 1;
   const focus = controllerGaze ? controllerGaze.focus : 0.62;
@@ -1511,10 +1586,54 @@ function renderEyeMotion() {
   pupilRight.style.transform = `translate(${formatSvgNumber(clamp(rightLook.x * glintShare, -4.2, 4.2))}px, ${formatSvgNumber(clamp(rightLook.y * glintShare, -2.8, 2.8))}px)`;
 }
 
+function renderFaceFrameMotion() {
+  if (!runtime.motionOk) return;
+  const frame = updateFaceFrameReport()?.frame;
+  if (!frame) return;
+
+  const profile = currentPresenceProfile();
+  const expression = expressions[runtime.state] || expressions.idle;
+  const postureTilt = (frame.posture.turn * 12) - (frame.posture.lean * 4) + (frame.motion.recovery * 1.5);
+  const tilt = scaleValue((expressionTilts[runtime.state] || 0) + postureTilt, profile.tilt);
+  const frameOffsetX = scaleValue(frame.motion.offsetX * 8.4, profile.tilt);
+  const frameOffsetY = scaleValue(frame.motion.offsetY * 5.8, profile.tilt);
+  const breathFactor = clamp(
+    0.84 + frame.motion.energy * 0.38 + frame.motion.anticipation * 0.12 + frame.posture.breath * 0.16 - frame.motion.recovery * 0.08,
+    0.7,
+    1.38,
+  );
+
+  faceShell.dataset.controllerFrame = frameSummary();
+  faceShell.style.setProperty("--face-tilt", `${tilt.toFixed(2)}deg`);
+  faceShell.style.setProperty("--face-offset-x", `${frameOffsetX.toFixed(2)}px`);
+  faceShell.style.setProperty("--face-offset-y", `${frameOffsetY.toFixed(2)}px`);
+  faceShell.style.setProperty("--breath-duration", `${(4.8 / (profile.breath * breathFactor)).toFixed(2)}s`);
+  applyBrowControls({ brows: frame.brows }, profile);
+  renderEyeMotion(frame);
+  if (runtime.state !== "speaking" && !runtime.speechPlaying && !runtime.realtimeAudioActive && !runtime.realtimeSpeechActive) {
+    renderMouth(expression.mouth, profile, frame);
+  }
+}
+
+function startFaceFrameLoop() {
+  if (!runtime.motionOk || runtime.faceFrameAnimation) return;
+
+  const step = () => {
+    runtime.faceFrameAnimation = null;
+    renderFaceFrameMotion();
+    if (runtime.motionOk) {
+      runtime.faceFrameAnimation = window.requestAnimationFrame(step);
+    }
+  };
+
+  runtime.faceFrameAnimation = window.requestAnimationFrame(step);
+}
+
 function startMicroPresence() {
   if (!runtime.motionOk) return;
   scheduleMicroGaze(650);
   scheduleBlink();
+  startFaceFrameLoop();
 }
 
 function scheduleMicroGaze(delay = null) {
@@ -5243,6 +5362,7 @@ function renderMetrics() {
   metricControls.textContent = controlsSummary();
   metricControls.dataset.controllerComposition = controllerCompositionText();
   metricControls.dataset.controllerEvidence = controllerEvidenceText(activeFaceControls(), activeFaceDecisionReport());
+  metricControls.dataset.controllerFrame = frameSummary();
   metricTrace.textContent = runtime.trace.length ? runtime.trace.join(" -> ") : "--";
   metricBenchmark.textContent = runtime.benchmark.summary;
 }

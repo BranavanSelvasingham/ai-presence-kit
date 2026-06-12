@@ -21,15 +21,23 @@ assert.match(app, /params\.get\("controllerGallery"\)/);
 assert.match(app, /createFaceControllerRuntime\(\)/);
 assert.match(app, /FACE_CONTROL_CHANNELS/);
 assert.match(app, /faceControllerDecisionsForPresence/);
+assert.match(app, /faceControllerFrameForPresence/);
 assert.match(app, /runtime\.faceDecisionReport/);
+assert.match(app, /runtime\.faceFrameReport/);
+assert.match(app, /activeFaceFrameReport/);
+assert.match(app, /frameSummary/);
 assert.match(app, /dataset\.controller/);
 assert.match(app, /dataset\.reads/);
 assert.match(app, /dataset\.controllerComposition/);
 assert.match(app, /dataset\.controllerEvidence/);
+assert.match(app, /dataset\.controllerFrame/);
 assert.match(app, /faceDecisionReport/);
 assert.match(app, /metricControls\.dataset\.controllerComposition/);
 assert.match(app, /metricControls\.dataset\.controllerEvidence/);
+assert.match(app, /metricControls\.dataset\.controllerFrame/);
 assert.match(css, /body\.controller-gallery-mode/);
+assert.match(css, /--face-offset-x/);
+assert.match(css, /--face-offset-y/);
 
 for (const constantName of [
   "IDLE",
@@ -50,6 +58,7 @@ assert.deepEqual(FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "pos
 
 for (const channel of FACE_CONTROL_CHANNELS) {
   assert.match(app, new RegExp(`"${channel}"`), `${channel} channel missing from gallery renderer`);
+  assert.match(app, new RegExp(`${channel}:`), `${channel} channel missing from frame evidence`);
 }
 
 const history = [];
