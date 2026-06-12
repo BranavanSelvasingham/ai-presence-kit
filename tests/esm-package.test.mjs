@@ -31,6 +31,7 @@ assert.equal(face.faceExpressionForPresence(runtime.getSnapshot()), face.FaceExp
 assert.equal(face.faceControlsForPresence(runtime.getSnapshot()).gaze.target, "middle-distance");
 assert.equal(face.faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.gaze.controller, "gaze-controller");
 assert.equal(face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200 }).frame.mouth.shape, "pressed");
+assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200 }).svg, /data-presence-state="thinking"/);
 assert.deepEqual(face.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
 const adapter = adapters.createRuntimeSignalAdapter(runtime);
@@ -84,7 +85,7 @@ try {
       'import { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";',
       'import { presenceControlInputsForSnapshot } from "@ai-presence/core";',
       'import { RuntimeSignal, createRuntimeSignalAdapter } from "@ai-presence/adapters";',
-      'import { FaceExpression, faceControllerDecisionsForPresence, faceControllerFrameForPresence, faceControlsForPresence, faceExpressionForPresence } from "@ai-presence/face";',
+      'import { FaceExpression, faceControllerDecisionsForPresence, faceControllerFrameForPresence, faceControlsForPresence, faceExpressionForPresence, renderPresenceFaceSvg } from "@ai-presence/face";',
       'import { createPresenceReactBindings } from "@ai-presence/react";',
       "const runtime = createPresenceRuntime();",
       "const trace = createPresenceTrace({ limit: 4 });",
@@ -98,6 +99,7 @@ try {
       "if (faceControlsForPresence(runtime.getSnapshot()).mouth.shape !== 'speaking') throw new Error('face controls mismatch');",
       "if (faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision mismatch');",
       "if (faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600 }).frame.mouth.beat <= 0) throw new Error('face frame mismatch');",
+      "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).svg.includes('data-face-channels=\"gaze blink brows mouth posture motion\"')) throw new Error('face svg mismatch');",
       "if (typeof createPresenceReactBindings !== 'function') throw new Error('react export mismatch');",
       "let contextValue = null;",
       "const React = {",

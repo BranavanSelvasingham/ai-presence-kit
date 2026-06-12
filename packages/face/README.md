@@ -35,6 +35,18 @@ renderer.setBlink(frameReport.frame.blink);
 renderer.setPosture(frameReport.frame.posture);
 ```
 
+```js
+import { renderPresenceFaceSvg } from "@ai-presence/face";
+
+const result = renderPresenceFaceSvg(snapshot, {
+  trace,
+  timeMs: performance.now(),
+});
+
+container.innerHTML = result.svg;
+console.log(result.channelEvidence.mouth.frame.shape);
+```
+
 The controller does not claim hidden internal state. It stays grounded in observable states such as `reading`, `thinking`, `waiting`, `streaming`, `speaking`, `interrupted`, and `ready`, then lets each facial subsystem make a small local decision from the shared snapshot and optional trace/history.
 
 `faceControlsForPresence` remains the renderer-friendly compatibility surface. `faceControllerDecisionsForPresence` exposes the same composition as an inspection report:
@@ -60,3 +72,5 @@ The controller does not claim hidden internal state. It stays grounded in observ
 ```
 
 `faceControllerFrameForPresence` returns the same report fields plus a frozen `frame` object. The frame keeps controller decisions stable and adds bounded temporal values such as blink `phase`, mouth `beat`, posture `breath`, and motion offsets so renderers can animate interaction posture without adding their own timing policy.
+
+`renderPresenceFaceSvg` is the no-DOM reference SVG surface. It calls `faceControllerFrameForPresence`, returns a compact SVG string, and includes state, expression, frame data, and six-channel evidence so downstream AI interfaces can inspect what drove the rendered posture without copying the browser demo internals.

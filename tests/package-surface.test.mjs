@@ -91,6 +91,7 @@ const packages = [
       "faceControllerDecisionsForPresence",
       "faceControlsForPresence",
       "faceExpressionForPresence",
+      "renderPresenceFaceSvg",
     ],
   },
   {
@@ -130,7 +131,9 @@ const faceGlobal = globalThis.AIPresenceFace;
 assert.equal(typeof faceGlobal.faceControllerDecisionsForPresence, "function");
 assert.equal(typeof faceGlobal.faceControllerFrameForPresence, "function");
 assert.equal(typeof faceGlobal.createFaceControllerFrameRuntime, "function");
+assert.equal(typeof faceGlobal.renderPresenceFaceSvg, "function");
 assert.deepEqual(faceGlobal.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
+assert.match(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).svg, /data-presence-state="thinking"/);
 
 const coreApi = require(resolve(root, "packages/core"));
 let contextValue = null;

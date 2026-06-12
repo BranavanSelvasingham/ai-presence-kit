@@ -8,6 +8,7 @@ export const FACE_CONTROL_CHANNELS = face.FACE_CONTROL_CHANNELS;
 export const createFaceControllerFrameRuntime = face.createFaceControllerFrameRuntime;
 export const createFaceControllerRuntime = face.createFaceControllerRuntime;
 export const createFaceRenderer = face.createFaceRenderer;
+export const renderPresenceFaceSvg = face.renderPresenceFaceSvg;
 export const faceControllerFrameForPresence = face.faceControllerFrameForPresence;
 export const faceControllerDecisionsForPresence = face.faceControllerDecisionsForPresence;
 export const faceControlsForPresence = face.faceControlsForPresence;
