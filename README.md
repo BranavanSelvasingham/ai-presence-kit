@@ -108,13 +108,14 @@ Node/CommonJS consumers can use `require`. ESM consumers can import from the pac
 ```js
 import { PresenceEvent, createPresenceRuntime } from "@ai-presence/core";
 import { createVercelAISDKAdapter } from "@ai-presence/adapters";
-import { faceExpressionForPresence } from "@ai-presence/face";
+import { faceExpressionForPresence, renderPresenceFaceSvg } from "@ai-presence/face";
 import { createPresenceReactBindings } from "@ai-presence/react";
 
 const presence = createPresenceRuntime();
 presence.send(PresenceEvent.SUBMIT);
 
 const expression = faceExpressionForPresence(presence.getSnapshot());
+const renderedFace = renderPresenceFaceSvg(presence.getSnapshot(), { timeMs: Date.now() });
 ```
 
 Trace usage:
@@ -195,9 +196,12 @@ React binding usage:
 const {
   PresenceProvider,
   PresenceRenderer,
+  usePresenceFrameTime,
   usePresenceSnapshot,
 } = AIPresenceReact.createPresenceReactBindings(React);
 ```
+
+`usePresenceFrameTime()` gives React renderers a small live millisecond clock. It is renderer-agnostic: a face, badge, waveform, or other surface can use it to advance temporal frames between presence state transitions.
 
 Reference renderer usage:
 

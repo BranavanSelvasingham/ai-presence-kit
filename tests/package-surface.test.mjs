@@ -187,4 +187,13 @@ assert.match(reactTypes, /usePresenceControlInputs/);
 assert.match(reactTypes, /PresenceFrameTimeOptions/);
 assert.match(reactTypes, /usePresenceFrameTime/);
 
+const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
+assert.match(rootReadme, /usePresenceFrameTime/);
+assert.match(rootReadme, /renderPresenceFaceSvg/);
+
+const reactReadme = readFileSync(resolve(root, "packages/react/README.md"), "utf8");
+assert.match(reactReadme, /usePresenceFrameTime/);
+assert.match(reactReadme, /Date\.now/);
+assert.doesNotMatch(reactReadme, /emotion[- ]detection|private emotion/i);
+
 console.log("package-surface ok");
