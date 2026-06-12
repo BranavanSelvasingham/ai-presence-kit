@@ -2,7 +2,7 @@
 
 Reference face renderer primitives for AI Presence Kit.
 
-This package maps canonical presence snapshots from `@ai-presence/core` to renderer-specific face controls. The expression mapper remains available, and the additive controller API turns the same interaction-posture snapshot into parallel micro-decisions for gaze, blink, brows, mouth, posture, and motion.
+This package maps canonical presence snapshots from `@ai-presence/core` to renderer-specific face controls. The expression mapper remains available, and the additive controller APIs turn the same interaction-posture snapshot into parallel micro-decisions and deterministic per-frame micro-movement for gaze, blink, brows, mouth, posture, and motion.
 
 ```js
 import { faceExpressionForPresence } from "@ai-presence/face";
@@ -20,6 +20,19 @@ renderer.setGaze(controls.gaze);
 renderer.setMouth(controls.mouth);
 
 console.log(report.decisions.gaze.controller); // "gaze-controller"
+```
+
+```js
+import { faceControllerFrameForPresence } from "@ai-presence/face";
+
+const frameReport = faceControllerFrameForPresence(snapshot, {
+  trace,
+  timeMs: performance.now(),
+});
+
+renderer.setGaze(frameReport.frame.gaze);
+renderer.setBlink(frameReport.frame.blink);
+renderer.setPosture(frameReport.frame.posture);
 ```
 
 The controller does not claim hidden internal state. It stays grounded in observable states such as `reading`, `thinking`, `waiting`, `streaming`, `speaking`, `interrupted`, and `ready`, then lets each facial subsystem make a small local decision from the shared snapshot and optional trace/history.
@@ -45,3 +58,5 @@ The controller does not claim hidden internal state. It stays grounded in observ
   }
 }
 ```
+
+`faceControllerFrameForPresence` returns the same report fields plus a frozen `frame` object. The frame keeps controller decisions stable and adds bounded temporal values such as blink `phase`, mouth `beat`, posture `breath`, and motion offsets so renderers can animate interaction posture without adding their own timing policy.

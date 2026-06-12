@@ -27,6 +27,7 @@ export interface FaceControlOptions extends FaceRendererOptions {
   history?: ReadonlyArray<Partial<PresenceSnapshot> & Record<string, unknown>>;
   now?: number | (() => number);
   profile?: FaceControlProfile;
+  timeMs?: number | (() => number);
   trace?: ReadonlyArray<Partial<PresenceSnapshot> & Record<string, unknown>> | {
     getEntries(): ReadonlyArray<Partial<PresenceSnapshot> & Record<string, unknown>>;
   };
@@ -73,6 +74,39 @@ export interface FaceMotionControl {
   settleMs: number;
 }
 
+export interface FaceGazeFrame extends FaceGazeControl {
+  driftX: number;
+  driftY: number;
+}
+
+export interface FaceBlinkFrame extends FaceBlinkControl {
+  phase: number;
+}
+
+export interface FaceBrowsFrame extends FaceBrowsControl {}
+
+export interface FaceMouthFrame extends FaceMouthControl {
+  beat: number;
+}
+
+export interface FacePostureFrame extends FacePostureControl {
+  breath: number;
+}
+
+export interface FaceMotionFrame extends FaceMotionControl {
+  offsetX: number;
+  offsetY: number;
+}
+
+export interface FaceControllerFrame {
+  gaze: FaceGazeFrame;
+  blink: FaceBlinkFrame;
+  brows: FaceBrowsFrame;
+  mouth: FaceMouthFrame;
+  posture: FacePostureFrame;
+  motion: FaceMotionFrame;
+}
+
 export type FaceControlChannel = "gaze" | "blink" | "brows" | "mouth" | "posture" | "motion";
 
 export interface FaceControllerDecision<TControl> {
@@ -98,6 +132,10 @@ export interface FaceControllerDecisionReport {
   decisions: FaceControllerDecisions;
 }
 
+export interface FaceControllerFrameReport extends FaceControllerDecisionReport {
+  frame: FaceControllerFrame;
+}
+
 export interface FaceControls {
   expression: FaceExpressionValue;
   gaze: FaceGazeControl;
@@ -113,6 +151,13 @@ export interface FaceControllerRuntime {
   update(snapshot: PresenceSnapshot | PresenceStateValue, options?: FaceControlOptions & {
     update?: (controls: FaceControls, snapshot: PresenceSnapshot | PresenceStateValue) => void;
   }): FaceControls;
+}
+
+export interface FaceControllerFrameRuntime {
+  getFrame(): FaceControllerFrameReport | null;
+  update(snapshot: PresenceSnapshot | PresenceStateValue, options?: FaceControlOptions & {
+    update?: (frame: FaceControllerFrameReport, snapshot: PresenceSnapshot | PresenceStateValue) => void;
+  }): FaceControllerFrameReport;
 }
 
 export interface FaceRenderer {
@@ -137,11 +182,18 @@ export declare const DEFAULT_FACE_MAP: Readonly<Record<PresenceStateValue, FaceE
 export declare function createFaceControllerRuntime(options?: FaceControlOptions & {
   update?: (controls: FaceControls, snapshot: PresenceSnapshot | PresenceStateValue) => void;
 }): FaceControllerRuntime;
+export declare function createFaceControllerFrameRuntime(options?: FaceControlOptions & {
+  update?: (frame: FaceControllerFrameReport, snapshot: PresenceSnapshot | PresenceStateValue) => void;
+}): FaceControllerFrameRuntime;
 export declare function createFaceRenderer(options?: FaceRendererOptions): FaceRenderer;
 export declare function faceControllerDecisionsForPresence(
   snapshotOrState: PresenceSnapshot | PresenceStateValue,
   options?: FaceControlOptions,
 ): FaceControllerDecisionReport;
+export declare function faceControllerFrameForPresence(
+  snapshotOrState: PresenceSnapshot | PresenceStateValue,
+  options?: FaceControlOptions,
+): FaceControllerFrameReport;
 export declare function faceControlsForPresence(
   snapshotOrState: PresenceSnapshot | PresenceStateValue,
   options?: FaceControlOptions,
