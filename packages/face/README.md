@@ -28,6 +28,7 @@ import { faceControllerFrameForPresence } from "@ai-presence/face";
 const frameReport = faceControllerFrameForPresence(snapshot, {
   trace,
   timeMs: performance.now(),
+  motionScale: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1,
 });
 
 renderer.setGaze(frameReport.frame.gaze);
@@ -41,10 +42,12 @@ import { renderPresenceFaceSvg } from "@ai-presence/face";
 const result = renderPresenceFaceSvg(snapshot, {
   trace,
   timeMs: performance.now(),
+  motionScale: 0,
 });
 
 container.innerHTML = result.svg;
 console.log(result.channelEvidence.mouth.frame.shape);
+console.log(result.attributes.motionScale); // "0"
 ```
 
 The controller does not claim hidden internal state. It stays grounded in observable states such as `reading`, `thinking`, `waiting`, `streaming`, `speaking`, `interrupted`, and `ready`, then lets each facial subsystem make a small local decision from the shared snapshot and optional trace/history.
@@ -72,5 +75,7 @@ The controller does not claim hidden internal state. It stays grounded in observ
 ```
 
 `faceControllerFrameForPresence` returns the same report fields plus a frozen `frame` object. The frame keeps controller decisions stable and adds bounded temporal values such as blink `phase`, mouth `beat`, posture `breath`, and motion offsets so renderers can animate interaction posture without adding their own timing policy.
+
+Pass `motionScale` when a downstream renderer needs reduced motion. `motionScale: 1` is the default live temporal behavior, `motionScale: 0` produces deterministic still frames across different `timeMs` values for the same snapshot/options, and values between `0` and `1` reduce temporal blink closure, drift, mouth beat, breath, anticipation/recovery kicks, and motion offsets. The option does not remove the six controller channels or their evidence; gaze target, blink baseline, brows, mouth shape, posture, and motion decisions remain available for custom renderers.
 
 `renderPresenceFaceSvg` is the no-DOM reference SVG surface. It calls `faceControllerFrameForPresence`, returns a compact SVG string, and includes state, expression, frame data, and six-channel evidence so downstream AI interfaces can inspect what drove the rendered posture without copying the browser demo internals.

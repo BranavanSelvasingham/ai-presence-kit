@@ -25,6 +25,12 @@ export interface FaceControlProfile {
 export interface FaceControlOptions extends FaceRendererOptions {
   detail?: Record<string, unknown>;
   history?: ReadonlyArray<Partial<PresenceSnapshot> & Record<string, unknown>>;
+  /**
+   * Scales temporal micro-motion in generated frames and SVG output.
+   * Use 1 for live motion, 0 for deterministic still/reduced-motion output.
+   * Values outside 0..1 are clamped.
+   */
+  motionScale?: number;
   now?: number | (() => number);
   profile?: FaceControlProfile;
   timeMs?: number | (() => number);
@@ -168,6 +174,7 @@ export interface PresenceFaceSvgAttributes {
   mouthShape: FaceMouthFrame["shape"];
   postureLean: string;
   motionEnergy: string;
+  motionScale: string;
 }
 
 export interface PresenceFaceSvgRenderResult {
