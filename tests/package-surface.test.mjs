@@ -68,7 +68,14 @@ const packages = [
     dir: "packages/core",
     name: "@ai-presence/core",
     types: "src/presence-core.d.ts",
-    exports: ["createPresenceRuntime", "createPresenceTrace", "PresenceState", "PresenceEvent"],
+    exports: [
+      "createPresenceControlInputRuntime",
+      "createPresenceRuntime",
+      "createPresenceTrace",
+      "presenceControlInputsForSnapshot",
+      "PresenceState",
+      "PresenceEvent",
+    ],
   },
   {
     dir: "packages/face",

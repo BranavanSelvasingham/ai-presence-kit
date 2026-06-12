@@ -2,7 +2,7 @@
 
 Core presence state runtime for AI interfaces.
 
-This package is intentionally tiny in the prototype: it defines the canonical interaction states, transition events, and a small runtime that renderers can subscribe to or poll.
+This package is intentionally tiny in the prototype: it defines the canonical interaction states, transition events, a small runtime that renderers can subscribe to or poll, and shared controller inputs that stay renderer-agnostic.
 
 The face demo consumes this layer as a browser global so the current static prototype still works without a build step. Package consumers can use either the CommonJS entry or the ESM export:
 
@@ -31,3 +31,18 @@ detach();
 ```
 
 Trace entries include `elapsedMs` and `sincePreviousMs`, which makes before-first-token behavior inspectable without coupling core to any renderer.
+
+Renderers can derive shared interaction-posture inputs from the same snapshot before mapping them into renderer-specific controllers:
+
+```js
+import { PresenceEvent, createPresenceRuntime, presenceControlInputsForSnapshot } from "@ai-presence/core";
+
+const presence = createPresenceRuntime();
+const snapshot = presence.send(PresenceEvent.STREAM_OPEN);
+const inputs = presenceControlInputsForSnapshot(snapshot);
+
+console.log(inputs.latencyPhase); // "before-output"
+console.log(inputs.attentionTarget); // "response"
+```
+
+These values describe observable interaction posture such as attention target, tension, speech activity, interruption, latency phase, and recovery. They are not emotion detection or private emotion inference.
