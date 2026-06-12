@@ -128,4 +128,39 @@ const faceGlobal = globalThis.AIPresenceFace;
 assert.equal(typeof faceGlobal.faceControllerDecisionsForPresence, "function");
 assert.deepEqual(faceGlobal.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
+const coreApi = require(resolve(root, "packages/core"));
+let contextValue = null;
+const fakeReact = {
+  createContext(defaultValue) {
+    contextValue = defaultValue;
+    return {
+      Provider: "PresenceProvider",
+      defaultValue,
+    };
+  },
+  createElement(type, props, children) {
+    contextValue = props.value;
+    return { type, props, children };
+  },
+  useContext(context) {
+    return contextValue || context.defaultValue;
+  },
+  useSyncExternalStore(subscribe, getSnapshot) {
+    const unsubscribe = subscribe(() => {});
+    unsubscribe();
+    return getSnapshot();
+  },
+};
+
+const reactApi = require(resolve(root, "packages/react"));
+const reactBindings = reactApi.createPresenceReactBindings(fakeReact);
+assert.equal(typeof reactBindings.usePresenceControlInputs, "function");
+reactBindings.defaultRuntime.send(coreApi.PresenceEvent.SUBMIT);
+assert.equal(reactBindings.usePresenceControlInputs().latencyPhase, "before-output");
+
+const reactTypes = readFileSync(resolve(root, "packages/react/src/presence-react.d.ts"), "utf8");
+assert.match(reactTypes, /PresenceControlInputOptions/);
+assert.match(reactTypes, /PresenceControlInputs/);
+assert.match(reactTypes, /usePresenceControlInputs/);
+
 console.log("package-surface ok");

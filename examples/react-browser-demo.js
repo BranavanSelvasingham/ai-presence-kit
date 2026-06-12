@@ -127,6 +127,7 @@
 
   function PresencePanel() {
     const snapshot = bindings.usePresenceSnapshot();
+    const controlInputs = bindings.usePresenceControlInputs(null, { now: snapshot.updatedAt });
     const expression = faceExpressionForPresence(snapshot);
 
     return React.createElement(
@@ -139,6 +140,8 @@
         "dl",
         { className: "presence-readout" },
         React.createElement("div", null, React.createElement("dt", null, "State"), React.createElement("dd", { "data-presence-state": "" }, snapshot.state)),
+        React.createElement("div", null, React.createElement("dt", null, "Phase"), React.createElement("dd", { "data-presence-phase": "" }, controlInputs.latencyPhase)),
+        React.createElement("div", null, React.createElement("dt", null, "Attention"), React.createElement("dd", { "data-presence-attention": "" }, controlInputs.attentionTarget)),
         React.createElement("div", null, React.createElement("dt", null, "Renderer"), React.createElement("dd", { "data-presence-expression": "" }, expression)),
         React.createElement("div", null, React.createElement("dt", null, "Event"), React.createElement("dd", { "data-presence-event": "" }, snapshot.event)),
       ),

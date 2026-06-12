@@ -32,7 +32,7 @@
   }
 
   function assertCore() {
-    if (!core?.createPresenceRuntime) {
+    if (!core?.createPresenceRuntime || !core?.presenceControlInputsForSnapshot) {
       throw new Error("AI Presence core is required before creating React bindings.");
     }
   }
@@ -65,6 +65,10 @@
       return usePresenceSnapshot(runtime).state;
     }
 
+    function usePresenceControlInputs(runtime = null, options = {}) {
+      return core.presenceControlInputsForSnapshot(usePresenceSnapshot(runtime), options);
+    }
+
     function PresenceRenderer({ runtime = null, children }) {
       const snapshot = usePresenceSnapshot(runtime);
       return typeof children === "function" ? children(snapshot) : null;
@@ -75,6 +79,7 @@
       PresenceProvider,
       PresenceRenderer,
       defaultRuntime,
+      usePresenceControlInputs,
       usePresenceRuntime,
       usePresenceSnapshot,
       usePresenceState,

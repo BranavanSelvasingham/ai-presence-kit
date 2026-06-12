@@ -16,6 +16,9 @@ assert.match(html, /data-react-demo-root/);
 assert.match(script, /ReactDOM\.createRoot/);
 assert.match(script, /createPresenceReactBindings\(React, \{ runtime \}\)/);
 assert.match(script, /createVercelAISDKAdapter\(runtime\)/);
+assert.match(script, /usePresenceControlInputs\(null, \{ now: snapshot\.updatedAt \}\)/);
+assert.match(script, /data-presence-phase/);
+assert.match(script, /data-presence-attention/);
 assert.match(script, /faceExpressionForPresence\(snapshot\)/);
 assert.doesNotMatch(script, /emotion/i);
 
