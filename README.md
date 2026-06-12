@@ -1,14 +1,209 @@
-# Low-Latency Face Runtime
+# AI Presence Kit
+
+AI Presence Kit is a low-latency facial presence engine for AI interfaces. It turns runtime signals like typing, pausing, waiting, thinking, streaming, speaking, interruption, and error into parallel facial micro-decisions.
+
+The simple SVG face in this repo is the proof surface. It exists to prove that gaze, blink, brows, mouth, posture, and motion can make an AI interface feel attentive before, during, and after model output.
 
 ## Question
 
-Can a minimal browser face react to live typed input fast enough, clearly enough, and artfully enough that an AI agent feels co-present before the user submits a message?
+Can an AI interface make many small facial movement decisions from runtime state quickly enough that it feels co-present before the model responds?
 
 ## Goal Statement
 
-Build a minimal, artful presence engine for expressive AI interaction: a low-latency web face that reacts instantly to typed input, offers tunable presence levels from still to expressive, refines its expression through OpenAI speculation, streams concise responses, and measures every meaningful latency step without letting instrumentation disturb the quietness of the experience.
+Build a minimal, artful facial presence engine for expressive AI interaction: a low-latency web prototype that maps input, response, voice, and latency signals into a conservative presence state model, then lets independent facial controllers make parallel micro-decisions for gaze, blink, brows, mouth, posture, and motion.
 
-The finished prototype should feel less like an avatar and more like a living interface: attentive before it speaks, elegant when idle, responsive under pressure, and adjustable in expressiveness without changing the agent's underlying mind.
+The finished prototype should feel less like an avatar and more like a living interface: attentive before it speaks, elegant when idle, responsive under pressure, coherent without pose swaps, and adjustable in expressiveness without pretending to infer private emotion.
+
+## Product Direction
+
+The GitHub-facing package should be framed around facial presence primitives, not a static avatar library:
+
+- `@ai-presence/core`: presence state machine and event model.
+- `@ai-presence/react`: React hooks and components for AI apps.
+- `@ai-presence/face`: default SVG reference face and facial micro-controller proof.
+- `@ai-presence/adapters`: optional adapters for common AI runtimes.
+
+The default face should remain charming and immediately legible, but it should increasingly be driven by independent micro-decisions instead of expression pose swaps. The shared state contract starts with:
+
+```text
+idle
+user-typing
+reading
+waiting
+thinking
+streaming
+speaking
+interrupted
+ready
+error
+```
+
+This repo now starts that split with a small browser-safe core runtime at:
+
+```text
+packages/core/src/presence-core.js
+```
+
+The prototype loads that core runtime first, then lets the SVG face interpret the canonical state as a renderer-specific expression. In the metrics panel, `Presence state` is the package-facing state contract; `Renderer` is the face's current expression.
+Core also exposes a small transition trace primitive so integrations can inspect what happened before the first visible token.
+
+The shortest pitch:
+
+```text
+Replace spinners with presence.
+```
+
+The differentiating wedge:
+
+- Static avatar libraries give an agent identity.
+- Character and lip-sync tools animate rendered characters, especially while speaking.
+- AI chat frameworks build threads, messages, tools, composers, and streams.
+- AI Presence Kit sits in the missing middle: it turns runtime state into human-readable interface presence.
+
+It is not emotion recognition. It should express interaction posture: reading, waiting, thinking, streaming, speaking, interrupted, ready, or error.
+
+See `docs/GOAL_LOOP.md` for the active build loop and next milestones.
+
+## Demo
+
+![Spinner versus AI Presence Kit comparison](docs/media/presence-comparison.jpg)
+
+The comparison harness runs the same simulated latency on both sides. The generic UI shows loading until the stream begins; the presence side exposes `reading`, `thinking`, and `waiting` before the first visible token.
+
+![React browser demo for AI Presence Kit](docs/media/react-browser-demo.jpg)
+
+The React browser demo runs the provider, snapshot hook, renderer slot, adapter path, and face expression mapping with actual React and ReactDOM.
+
+## Package Shape
+
+Current prototype packages:
+
+```text
+packages/core/src/presence-core.js
+packages/core/dist/index.mjs
+packages/face/src/presence-face.js
+packages/face/dist/index.mjs
+packages/adapters/src/runtime-adapter.js
+packages/adapters/dist/index.mjs
+packages/react/src/presence-react.js
+packages/react/dist/index.mjs
+examples/react-browser.html
+```
+
+Each package now has a local npm-style manifest, TypeScript declarations, and dual package entrypoints:
+
+```text
+packages/core/package.json
+packages/core/src/presence-core.d.ts
+packages/face/package.json
+packages/face/src/presence-face.d.ts
+packages/adapters/package.json
+packages/adapters/src/runtime-adapter.d.ts
+packages/react/package.json
+packages/react/src/presence-react.d.ts
+```
+
+Node/CommonJS consumers can use `require`. ESM consumers can import from the package export map:
+
+```js
+import { PresenceEvent, createPresenceRuntime } from "@ai-presence/core";
+import { createVercelAISDKAdapter } from "@ai-presence/adapters";
+import { faceExpressionForPresence } from "@ai-presence/face";
+import { createPresenceReactBindings } from "@ai-presence/react";
+
+const presence = createPresenceRuntime();
+presence.send(PresenceEvent.SUBMIT);
+
+const expression = faceExpressionForPresence(presence.getSnapshot());
+```
+
+Trace usage:
+
+```js
+import { PresenceEvent, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";
+
+const trace = createPresenceTrace({ limit: 32 });
+const presence = createPresenceRuntime();
+trace.attach(presence);
+
+presence.send(PresenceEvent.SUBMIT);
+presence.send(PresenceEvent.STREAM_OPEN);
+presence.send(PresenceEvent.TOKEN);
+
+console.log(trace.getEntries().map((entry) => entry.state));
+```
+
+Intended public packages:
+
+```text
+@ai-presence/core
+@ai-presence/react
+@ai-presence/face
+@ai-presence/adapters
+```
+
+Minimal core usage:
+
+```js
+const presence = AIPresenceCore.createPresenceRuntime();
+
+presence.send(AIPresenceCore.PresenceEvent.USER_INPUT, { text: "What should I build" });
+presence.send(AIPresenceCore.PresenceEvent.USER_PAUSE, { text: "What should I build", completion: 0.4 });
+presence.send(AIPresenceCore.PresenceEvent.SUBMIT);
+presence.send(AIPresenceCore.PresenceEvent.TOKEN);
+
+console.log(presence.getSnapshot().state);
+```
+
+Adapter usage:
+
+```js
+const adapter = AIPresenceAdapters.createRuntimeSignalAdapter(presence);
+
+adapter.send({ type: AIPresenceAdapters.RuntimeSignal.STREAM_OPEN });
+adapter.send({ type: AIPresenceAdapters.RuntimeSignal.TOKEN });
+adapter.send({ type: AIPresenceAdapters.RuntimeSignal.RESPONSE_COMPLETE });
+```
+
+Framework adapter usage:
+
+```js
+const aiSdkPresence = AIPresenceAdapters.createVercelAISDKAdapter(presence);
+
+aiSdkPresence.update({ status: "submitted" });
+aiSdkPresence.update({ status: "streaming", messages: [] });
+aiSdkPresence.update({
+  status: "streaming",
+  messages: [{ role: "assistant", parts: [{ type: "text", text: "Hello" }] }],
+});
+aiSdkPresence.onFinish({ finishReason: "stop" });
+```
+
+Realtime adapter usage:
+
+```js
+const realtimePresence = AIPresenceAdapters.createOpenAIRealtimeAdapter(presence);
+
+realtimePresence.handleEvent({ type: "input_audio_buffer.speech_started" });
+realtimePresence.handleEvent({ type: "response.output_audio.delta" });
+realtimePresence.handleEvent({ type: "response.done" });
+```
+
+React binding usage:
+
+```js
+const {
+  PresenceProvider,
+  PresenceRenderer,
+  usePresenceSnapshot,
+} = AIPresenceReact.createPresenceReactBindings(React);
+```
+
+Reference renderer usage:
+
+```js
+const expression = AIPresenceFace.faceExpressionForPresence(presence.getSnapshot());
+```
 
 ## Setup
 
@@ -17,6 +212,13 @@ Server-backed web prototype:
 - `index.html`
 - `styles.css`
 - `app.js`
+- `packages/core/src/presence-core.js`
+- `packages/face/src/presence-face.js`
+- `packages/adapters/src/runtime-adapter.js`
+- `packages/react/src/presence-react.js`
+- `packages/*/package.json`
+- `packages/*/src/*.d.ts`
+- `packages/*/dist/index.mjs`
 - `server.mjs`
 - `.env.example`
 - `FACIAL_EXPRESSION_RESEARCH.md`
@@ -24,6 +226,7 @@ Server-backed web prototype:
 Run from this folder:
 
 ```bash
+npm install
 cp .env.example .env
 # edit .env and set OPENAI_API_KEY
 node server.mjs
@@ -35,6 +238,26 @@ Then open:
 http://127.0.0.1:8058
 ```
 
+Useful local checks:
+
+```bash
+npm run validate
+```
+
+Individual validation steps:
+
+```bash
+npm run check
+npm test
+npm run demo:adapters
+npm run demo:react
+npm run pack:dry-run
+```
+
+Adapter source assumptions are tracked in `packages/adapters/README.md`.
+Release-readiness gates are tracked in `docs/RELEASE_READINESS.md`.
+Versioning, changelog, and npm package-name policy are tracked in `docs/RELEASE_POLICY.md`.
+
 The app can still be opened directly as a static file, but OpenAI-backed speculation, streaming responses, and speech require `server.mjs`.
 
 For visual QA without touching the default first screen, the app accepts quiet view-only query params:
@@ -44,6 +267,22 @@ http://127.0.0.1:8058/?metrics=1&presence=expressive
 ```
 
 These only set the initial metrics visibility and presence level; they do not send text or trigger OpenAI calls.
+
+The A/B comparison harness is available at:
+
+```text
+http://127.0.0.1:8058/?compare=1&autorunCompare=1
+```
+
+It runs the same simulated first-token latency on both sides; the presence side exposes state before the first token while the generic side stays in a loading posture.
+
+The browser React demo is available at:
+
+```text
+http://127.0.0.1:8058/examples/react-browser.html
+```
+
+It uses the installed React and ReactDOM UMD builds, then drives `@ai-presence/react`, `@ai-presence/adapters`, and the reference face mapping in a real rendered React tree.
 
 Expected `.env` keys:
 
@@ -81,7 +320,8 @@ Default rationale:
 
 Included:
 
-- Minimal SVG face with expression states.
+- Reusable core presence state runtime with canonical states and transition events.
+- Conservative AI presence state model, rendered by a minimal SVG face.
 - Text input as the primary mode.
 - Presence levels: Still, Attentive, and Expressive.
 - Voice toggle, default off, using OpenAI Realtime speech-to-speech over WebRTC when the server has an API key.
@@ -107,10 +347,11 @@ Not included:
 - Persistent memory.
 - Realistic avatar rendering.
 - Production lip sync.
+- A claim to infer the user's true emotions.
 
 ## What To Watch
 
-See `FACIAL_EXPRESSION_RESEARCH.md` for the research-backed motion grammar behind the minimal face: gaze aversion, blink timing, eye movement, expression caution, and implementation candidates.
+See `FACIAL_EXPRESSION_RESEARCH.md` for the research-backed motion grammar behind the reference face: gaze aversion, blink timing, eye movement, expression caution, and implementation candidates.
 
 Core latency measures:
 
@@ -133,7 +374,7 @@ Core latency measures:
 
 Core feel measures:
 
-- Does the face feel attentive while the user is still typing?
+- Does the presence layer feel attentive while the user is still typing?
 - Are the expressions readable without becoming distracting?
 - Does muted mode still feel alive?
 - Does idle presence feel alive without becoming decorative or distracting?
@@ -179,8 +420,23 @@ Validation notes:
 - Metrics-open desktop view gives the face room instead of covering it; mobile view stacks metrics under the face with visible label/value rows.
 - Oversight audit caught and fixed stale composer state after submit, click-send focus loss, and accidental Enter-submit during IME composition.
 - Browser validation covered Shift+Enter newline behavior, click-send clear/focus, prefetch reuse after submit, and typing-to-interrupt stale OpenAI response work.
+- Package-shaped no-build surfaces now exist for core state, face renderer mapping, and generic runtime-signal adapters.
+- A/B comparison harness now contrasts generic loading against AI Presence Kit with the same simulated first-token latency.
+- Framework-facing starter adapters now cover Vercel AI SDK statuses, OpenAI Realtime server events, and generic chat lifecycle events.
+- Core runtime subscriptions and the first React binding factory now support provider, snapshot hook, state hook, and renderer-slot patterns without adding a build step.
+- Each package now has npm-style manifests and TypeScript declaration files.
+- `npm run demo:adapters` prints adapter-to-presence traces for the three starter adapter paths.
+- `npm pack --dry-run` passes for `@ai-presence/core`, `@ai-presence/face`, `@ai-presence/adapters`, and `@ai-presence/react` when using a writable npm cache.
+- React usage is covered by `examples/react-presence-demo.js`, `examples/react-browser.html`, `npm run demo:react`, `tests/react-example.test.mjs`, and `tests/react-browser-example.test.mjs`.
+- ESM import entrypoints now sit beside the CommonJS/browser-global source files for all four packages.
+- A browser React demo now uses real React and ReactDOM runtime builds to exercise the provider, snapshot hook, renderer slot, adapter path, and face expression mapping.
+- README media now shows the A/B comparison harness and the real React browser demo.
+- `npm run validate` now mirrors the GitHub Actions CI gate: syntax checks, tests, adapter demo, React demo, and package dry-runs.
+- `docs/RELEASE_POLICY.md` records the first public release policy and the current npm registry availability check for the intended package names.
+- Release readiness and initial changes are captured in `docs/RELEASE_READINESS.md` and `CHANGELOG.md`.
+- Browser validation covered the comparison route, pre-token presence cues, equal first-token timing, same response text, no state leak between panes, desktop two-column layout, and mobile no-overflow layout.
+- `npm run check`, `npm test`, and `git diff --check` pass for the current prototype.
 
 Next iteration:
 
-- Compare against a text-only version.
-- Add a text-only comparison harness for A/B latency perception.
+- Create or confirm control of the npm `@ai-presence` scope before publishing.

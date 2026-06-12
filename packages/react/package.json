@@ -1,0 +1,30 @@
+{
+  "name": "@ai-presence/react",
+  "version": "0.0.0",
+  "description": "React bindings for AI Presence Kit.",
+  "type": "commonjs",
+  "main": "./src/presence-react.js",
+  "module": "./dist/index.mjs",
+  "types": "./src/presence-react.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/presence-react.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./src/presence-react.js",
+      "default": "./src/presence-react.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "dependencies": {
+    "@ai-presence/core": "0.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "sideEffects": false,
+  "license": "MIT"
+}

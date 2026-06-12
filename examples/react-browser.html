@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Presence Kit React Demo</title>
+    <link rel="stylesheet" href="./react-browser.css">
+  </head>
+  <body>
+    <main class="react-demo-shell">
+      <section class="react-demo-stage" aria-label="React presence demo">
+        <div id="reactPresenceDemoRoot" data-react-demo-root></div>
+      </section>
+    </main>
+
+    <script src="/packages/core/src/presence-core.js"></script>
+    <script src="/packages/face/src/presence-face.js"></script>
+    <script src="/packages/adapters/src/runtime-adapter.js"></script>
+    <script src="/packages/react/src/presence-react.js"></script>
+    <script src="/node_modules/react/umd/react.production.min.js"></script>
+    <script src="/node_modules/react-dom/umd/react-dom.production.min.js"></script>
+    <script src="./react-browser-demo.js"></script>
+  </body>
+</html>

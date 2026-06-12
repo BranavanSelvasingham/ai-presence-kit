@@ -25,12 +25,53 @@ const micToggle = document.querySelector("#micToggle");
 const speakerToggle = document.querySelector("#speakerToggle");
 const faceToggle = document.querySelector("#faceToggle");
 const metricsToggle = document.querySelector("#metricsToggle");
+const compareToggle = document.querySelector("#compareToggle");
 const benchmarkButton = document.querySelector("#benchmarkButton");
 const presenceButtons = Array.from(document.querySelectorAll("button[data-presence]"));
 const metricsPanel = document.querySelector("#metricsPanel");
+const comparisonDemo = document.querySelector("#comparisonDemo");
+const compareBack = document.querySelector("#compareBack");
+const compareForm = document.querySelector("#compareForm");
+const compareInput = document.querySelector("#compareInput");
+const compareRun = document.querySelector("#compareRun");
+const compareLatency = document.querySelector("#compareLatency");
+const compareSpinnerState = document.querySelector("#compareSpinnerState");
+const compareSpinnerUser = document.querySelector("#compareSpinnerUser");
+const compareSpinnerIndicator = document.querySelector("#compareSpinnerIndicator");
+const compareSpinnerResponse = document.querySelector("#compareSpinnerResponse");
+const compareSpinnerTimeline = document.querySelector("#compareSpinnerTimeline");
+const comparePresenceState = document.querySelector("#comparePresenceState");
+const comparePresenceUser = document.querySelector("#comparePresenceUser");
+const compareFace = document.querySelector("#compareFace");
+const compareMouth = document.querySelector(".compare-mouth");
+const comparePresenceRenderer = document.querySelector("#comparePresenceRenderer");
+const comparePresenceResponse = document.querySelector("#comparePresenceResponse");
+const comparePresenceTimeline = document.querySelector("#comparePresenceTimeline");
+const compareVoteSpinner = document.querySelector("#compareVoteSpinner");
+const compareVotePresence = document.querySelector("#compareVotePresence");
+const compareVoteResult = document.querySelector("#compareVoteResult");
 const DEFAULT_INPUT_PLACEHOLDER = input.getAttribute("placeholder") || "Type...";
+const PresenceCore = window.AIPresenceCore;
+const PresenceFace = window.AIPresenceFace;
+const PresenceAdapters = window.AIPresenceAdapters;
+
+if (!PresenceCore) {
+  throw new Error("AI Presence core did not load.");
+}
+
+if (!PresenceFace) {
+  throw new Error("AI Presence face renderer did not load.");
+}
+
+if (!PresenceAdapters) {
+  throw new Error("AI Presence adapters did not load.");
+}
+
+const { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } = PresenceCore;
+const { RuntimeSignal, createRuntimeSignalAdapter } = PresenceAdapters;
 
 const metricState = document.querySelector("#metricState");
+const metricRenderer = document.querySelector("#metricRenderer");
 const metricPresence = document.querySelector("#metricPresence");
 const metricSource = document.querySelector("#metricSource");
 const metricExpression = document.querySelector("#metricExpression");
@@ -53,6 +94,7 @@ const metricComplete = document.querySelector("#metricComplete");
 const metricCanceled = document.querySelector("#metricCanceled");
 const metricPrepared = document.querySelector("#metricPrepared");
 const metricFace = document.querySelector("#metricFace");
+const metricControls = document.querySelector("#metricControls");
 const metricTrace = document.querySelector("#metricTrace");
 const metricBenchmark = document.querySelector("#metricBenchmark");
 
@@ -70,6 +112,14 @@ const MEDIAPIPE_WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision
 const MEDIAPIPE_FACE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
 
 const runtime = {
+  presenceState: PresenceState.IDLE,
+  presenceReason: PresenceEvent.RESET,
+  presenceSnapshot: null,
+  presenceTrace: null,
+  presenceRuntime: null,
+  faceControllerRuntime: null,
+  faceControls: null,
+  defaultRendererState: "idle",
   state: "idle",
   expressionSource: "idle",
   presence: "attentive",
@@ -223,6 +273,48 @@ const runtime = {
     arousal: 0,
     completion: 0,
   },
+};
+
+runtime.presenceRuntime = createPresenceRuntime({
+  initialState: PresenceState.IDLE,
+  now: () => performance.now(),
+});
+runtime.presenceTrace = createPresenceTrace({ limit: 24 });
+runtime.presenceTrace.attach(runtime.presenceRuntime);
+runtime.faceControllerRuntime = PresenceFace.createFaceControllerRuntime();
+runtime.presenceSnapshot = runtime.presenceRuntime.getSnapshot();
+
+const comparisonRuntime = createPresenceRuntime({
+  initialState: PresenceState.IDLE,
+  now: () => performance.now(),
+});
+const comparisonAdapter = createRuntimeSignalAdapter(comparisonRuntime, {
+  onSignal: () => renderComparisonPresence(),
+});
+const comparisonTiming = Object.freeze({
+  pause: 360,
+  streamOpen: 900,
+  firstToken: 1400,
+  done: 2600,
+});
+const comparisonResponse = "The presence side shows what is happening before the first token, while the generic side waits on the same latency.";
+const comparisonMouths = Object.freeze({
+  idle: "M58 88 C68 94 92 94 102 88",
+  listening: "M60 88 C70 92 90 92 100 88",
+  reading: "M60 88 C70 92 90 92 100 88",
+  thinking: "M61 88 C71 85 89 85 99 88",
+  curious: "M57 86 C68 96 92 96 103 86",
+  amused: "M54 84 C66 100 94 100 106 84",
+  delighted: "M52 82 C66 102 94 102 108 82",
+  uncertain: "M61 88 C71 85 89 91 99 88",
+  concerned: "M56 94 C68 84 92 84 104 94",
+  ready: "M54 84 C66 100 94 100 106 84",
+  speaking: "M58 86 L102 86 C100 102 60 102 58 86",
+});
+const comparisonState = {
+  timers: [],
+  runId: 0,
+  startedAt: 0,
 };
 
 const runtimeTestOptions = new URLSearchParams(window.location.search);
@@ -440,6 +532,81 @@ function setPressed(button, pressed) {
   button.setAttribute("aria-pressed", String(pressed));
 }
 
+function currentPresenceProfile() {
+  return presenceProfiles[runtime.presence] || presenceProfiles.attentive;
+}
+
+function faceControlProfile() {
+  const profile = currentPresenceProfile();
+  return {
+    blinkCadenceMs: (profile.blinkMin + profile.blinkMax) / 2,
+    drift: 0.1 + profile.micro * 0.1,
+    settleMs: profile.settle,
+  };
+}
+
+function updateFaceControls(snapshot) {
+  if (!runtime.faceControllerRuntime) return null;
+  const controls = runtime.faceControllerRuntime.update(snapshot, {
+    trace: runtime.presenceTrace,
+    now: performance.now(),
+    profile: faceControlProfile(),
+  });
+  runtime.faceControls = controls;
+  return controls;
+}
+
+function activeFaceControls() {
+  return runtime.faceControls || runtime.faceControllerRuntime?.getControls() || null;
+}
+
+function controlsSummary(controls = activeFaceControls()) {
+  if (!controls) return "none";
+  return [
+    `gaze:${controls.gaze.target}`,
+    `blink:${Math.round(controls.blink.cadenceMs)}ms`,
+    `brows:${Math.round(controls.brows.pinch * 100)}`,
+    `mouth:${controls.mouth.shape}`,
+    `posture:${Math.round(controls.posture.lean * 100)}`,
+    `motion:${Math.round(controls.motion.energy * 100)}`,
+  ].join(" ");
+}
+
+function syncPresenceSnapshot(snapshot) {
+  runtime.presenceSnapshot = snapshot;
+  runtime.presenceState = snapshot.state;
+  runtime.presenceReason = snapshot.event;
+  const controls = updateFaceControls(snapshot);
+  runtime.defaultRendererState = controls?.expression || PresenceFace.faceExpressionForPresence(snapshot);
+  faceShell.dataset.presenceState = snapshot.state;
+  faceShell.dataset.defaultRendererState = runtime.defaultRendererState;
+  faceShell.dataset.faceControls = controls ? controlsSummary(controls) : "none";
+  if (controls?.expression && controls.expression !== runtime.state) {
+    setExpression(controls.expression, null, "face-controller", {
+      immediate: snapshot.changed || controls.motion.settleMs <= 140,
+    });
+  }
+  if (runtime.motionOk && controls) {
+    scheduleMicroGaze(controls.motion.settleMs);
+    if (controls.blink.pulse) {
+      pulseFaceBlink(0.06, 74);
+    } else {
+      scheduleBlink();
+    }
+  }
+  return snapshot;
+}
+
+function sendPresenceEvent(event, detail = {}) {
+  if (!runtime.presenceRuntime) return null;
+  return syncPresenceSnapshot(runtime.presenceRuntime.send(event, detail));
+}
+
+function setPresenceState(state, detail = {}) {
+  if (!runtime.presenceRuntime) return null;
+  return syncPresenceSnapshot(runtime.presenceRuntime.setState(state, detail));
+}
+
 function syncComposerInput() {
   const hasText = input.value.trim().length > 0;
   inputRow.classList.toggle("has-text", hasText);
@@ -468,6 +635,14 @@ function setPresence(level) {
   }
 
   faceShell.dataset.presence = level;
+  if (runtime.presenceSnapshot) {
+    const controls = updateFaceControls(runtime.presenceSnapshot);
+    if (controls) {
+      runtime.defaultRendererState = controls.expression;
+      faceShell.dataset.defaultRendererState = runtime.defaultRendererState;
+      faceShell.dataset.faceControls = controlsSummary(controls);
+    }
+  }
   setExpression(runtime.state, null, runtime.expressionSource, { immediate: true });
   if (runtime.motionOk) {
     scheduleMicroGaze(240);
@@ -476,7 +651,7 @@ function setPresence(level) {
 }
 
 function setExpression(name, eventStartedAt = null, source = runtime.expressionSource, options = {}) {
-  const profile = presenceProfiles[runtime.presence] || presenceProfiles.attentive;
+  const profile = currentPresenceProfile();
   const urgent =
     options.immediate ||
     source === "local-reflex" ||
@@ -507,23 +682,32 @@ function setExpression(name, eventStartedAt = null, source = runtime.expressionS
 
 function applyExpression(name, eventStartedAt = null, source = runtime.expressionSource) {
   const expression = expressions[name] || expressions.idle;
-  const profile = presenceProfiles[runtime.presence] || presenceProfiles.attentive;
+  const profile = currentPresenceProfile();
+  const controls = activeFaceControls();
   const eyes = scaleEyes(expression.eyes, profile.gain);
-  const tilt = scaleValue(expressionTilts[name] || 0, profile.tilt);
+  const postureTilt = controls
+    ? (controls.posture.turn * 12) - (controls.posture.lean * 4) + (controls.motion.recovery * 1.5)
+    : 0;
+  const tilt = scaleValue((expressionTilts[name] || 0) + postureTilt, profile.tilt);
+  const breathFactor = controls
+    ? clamp(0.84 + controls.motion.energy * 0.38 + controls.motion.anticipation * 0.12 - controls.motion.recovery * 0.08, 0.7, 1.3)
+    : 1;
 
   runtime.state = name;
   runtime.expressionSource = source;
   runtime.lastExpressionAt = performance.now();
   faceShell.dataset.state = name;
+  faceShell.dataset.rendererState = name;
   faceShell.dataset.presence = runtime.presence;
   faceShell.style.setProperty("--face-tilt", `${tilt.toFixed(2)}deg`);
-  faceShell.style.setProperty("--breath-duration", `${(4.8 / profile.breath).toFixed(2)}s`);
+  faceShell.style.setProperty("--breath-duration", `${(4.8 / (profile.breath * breathFactor)).toFixed(2)}s`);
   document.documentElement.style.setProperty("--fast", `${profile.fast}ms cubic-bezier(0.2, 0.8, 0.2, 1)`);
   document.documentElement.style.setProperty("--slow", `${profile.slow}ms cubic-bezier(0.2, 0.8, 0.2, 1)`);
 
   faceSvg.style.color = expression.color;
   browLeft.setAttribute("d", expression.brows[0]);
   browRight.setAttribute("d", expression.brows[1]);
+  applyBrowControls(controls, profile);
   renderMouth(expression.mouth, profile);
   breath.setAttribute("d", expression.breath);
 
@@ -564,12 +748,41 @@ function normalizeMouth(shape) {
   return shape || { d: expressions.idle.mouth.d };
 }
 
-function renderMouth(shape, profile = presenceProfiles[runtime.presence] || presenceProfiles.attentive) {
+function applyBrowControls(controls, profile = currentPresenceProfile()) {
+  const brows = controls?.brows;
+  if (!brows) {
+    browLeft.style.transform = "";
+    browRight.style.transform = "";
+    return;
+  }
+
+  const lift = scaleValue(-8 * brows.lift + 2.5 * brows.pinch, profile.gain);
+  const pinch = scaleValue(4.8 * brows.pinch, profile.gain);
+  const asymmetry = scaleValue(5 * brows.asymmetry, profile.gain);
+
+  browLeft.style.transform = `translate(${formatSvgNumber(-pinch)}px, ${formatSvgNumber(lift - asymmetry)}px)`;
+  browRight.style.transform = `translate(${formatSvgNumber(pinch)}px, ${formatSvgNumber(lift + asymmetry)}px)`;
+}
+
+function renderMouth(shape, profile = currentPresenceProfile()) {
   const mouthShape = normalizeMouth(shape);
+  const controls = activeFaceControls();
+  const mouthControl = controls?.mouth;
+  const controlOpen = mouthControl ? mouthControl.openness : 0;
+  const controlActivity = mouthControl ? mouthControl.activity : 0;
+  const controlTension = mouthControl ? mouthControl.tension : 0;
   const x = scaleValue(mouthShape.x || 0, profile.gain);
-  const y = scaleValue(mouthShape.y || 0, profile.gain);
-  const scaleX = scaleFromNeutral(mouthShape.scaleX || 1, 1, profile.gain);
-  const scaleY = scaleFromNeutral(mouthShape.scaleY || 1, 1, profile.gain);
+  const y = scaleValue((mouthShape.y || 0) + controlTension * 1.4 - controlOpen * 0.9, profile.gain);
+  const scaleX = scaleFromNeutral(
+    (mouthShape.scaleX || 1) + controlActivity * 0.035 - controlTension * 0.035,
+    1,
+    profile.gain,
+  );
+  const scaleY = scaleFromNeutral(
+    (mouthShape.scaleY || 1) + controlOpen * 0.52 + controlActivity * 0.06 - controlTension * 0.09,
+    1,
+    profile.gain,
+  );
 
   mouth.setAttribute("d", mouthShape.d);
   mouthGroup.style.transform = `translate(${formatSvgNumber(x)}px, ${formatSvgNumber(y)}px) scale(${formatSvgNumber(scaleX)}, ${formatSvgNumber(scaleY)})`;
@@ -603,7 +816,7 @@ function startMouthMotion() {
       return;
     }
 
-    const profile = presenceProfiles[runtime.presence] || presenceProfiles.attentive;
+    const profile = currentPresenceProfile();
     const levelStep = runtime.presence === "still" ? 2 : 1;
     runtime.mouthBeat = (runtime.mouthBeat + levelStep) % speakingMouths.length;
     renderMouth(speakingMouths[runtime.mouthBeat], profile);
@@ -914,15 +1127,19 @@ function realtimeEyeForWord(word) {
   return { x: 0, y: 0 };
 }
 
-function pulseRealtimeBlink() {
+function pulseFaceBlink(closedScale = 0.16, duration = 78) {
   if (!runtime.motionOk || runtime.blinkScale < 1) return;
 
-  runtime.blinkScale = 0.16;
+  runtime.blinkScale = closedScale;
   renderEyeMotion();
   window.setTimeout(() => {
     runtime.blinkScale = 1;
     renderEyeMotion();
-  }, 78);
+  }, duration);
+}
+
+function pulseRealtimeBlink() {
+  pulseFaceBlink(0.16, 78);
 }
 
 function resetRealtimeSpeechPerformance() {
@@ -952,6 +1169,7 @@ function stopRealtimeSpeechPerformance() {
 function ensureRealtimeSpeaking(options = {}) {
   runtime.speaking = true;
   runtime.speechPlaying = true;
+  sendPresenceEvent(PresenceEvent.SPEECH_START, { source: "realtime" });
 
   if (runtime.state !== "speaking") {
     setExpression("speaking", null, "realtime");
@@ -1075,7 +1293,7 @@ function playNextRealtimeSpeechWord() {
 }
 
 function renderRealtimeSpeechWord(entry) {
-  const profile = presenceProfiles[runtime.presence] || presenceProfiles.attentive;
+  const profile = currentPresenceProfile();
   const visemes = visemeSequenceForWord(entry.word);
   const punctuation = wordPunctuation(entry.word);
   const duration = entry.duration;
@@ -1141,6 +1359,7 @@ function finishRealtimeResponse() {
   runtime.realtimeTranscript = "";
   runtime.realtimeVisibleTranscript = "";
   runtime.responseLane = "realtime-live";
+  sendPresenceEvent(PresenceEvent.VOICE_WAITING, { source: "realtime" });
   setExpression("listening", null, "realtime");
   renderMetrics();
 }
@@ -1162,6 +1381,9 @@ function renderEyeMotion() {
   const eyes = runtime.currentEyes;
   if (!eyes) return;
 
+  const controls = activeFaceControls();
+  const controllerGaze = runtime.motionOk ? controls?.gaze : null;
+  const controllerBlink = runtime.motionOk ? controls?.blink : null;
   const blink = runtime.motionOk ? runtime.blinkScale : 1;
   const microX = runtime.motionOk ? runtime.microGaze.x : 0;
   const microY = runtime.motionOk ? runtime.microGaze.y : 0;
@@ -1171,18 +1393,22 @@ function renderEyeMotion() {
   const speechY = runtime.motionOk ? runtime.realtimeSpeechEye.y : 0;
   const audioX = runtime.motionOk ? runtime.realtimeAudioEye.x : 0;
   const audioY = runtime.motionOk ? runtime.realtimeAudioEye.y : 0;
-  const scaleY = clamp(eyes.scaleY * blink, 0.08, 1.4);
+  const gazeX = controllerGaze ? controllerGaze.x * 9.6 : 0;
+  const gazeY = controllerGaze ? controllerGaze.y * 6.2 : 0;
+  const blinkOpenness = controllerBlink ? controllerBlink.openness : 1;
+  const scaleY = clamp(eyes.scaleY * blink * blinkOpenness, 0.08, 1.4);
   const trackingActive = Math.abs(visionX) + Math.abs(visionY) > 0.1;
   const speechShare = trackingActive ? 0.34 : 1;
-  const eyeShare = trackingActive ? 0.72 : 0.2;
-  const glintShare = trackingActive ? 0.26 : 0.82;
+  const focus = controllerGaze ? controllerGaze.focus : 0.62;
+  const eyeShare = trackingActive ? 0.72 : clamp(0.16 + focus * 0.16, 0.18, 0.32);
+  const glintShare = trackingActive ? 0.26 : clamp(0.62 + focus * 0.34, 0.72, 0.9);
   const leftLook = {
-    x: eyes.lx + microX + visionX + (speechX + audioX) * speechShare,
-    y: eyes.ly + microY + visionY + (speechY + audioY) * speechShare,
+    x: eyes.lx + gazeX + microX + visionX + (speechX + audioX) * speechShare,
+    y: eyes.ly + gazeY + microY + visionY + (speechY + audioY) * speechShare,
   };
   const rightLook = {
-    x: eyes.rxp + microX + visionX + (speechX + audioX) * speechShare,
-    y: eyes.ryp + microY + visionY + (speechY + audioY) * speechShare,
+    x: eyes.rxp + gazeX + microX + visionX + (speechX + audioX) * speechShare,
+    y: eyes.ryp + gazeY + microY + visionY + (speechY + audioY) * speechShare,
   };
 
   eyeLeftGroup.style.transform = `translate(${formatSvgNumber(clamp(leftLook.x * eyeShare, -8.8, 8.8))}px, ${formatSvgNumber(clamp(leftLook.y * eyeShare, -5.2, 5.2))}px) scaleY(${formatSvgNumber(scaleY)})`;
@@ -1201,11 +1427,13 @@ function scheduleMicroGaze(delay = null) {
   window.clearTimeout(runtime.microTimer);
   if (!runtime.motionOk) return;
 
-  const profile = presenceProfiles[runtime.presence] || presenceProfiles.attentive;
-  const wait = delay ?? randomBetween(1300, 2600) / Math.max(profile.micro, 0.18);
+  const profile = currentPresenceProfile();
+  const controls = activeFaceControls();
+  const motion = controls?.motion;
+  const wait = delay ?? randomBetween(1300, 2600) / Math.max(profile.micro * (0.7 + (motion?.energy ?? 0.2)), 0.18);
   runtime.microTimer = window.setTimeout(() => {
     const active = runtime.state !== "speaking" && !runtime.speechPlaying;
-    const range = active ? profile.micro : 0;
+    const range = active ? profile.micro * clamp((motion?.drift ?? 0.18) * 4.2, 0.36, 1.6) : 0;
     runtime.microGaze = {
       x: randomBetween(-1.15, 1.15) * range,
       y: randomBetween(-0.65, 0.65) * range,
@@ -1219,21 +1447,28 @@ function scheduleBlink() {
   window.clearTimeout(runtime.blinkTimer);
   if (!runtime.motionOk) return;
 
-  const profile = presenceProfiles[runtime.presence] || presenceProfiles.attentive;
+  const profile = currentPresenceProfile();
+  const controls = activeFaceControls();
+  const blinkControl = controls?.blink;
+  const profileCadence = (profile.blinkMin + profile.blinkMax) / 2;
+  const controllerCadence = blinkControl ? blinkControl.cadenceMs * (profileCadence / 4600) : null;
+  const wait = controllerCadence
+    ? randomBetween(controllerCadence * 0.78, controllerCadence * 1.22)
+    : randomBetween(profile.blinkMin, profile.blinkMax);
   runtime.blinkTimer = window.setTimeout(() => {
     if (runtime.state === "speaking" || runtime.speechPlaying) {
       scheduleBlink();
       return;
     }
 
-    runtime.blinkScale = 0.11;
+    runtime.blinkScale = blinkControl?.pulse ? 0.06 : 0.11;
     renderEyeMotion();
     window.setTimeout(() => {
       runtime.blinkScale = 1;
       renderEyeMotion();
       scheduleBlink();
-    }, Math.max(72, 104 / Math.max(profile.micro, 0.5)));
-  }, randomBetween(profile.blinkMin, profile.blinkMax));
+    }, Math.max(64, (blinkControl?.pulse ? 82 : 104) / Math.max(profile.micro, 0.5)));
+  }, wait);
 }
 
 function scaleFromNeutral(value, neutral, gain) {
@@ -1340,6 +1575,7 @@ function onInput() {
   }
   runtime.events += 1;
   const text = input.value;
+  sendPresenceEvent(PresenceEvent.USER_INPUT, { text, source: "composer" });
   const features = analyzeText(text, runtime.lastText, runtime.lastInputAt);
   features.eventStartedAt = started;
   runtime.lastInputAt = started;
@@ -1364,6 +1600,16 @@ function onInput() {
   }
 
   const immediateState = chooseImmediateState(features);
+  if (interruptedTurn || started < runtime.cancelMarkerUntil) {
+    sendPresenceEvent(PresenceEvent.INTERRUPT, { text, source: "composer" });
+  } else {
+    sendPresenceEvent(PresenceEvent.LOCAL_READ, {
+      text,
+      features,
+      completion: features.completion,
+      ready: immediateState === "ready",
+    });
+  }
   setExpression(immediateState, started, "local-reflex");
   trace("local", runtime.metrics.firstExpressionMs);
 
@@ -1372,6 +1618,12 @@ function onInput() {
     if (!input.value.trim() || runtime.speaking) return;
     const latest = runtime.lastFeatures || features;
     const next = latest.completion > 0.68 ? "ready" : "thinking";
+    sendPresenceEvent(PresenceEvent.USER_PAUSE, {
+      text: input.value,
+      features: latest,
+      completion: latest.completion,
+      ready: next === "ready",
+    });
     setExpression(next, null, "local-pause");
   }, 520);
 
@@ -1394,6 +1646,7 @@ function scheduleSpeculation(text, features) {
   runtime.prepared = null;
 
   if (!text.trim()) {
+    sendPresenceEvent(PresenceEvent.RESET, { text });
     trace("spec idle");
     return;
   }
@@ -1401,6 +1654,7 @@ function scheduleSpeculation(text, features) {
   const id = runtime.speculationId + 1;
   runtime.speculationId = id;
   trace(`spec #${id}`);
+  sendPresenceEvent(PresenceEvent.SPECULATION_START, { text, features });
   const delay = clamp(150 + text.length * 4, 180, 520);
 
   runtime.speculationTimer = window.setTimeout(async () => {
@@ -1413,6 +1667,12 @@ function scheduleSpeculation(text, features) {
       const apiPlan = await requestSpeculation(id, text, features);
       if (apiPlan) {
         runtime.prepared = apiPlan;
+        sendPresenceEvent(PresenceEvent.SPECULATION_READY, {
+          text,
+          features,
+          completion: apiPlan.completion,
+          ready: apiPlan.completion > 0.72,
+        });
         if (apiPlan.completion > 0.72 && !runtime.speaking) {
           setExpression("ready", null, "openai-speculation");
         } else if (apiPlan.expression && !runtime.speaking) {
@@ -1426,6 +1686,12 @@ function scheduleSpeculation(text, features) {
 
     runtime.prepared = localPlan(text, features);
     trace("spec local");
+    sendPresenceEvent(PresenceEvent.SPECULATION_READY, {
+      text,
+      features,
+      completion: features.completion,
+      ready: features.completion > 0.72,
+    });
 
     if (features.completion > 0.72 && !runtime.speaking) {
       setExpression("ready", null, "local-reflex");
@@ -1468,6 +1734,10 @@ async function requestSpeculation(id, text, features) {
       intent: plan.intent || labelIntent(features),
       tone: plan.tone || labelPosture(features),
       completion: runtime.metrics.completion,
+      presenceState: PresenceCore.normalizePresenceState(
+        plan.presenceState,
+        runtime.metrics.completion > 0.72 ? PresenceState.READY : PresenceState.THINKING,
+      ),
       expression: plan.expression || chooseImmediateState(features),
       confidence: clamp(Number(plan.confidence ?? 0.4), 0, 1),
       prepared: plan.prepared || "response direction",
@@ -1493,6 +1763,7 @@ function localPlan(text, features) {
     intent: labelIntent(features),
     tone: labelPosture(features),
     completion: features.completion,
+    presenceState: features.completion > 0.72 ? PresenceState.READY : PresenceState.READING,
     expression: chooseImmediateState(features),
     prepared: "local reflex fallback",
     source: "local-reflex",
@@ -1511,6 +1782,7 @@ function preparedPayload(plan) {
     intent: plan.intent,
     tone: plan.tone,
     completion: plan.completion,
+    presenceState: plan.presenceState,
     expression: plan.expression,
     confidence: plan.confidence,
     prepared: plan.prepared,
@@ -1562,6 +1834,7 @@ function makeResponse(text) {
 function streamText(text, sendStartedAt, onDone = null) {
   responseText.textContent = "";
   runtime.responseStreaming = true;
+  sendPresenceEvent(PresenceEvent.STREAM_OPEN, { source: "local-fallback" });
   const turnId = runtime.activeTurnId;
   const tokens = text.split(/(\s+)/);
   let index = 0;
@@ -1570,6 +1843,7 @@ function streamText(text, sendStartedAt, onDone = null) {
     if (turnId !== runtime.activeTurnId) return;
 
     if (index === 0) {
+      sendPresenceEvent(PresenceEvent.TOKEN, { source: "local-fallback" });
       runtime.metrics.firstTokenMs = performance.now() - sendStartedAt;
       recordSample("firstToken", runtime.metrics.firstTokenMs);
       trace("token", runtime.metrics.firstTokenMs);
@@ -1601,6 +1875,7 @@ function markResponseComplete(sendStartedAt, responseMs = performance.now() - se
 
 function finishTextResponse() {
   runtime.speaking = false;
+  sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "text-response" });
   setExpression("ready", null, "response-ready");
   maybeResumeMicAfterResponse();
   renderMetrics();
@@ -1615,6 +1890,7 @@ function revealFullResponseWithSpeech(text, sendStartedAt, responseMs = performa
   if (!runtime.speechBusy && !runtime.speechQueue.length && !runtime.speechPlaying) {
     responseText.textContent = text;
     runtime.speaking = false;
+    sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "speech-response-empty" });
     setExpression("ready", null, "response-ready");
     maybeResumeMicAfterResponse();
   }
@@ -1653,6 +1929,7 @@ function cancelActiveTurn() {
   runtime.responseStreaming = false;
   runtime.speaking = false;
   cancelSpeechPlayback();
+  sendPresenceEvent(PresenceEvent.INTERRUPT, { source: "cancel-active-turn" });
   return true;
 }
 
@@ -1906,6 +2183,7 @@ function playNextSpeechSegment() {
 function markAudioStarted(segment) {
   runtime.speaking = true;
   runtime.speechPlaying = true;
+  sendPresenceEvent(PresenceEvent.SPEECH_START, { source: "speech", text: segment.text });
   if (runtime.metrics.firstAudioMs === null) {
     runtime.metrics.firstAudioMs = performance.now() - segment.sendStartedAt;
     recordSample("firstAudio", runtime.metrics.firstAudioMs);
@@ -1938,6 +2216,7 @@ function finishSpeechSegment(url = null, requestId = null, segment = null) {
 
   if (!runtime.responseStreaming) {
     runtime.speaking = false;
+    sendPresenceEvent(PresenceEvent.SPEECH_END, { source: "speech" });
     setExpression("ready", null, "response-ready");
     maybeResumeMicAfterResponse();
   }
@@ -1991,6 +2270,7 @@ function cancelSpeechPlayback() {
 async function speak(text, sendStartedAt) {
   if (!runtime.speakerOn) {
     runtime.speaking = false;
+    sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "speech-disabled" });
     setExpression("ready", null, "response-ready");
     return false;
   }
@@ -2193,6 +2473,7 @@ async function submitMessageText(text, options = {}) {
   runtime.speaking = true;
   runtime.responseStreaming = false;
   runtime.responseLane = runtime.apiAvailable ? "openai-pending" : "local-fallback";
+  sendPresenceEvent(PresenceEvent.SUBMIT, { text: cleanText, features: submittedFeatures });
   trace(`turn #${runtime.activeTurnId}`);
   trace("send");
   setExpression("thinking", null, "response-pending");
@@ -2251,6 +2532,7 @@ async function streamApiResponse(text, features, sendStartedAt) {
     runtime.metrics.streamOpenMs = performance.now() - sendStartedAt;
     runtime.responseLane = "openai-stream";
     runtime.responseStreaming = true;
+    sendPresenceEvent(PresenceEvent.STREAM_OPEN, { text, source: "openai" });
     trace("open", runtime.metrics.streamOpenMs);
     renderMetrics();
 
@@ -2286,6 +2568,7 @@ async function streamApiResponse(text, features, sendStartedAt) {
           const payload = JSON.parse(event.data);
           const delta = payload.delta || "";
           if (delta && runtime.metrics.firstTokenMs === null) {
+            sendPresenceEvent(PresenceEvent.TOKEN, { text, source: "openai" });
             runtime.metrics.firstTokenMs = performance.now() - sendStartedAt;
             recordSample("firstToken", runtime.metrics.firstTokenMs);
             trace("token", runtime.metrics.firstTokenMs);
@@ -2312,6 +2595,7 @@ async function streamApiResponse(text, features, sendStartedAt) {
       if (!runtime.speechBusy && !runtime.speechQueue.length) {
         responseText.textContent = fullText;
         runtime.speaking = false;
+        sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "openai-text" });
         setExpression("ready", null, "response-ready");
         maybeResumeMicAfterResponse();
       }
@@ -2482,6 +2766,165 @@ function applyInitialViewState() {
     metricsPanel.hidden = false;
     setPressed(metricsToggle, true);
   }
+
+  if (params.get("compare") === "1" || params.get("compare") === "true") {
+    setComparisonMode(true, { updateUrl: false, focus: false });
+  }
+
+  if (params.get("autorunCompare") === "1") {
+    window.setTimeout(() => runComparisonDemo(), 180);
+  }
+}
+
+function setComparisonMode(enabled, options = {}) {
+  const active = Boolean(enabled);
+  comparisonDemo.hidden = !active;
+  document.body.classList.toggle("comparison-mode", active);
+  setPressed(compareToggle, active);
+  if (active) {
+    renderComparisonPresence();
+    if (options.focus !== false) {
+      compareInput.focus({ preventScroll: true });
+    }
+  }
+  if (!active && options.focus !== false) {
+    input.focus({ preventScroll: true });
+  }
+  if (options.updateUrl !== false) {
+    const url = new URL(window.location.href);
+    if (active) {
+      url.searchParams.set("compare", "1");
+    } else {
+      url.searchParams.delete("compare");
+      url.searchParams.delete("autorunCompare");
+    }
+    window.history.replaceState({}, "", url);
+  }
+}
+
+function toggleComparisonMode() {
+  setComparisonMode(comparisonDemo.hidden);
+}
+
+function clearComparisonTimers() {
+  for (const timer of comparisonState.timers) {
+    window.clearTimeout(timer);
+  }
+  comparisonState.timers = [];
+}
+
+function scheduleComparison(delay, callback) {
+  const runId = comparisonState.runId;
+  const timer = window.setTimeout(() => {
+    comparisonState.timers = comparisonState.timers.filter((item) => item !== timer);
+    if (runId !== comparisonState.runId) return;
+    callback();
+  }, delay);
+  comparisonState.timers.push(timer);
+}
+
+function appendComparisonTimeline(output, label) {
+  output.textContent = output.textContent === "--" ? label : `${output.textContent} -> ${label}`;
+}
+
+function renderComparisonPresence() {
+  if (!comparePresenceState || !compareFace) return;
+
+  const snapshot = comparisonRuntime.getSnapshot();
+  const expression = PresenceFace.faceExpressionForPresence(snapshot);
+  comparePresenceState.textContent = snapshot.state;
+  comparePresenceRenderer.textContent = expression;
+  compareFace.dataset.presenceState = snapshot.state;
+  compareFace.dataset.rendererState = expression;
+  compareMouth.setAttribute("d", comparisonMouths[expression] || comparisonMouths.idle);
+}
+
+function resetComparisonDemo(message) {
+  clearComparisonTimers();
+  comparisonState.runId += 1;
+  comparisonAdapter.send({ type: RuntimeSignal.RESET });
+  compareLatency.textContent = `First token ${comparisonTiming.firstToken}ms`;
+  compareSpinnerState.textContent = "idle";
+  compareSpinnerUser.textContent = message;
+  compareSpinnerIndicator.classList.remove("is-visible");
+  compareSpinnerResponse.textContent = "";
+  compareSpinnerTimeline.textContent = "--";
+  comparePresenceUser.textContent = message;
+  comparePresenceResponse.textContent = "";
+  comparePresenceTimeline.textContent = "--";
+  compareVoteResult.textContent = "--";
+  compareRun.disabled = false;
+  renderComparisonPresence();
+}
+
+function revealComparisonText(target, fraction) {
+  const nextLength = Math.ceil(comparisonResponse.length * fraction);
+  target.textContent = comparisonResponse.slice(0, nextLength);
+}
+
+function runComparisonDemo(event = null) {
+  event?.preventDefault();
+  const message = compareInput.value.trim() || "Why does this feel faster?";
+
+  resetComparisonDemo(message);
+  comparisonState.startedAt = performance.now();
+  comparisonState.runId += 1;
+  compareRun.disabled = true;
+  compareSpinnerState.textContent = "waiting";
+  compareSpinnerIndicator.classList.add("is-visible");
+  compareSpinnerTimeline.textContent = "0ms submit";
+  comparePresenceTimeline.textContent = "0ms reading";
+  comparisonAdapter.send({
+    type: RuntimeSignal.USER_INPUT,
+    text: message,
+    source: "comparison",
+  });
+  comparisonAdapter.send({
+    type: RuntimeSignal.LOCAL_READ,
+    text: message,
+    completion: 0.28,
+    source: "comparison",
+  });
+
+  scheduleComparison(comparisonTiming.pause, () => {
+    comparisonAdapter.send({
+      type: RuntimeSignal.USER_PAUSE,
+      text: message,
+      completion: 0.46,
+      source: "comparison",
+    });
+    appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.pause}ms thinking`);
+  });
+
+  scheduleComparison(comparisonTiming.streamOpen, () => {
+    comparisonAdapter.send({ type: RuntimeSignal.STREAM_OPEN, source: "comparison" });
+    appendComparisonTimeline(compareSpinnerTimeline, `${comparisonTiming.streamOpen}ms stream open`);
+    appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.streamOpen}ms waiting`);
+  });
+
+  scheduleComparison(comparisonTiming.firstToken, () => {
+    comparisonAdapter.send({ type: RuntimeSignal.TOKEN, source: "comparison" });
+    compareSpinnerState.textContent = "streaming";
+    compareSpinnerIndicator.classList.remove("is-visible");
+    revealComparisonText(compareSpinnerResponse, 0.42);
+    revealComparisonText(comparePresenceResponse, 0.42);
+    appendComparisonTimeline(compareSpinnerTimeline, `${comparisonTiming.firstToken}ms first token`);
+    appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.firstToken}ms first token`);
+  });
+
+  scheduleComparison(comparisonTiming.done, () => {
+    comparisonAdapter.send({ type: RuntimeSignal.RESPONSE_COMPLETE, source: "comparison" });
+    compareSpinnerState.textContent = "ready";
+    compareSpinnerResponse.textContent = comparisonResponse;
+    comparePresenceResponse.textContent = comparisonResponse;
+    appendComparisonTimeline(compareSpinnerTimeline, `${comparisonTiming.done}ms done`);
+    appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.done}ms done`);
+    compareRun.disabled = false;
+  });
+}
+
+function setComparisonVote(choice) {
+  compareVoteResult.textContent = choice;
 }
 
 function primeAudioOutput() {
@@ -3284,6 +3727,7 @@ function setupMic() {
     micToggle.title = "Mic is listening. Speak, then pause to send.";
     micToggle.setAttribute("aria-label", "Turn microphone off");
     input.setAttribute("placeholder", "Speak, then pause...");
+    sendPresenceEvent(PresenceEvent.VOICE_WAITING, { source: "mic" });
     setExpression("listening", null, "mic");
     trace("mic live");
     renderMetrics();
@@ -3619,6 +4063,7 @@ async function startRealtimeVoiceSession() {
   runtime.metrics.responseMs = null;
   responseText.textContent = "";
   trace("voice connect");
+  sendPresenceEvent(PresenceEvent.VOICE_WAITING, { source: "realtime-connect" });
   setPressed(micToggle, true);
   micToggle.title = "Starting direct speech-to-speech...";
   micToggle.setAttribute("aria-label", "Stop voice session");
@@ -3739,6 +4184,7 @@ async function startRealtimeVoiceSession() {
     micToggle.title = "Voice is live. Speak naturally; pause to let it answer.";
     micToggle.setAttribute("aria-label", "Stop voice session");
     input.setAttribute("placeholder", "Speak naturally...");
+    sendPresenceEvent(PresenceEvent.VOICE_WAITING, { source: "realtime-live" });
     setExpression("listening", null, "realtime");
     trace("voice ready");
     renderMetrics();
@@ -3760,6 +4206,7 @@ async function startRealtimeVoiceSession() {
     responseText.textContent = failure.detail === failure.message
       ? failure.message
       : `${failure.message} ${failure.detail}`;
+    sendPresenceEvent(PresenceEvent.ERROR, { source: "realtime", detail: failure.detail });
     setExpression("concerned", null, "realtime");
     trace(failure.trace);
     renderMetrics();
@@ -3852,6 +4299,11 @@ function stopRealtimeVoiceSession(reason = "off") {
     : "Speaker is off. Responses will stay silent.";
   speakerToggle.setAttribute("aria-label", runtime.speakerOn ? "Turn speaker off" : "Turn speaker on");
   setVoiceButtonIdle();
+  if (reason === "error") {
+    sendPresenceEvent(PresenceEvent.ERROR, { source: "realtime" });
+  } else {
+    sendPresenceEvent(PresenceEvent.RESET, { text: input.value });
+  }
   setExpression(input.value.trim() ? "ready" : "idle", null, "realtime");
   trace(reason === "error" ? "voice error" : "voice off");
   renderMetrics();
@@ -3906,11 +4358,16 @@ function handleRealtimeEvent(rawData) {
     runtime.responseLane = "realtime-listen";
     responseText.textContent = "";
     trace("heard");
+    setPresenceState(PresenceState.READING, { source: "realtime-audio" });
     setExpression("listening", null, "realtime");
   } else if (type === "input_audio_buffer.speech_stopped") {
     runtime.metrics.completion = 0.78;
     runtime.responseLane = "realtime-think";
     trace("pause");
+    sendPresenceEvent(PresenceEvent.USER_PAUSE, {
+      text: runtime.realtimeTranscript || "voice input",
+      completion: runtime.metrics.completion,
+    });
     setExpression("thinking", null, "realtime");
   } else if (type === "response.created") {
     resetRealtimeSpeechPerformance();
@@ -3921,6 +4378,7 @@ function handleRealtimeEvent(rawData) {
     runtime.speaking = false;
     runtime.speechPlaying = false;
     trace("response");
+    sendPresenceEvent(PresenceEvent.SUBMIT, { source: "realtime" });
     setExpression("thinking", null, "realtime");
   } else if (
     type === "response.output_audio_transcript.delta" ||
@@ -3931,6 +4389,7 @@ function handleRealtimeEvent(rawData) {
     const delta = event.delta || "";
     if (delta) {
       if (runtime.metrics.firstTokenMs === null && runtime.realtimeTurnStartedAt) {
+        sendPresenceEvent(PresenceEvent.TOKEN, { source: "realtime" });
         runtime.metrics.firstTokenMs = performance.now() - runtime.realtimeTurnStartedAt;
         recordSample("firstToken", runtime.metrics.firstTokenMs);
         trace("token", runtime.metrics.firstTokenMs);
@@ -3976,6 +4435,7 @@ function handleRealtimeEvent(rawData) {
     trace("voice error");
     runtime.voiceLabel = "error";
     stopRealtimeSpeechPerformance();
+    sendPresenceEvent(PresenceEvent.ERROR, { source: "realtime" });
     setExpression("concerned", null, "realtime");
   }
 
@@ -4282,6 +4742,7 @@ function installRuntimeTestHarness() {
     simulateRealtimeSpeechStream,
     simulateRealtimeAudioPerformance,
     state: () => ({
+      presenceState: runtime.presenceState,
       state: runtime.state,
       micOn: runtime.micOn,
       micListening: runtime.micListening,
@@ -4293,6 +4754,8 @@ function installRuntimeTestHarness() {
       responseText: responseText.textContent,
       mouth: mouth.getAttribute("d"),
       eye: eyeLeftGroup.style.transform,
+      controls: controlsSummary(),
+      faceControls: runtime.faceControls,
       turns: runtime.metrics.turns,
       trace: [...runtime.trace],
     }),
@@ -4394,7 +4857,8 @@ function installRuntimeTestHarness() {
 }
 
 function renderMetrics() {
-  metricState.textContent = runtime.state;
+  metricState.textContent = runtime.presenceState;
+  metricRenderer.textContent = runtime.state;
   metricPresence.textContent = runtime.presence;
   metricSource.textContent = runtime.expressionSource;
   metricExpression.textContent = ms(runtime.metrics.firstExpressionMs);
@@ -4417,6 +4881,7 @@ function renderMetrics() {
   metricCanceled.textContent = String(runtime.staleJobs);
   metricPrepared.textContent = runtime.prepared ? runtime.prepared.intent : "no";
   metricFace.textContent = runtime.faceLabel;
+  metricControls.textContent = controlsSummary();
   metricTrace.textContent = runtime.trace.length ? runtime.trace.join(" -> ") : "--";
   metricBenchmark.textContent = runtime.benchmark.summary;
 }
@@ -4459,6 +4924,7 @@ async function loadHealth() {
 function boot() {
   setupMic();
   setupFaceTracking();
+  setPresenceState(PresenceState.IDLE, { source: "boot" });
   setPresence(runtime.presence);
   setExpression("idle", null, "idle", { immediate: true });
   setVoiceButtonIdle();
@@ -4467,6 +4933,7 @@ function boot() {
   speakerToggle.setAttribute("aria-label", "Turn speaker on");
   setPressed(faceToggle, false);
   setPressed(metricsToggle, false);
+  setPressed(compareToggle, false);
   applyInitialViewState();
 
   input.addEventListener("input", onInput);
@@ -4480,6 +4947,11 @@ function boot() {
   speakerToggle.addEventListener("click", toggleSpeaker);
   faceToggle.addEventListener("click", toggleFaceTracking);
   metricsToggle.addEventListener("click", toggleMetrics);
+  compareToggle.addEventListener("click", toggleComparisonMode);
+  compareBack.addEventListener("click", () => setComparisonMode(false));
+  compareForm.addEventListener("submit", runComparisonDemo);
+  compareVoteSpinner.addEventListener("click", () => setComparisonVote("spinner"));
+  compareVotePresence.addEventListener("click", () => setComparisonVote("presence"));
   benchmarkButton.addEventListener("click", runBenchmark);
   syncComposerInput();
   loadHealth();

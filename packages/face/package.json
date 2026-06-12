@@ -1,0 +1,27 @@
+{
+  "name": "@ai-presence/face",
+  "version": "0.0.0",
+  "description": "Reference face renderer mapping for AI Presence Kit.",
+  "type": "commonjs",
+  "main": "./src/presence-face.js",
+  "module": "./dist/index.mjs",
+  "types": "./src/presence-face.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/presence-face.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./src/presence-face.js",
+      "default": "./src/presence-face.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "dependencies": {
+    "@ai-presence/core": "0.0.0"
+  },
+  "sideEffects": false,
+  "license": "MIT"
+}

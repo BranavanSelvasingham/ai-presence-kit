@@ -1,0 +1,24 @@
+{
+  "name": "@ai-presence/core",
+  "version": "0.0.0",
+  "description": "Canonical presence state runtime for AI interfaces.",
+  "type": "commonjs",
+  "main": "./src/presence-core.js",
+  "module": "./dist/index.mjs",
+  "types": "./src/presence-core.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/presence-core.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./src/presence-core.js",
+      "default": "./src/presence-core.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "license": "MIT"
+}
