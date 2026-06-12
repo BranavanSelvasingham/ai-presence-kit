@@ -9,13 +9,26 @@ const html = readFileSync(resolve(root, "index.html"), "utf8");
 const app = readFileSync(resolve(root, "app.js"), "utf8");
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const { PresenceState } = require("../packages/core/src/presence-core.js");
-const { createFaceControllerRuntime } = require("../packages/face/src/presence-face.js");
+const {
+  FACE_CONTROL_CHANNELS,
+  faceControllerDecisionsForPresence,
+} = require("../packages/face/src/presence-face.js");
 
 assert.match(html, /id="controllerGallery"/);
 assert.match(html, /id="controllerGalleryGrid"/);
 assert.match(app, /params\.get\("controls"\)/);
 assert.match(app, /params\.get\("controllerGallery"\)/);
 assert.match(app, /createFaceControllerRuntime\(\)/);
+assert.match(app, /FACE_CONTROL_CHANNELS/);
+assert.match(app, /faceControllerDecisionsForPresence/);
+assert.match(app, /runtime\.faceDecisionReport/);
+assert.match(app, /dataset\.controller/);
+assert.match(app, /dataset\.reads/);
+assert.match(app, /dataset\.controllerComposition/);
+assert.match(app, /dataset\.controllerEvidence/);
+assert.match(app, /faceDecisionReport/);
+assert.match(app, /metricControls\.dataset\.controllerComposition/);
+assert.match(app, /metricControls\.dataset\.controllerEvidence/);
 assert.match(css, /body\.controller-gallery-mode/);
 
 for (const constantName of [
@@ -33,7 +46,9 @@ for (const constantName of [
   assert.match(app, new RegExp(`PresenceState\\.${constantName}`), `${constantName} missing from gallery state list`);
 }
 
-for (const channel of ["gaze", "blink", "brows", "mouth", "posture", "motion"]) {
+assert.deepEqual(FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
+
+for (const channel of FACE_CONTROL_CHANNELS) {
   assert.match(app, new RegExp(`"${channel}"`), `${channel} channel missing from gallery renderer`);
 }
 
@@ -58,14 +73,28 @@ for (const state of [
     updatedAt: 1000 + history.length * 180,
     version: history.length + 1,
   };
-  const controls = createFaceControllerRuntime().update(snapshot, { history, now: snapshot.updatedAt + 120 });
+  const report = faceControllerDecisionsForPresence(snapshot, { history, now: snapshot.updatedAt + 120 });
+  const controls = Object.fromEntries(
+    FACE_CONTROL_CHANNELS.map((channel) => [channel, report.decisions[channel].control]),
+  );
 
+  assert.equal(report.state, state, `${state} decision report state`);
+  assert.equal(typeof report.expression, "string", `${state} decision report expression`);
+  assert.deepEqual(Object.keys(report.decisions), FACE_CONTROL_CHANNELS, `${state} decision channel order`);
   assert.equal(typeof controls.gaze.target, "string", `${state} gaze target`);
   assert.equal(typeof controls.mouth.shape, "string", `${state} mouth shape`);
   assert.ok(Number.isFinite(controls.blink.cadenceMs), `${state} blink cadence`);
   assert.ok(Number.isFinite(controls.brows.pinch), `${state} brow pinch`);
   assert.ok(Number.isFinite(controls.posture.lean), `${state} posture lean`);
   assert.ok(Number.isFinite(controls.motion.energy), `${state} motion energy`);
+
+  for (const channel of FACE_CONTROL_CHANNELS) {
+    const decision = report.decisions[channel];
+    assert.equal(decision.channel, channel, `${state} ${channel} decision channel`);
+    assert.equal(decision.controller, `${channel}-controller`, `${state} ${channel} controller name`);
+    assert.ok(decision.reads.includes("state"), `${state} ${channel} reads state`);
+    assert.deepEqual(decision.control, controls[channel], `${state} ${channel} decision control`);
+  }
   history.push(snapshot);
 }
 

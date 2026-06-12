@@ -71,6 +71,9 @@ if (!PresenceAdapters) {
 
 const { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } = PresenceCore;
 const { RuntimeSignal, createRuntimeSignalAdapter } = PresenceAdapters;
+const FACE_CONTROL_CHANNELS = Array.isArray(PresenceFace.FACE_CONTROL_CHANNELS)
+  ? PresenceFace.FACE_CONTROL_CHANNELS
+  : ["gaze", "blink", "brows", "mouth", "posture", "motion"];
 
 const metricState = document.querySelector("#metricState");
 const metricRenderer = document.querySelector("#metricRenderer");
@@ -121,6 +124,7 @@ const runtime = {
   presenceRuntime: null,
   faceControllerRuntime: null,
   faceControls: null,
+  faceDecisionReport: null,
   defaultRendererState: "idle",
   state: "idle",
   expressionSource: "idle",
@@ -561,17 +565,34 @@ function faceControlProfile() {
 
 function updateFaceControls(snapshot) {
   if (!runtime.faceControllerRuntime) return null;
-  const controls = runtime.faceControllerRuntime.update(snapshot, {
+  const options = {
     trace: runtime.presenceTrace,
     now: performance.now(),
     profile: faceControlProfile(),
-  });
+  };
+  const controls = runtime.faceControllerRuntime.update(snapshot, options);
+  runtime.faceDecisionReport = typeof PresenceFace.faceControllerDecisionsForPresence === "function"
+    ? PresenceFace.faceControllerDecisionsForPresence(snapshot, options)
+    : null;
   runtime.faceControls = controls;
   return controls;
 }
 
 function activeFaceControls() {
   return runtime.faceControls || runtime.faceControllerRuntime?.getControls() || null;
+}
+
+function activeFaceDecisionReport() {
+  return runtime.faceDecisionReport || null;
+}
+
+function controlsFromDecisionReport(report) {
+  if (!report?.decisions) return null;
+  const controls = { expression: report.expression };
+  for (const channel of FACE_CONTROL_CHANNELS) {
+    controls[channel] = report.decisions[channel]?.control;
+  }
+  return controls;
 }
 
 function controlsSummary(controls = activeFaceControls()) {
@@ -595,15 +616,50 @@ function signedNumber(value) {
   return rounded === "-0.00" ? "0.00" : rounded;
 }
 
-function controllerEvidenceText(controls) {
-  return [
-    `gaze target ${controls.gaze.target} focus ${shortPercent(controls.gaze.focus)}%`,
-    `blink open ${shortPercent(controls.blink.openness)}% cadence ${Math.round(controls.blink.cadenceMs)}ms pulse ${controls.blink.pulse ? "yes" : "no"}`,
-    `brows lift ${signedNumber(controls.brows.lift)} pinch ${signedNumber(controls.brows.pinch)}`,
-    `mouth ${controls.mouth.shape} open ${shortPercent(controls.mouth.openness)}% activity ${shortPercent(controls.mouth.activity)}%`,
-    `posture lean ${signedNumber(controls.posture.lean)} recovery ${shortPercent(controls.posture.recovery)}%`,
-    `motion energy ${shortPercent(controls.motion.energy)}% anticipation ${shortPercent(controls.motion.anticipation)}% recovery ${shortPercent(controls.motion.recovery)}%`,
-  ].join(" | ");
+function decisionForChannel(report, channel) {
+  return report?.decisions?.[channel] || null;
+}
+
+function controllerReadsText(decision) {
+  return Array.isArray(decision?.reads) ? decision.reads.join(",") : "none";
+}
+
+function controllerCompositionText(report = activeFaceDecisionReport()) {
+  if (!report?.decisions) return "none";
+  return FACE_CONTROL_CHANNELS
+    .map((channel) => `${channel}:${decisionForChannel(report, channel)?.controller || "none"}`)
+    .join(" ");
+}
+
+function controllerChannelControlText(channel, control) {
+  switch (channel) {
+    case "gaze":
+      return `target ${control.target} focus ${shortPercent(control.focus)}%`;
+    case "blink":
+      return `open ${shortPercent(control.openness)}% cadence ${Math.round(control.cadenceMs)}ms pulse ${control.pulse ? "yes" : "no"}`;
+    case "brows":
+      return `lift ${signedNumber(control.lift)} pinch ${signedNumber(control.pinch)}`;
+    case "mouth":
+      return `${control.shape} open ${shortPercent(control.openness)}% activity ${shortPercent(control.activity)}%`;
+    case "posture":
+      return `lean ${signedNumber(control.lean)} recovery ${shortPercent(control.recovery)}%`;
+    case "motion":
+      return `energy ${shortPercent(control.energy)}% anticipation ${shortPercent(control.anticipation)}% recovery ${shortPercent(control.recovery)}%`;
+    default:
+      return JSON.stringify(control);
+  }
+}
+
+function controllerEvidenceText(controls, report = null) {
+  if (!controls) return "none";
+  return FACE_CONTROL_CHANNELS
+    .map((channel) => {
+      const decision = decisionForChannel(report, channel);
+      const controller = decision?.controller || `${channel}-control`;
+      const reads = controllerReadsText(decision);
+      return `${channel} ${controller} reads ${reads} -> ${controllerChannelControlText(channel, controls[channel])}`;
+    })
+    .join(" | ");
 }
 
 function syncPresenceSnapshot(snapshot) {
@@ -615,6 +671,8 @@ function syncPresenceSnapshot(snapshot) {
   faceShell.dataset.presenceState = snapshot.state;
   faceShell.dataset.defaultRendererState = runtime.defaultRendererState;
   faceShell.dataset.faceControls = controls ? controlsSummary(controls) : "none";
+  faceShell.dataset.controllerComposition = controllerCompositionText();
+  faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
   if (controls?.expression && controls.expression !== runtime.state) {
     setExpression(controls.expression, null, "face-controller", {
       immediate: snapshot.changed || controls.motion.settleMs <= 140,
@@ -675,6 +733,8 @@ function setPresence(level) {
       runtime.defaultRendererState = controls.expression;
       faceShell.dataset.defaultRendererState = runtime.defaultRendererState;
       faceShell.dataset.faceControls = controlsSummary(controls);
+      faceShell.dataset.controllerComposition = controllerCompositionText();
+      faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
     }
   }
   setExpression(runtime.state, null, runtime.expressionSource, { immediate: true });
@@ -2899,10 +2959,14 @@ function createControllerFaceSvg(state, controls) {
   return svg;
 }
 
-function createControllerChannelRow(channel, label, value, meterValue = null) {
+function createControllerChannelRow(channel, label, value, meterValue = null, decision = null) {
   const row = document.createElement("div");
   row.className = "controller-channel";
   row.dataset.channel = channel;
+  if (decision) {
+    row.dataset.controller = decision.controller;
+    row.dataset.reads = controllerReadsText(decision);
+  }
 
   const name = document.createElement("span");
   name.textContent = label;
@@ -2919,13 +2983,16 @@ function createControllerChannelRow(channel, label, value, meterValue = null) {
   return row;
 }
 
-function createControllerGalleryCard(state, controls) {
+function createControllerGalleryCard(state, report) {
+  const controls = controlsFromDecisionReport(report);
   const card = document.createElement("article");
   card.className = "controller-card";
   card.dataset.presenceState = state;
+  card.dataset.decisionState = report.state;
   card.dataset.rendererState = controls.expression;
   card.dataset.faceControls = controlsSummary(controls);
-  card.dataset.controllerEvidence = controllerEvidenceText(controls);
+  card.dataset.controllerComposition = controllerCompositionText(report);
+  card.dataset.controllerEvidence = controllerEvidenceText(controls, report);
 
   const title = document.createElement("h2");
   title.textContent = state;
@@ -2945,36 +3012,42 @@ function createControllerGalleryCard(state, controls) {
       "Gaze",
       `${controls.gaze.target} x ${signedNumber(controls.gaze.x)} y ${signedNumber(controls.gaze.y)} focus ${shortPercent(controls.gaze.focus)}%`,
       controls.gaze.focus,
+      decisionForChannel(report, "gaze"),
     ),
     createControllerChannelRow(
       "blink",
       "Blink",
       `open ${shortPercent(controls.blink.openness)}% cadence ${Math.round(controls.blink.cadenceMs)}ms pulse ${controls.blink.pulse ? "yes" : "no"}`,
       controls.blink.openness,
+      decisionForChannel(report, "blink"),
     ),
     createControllerChannelRow(
       "brows",
       "Brows",
       `lift ${signedNumber(controls.brows.lift)} pinch ${signedNumber(controls.brows.pinch)} asym ${signedNumber(controls.brows.asymmetry)}`,
       clamp((controls.brows.pinch + 0.1) / 0.7, 0, 1),
+      decisionForChannel(report, "brows"),
     ),
     createControllerChannelRow(
       "mouth",
       "Mouth",
       `${controls.mouth.shape} open ${shortPercent(controls.mouth.openness)}% activity ${shortPercent(controls.mouth.activity)}% tension ${shortPercent(controls.mouth.tension)}%`,
       controls.mouth.activity || controls.mouth.openness,
+      decisionForChannel(report, "mouth"),
     ),
     createControllerChannelRow(
       "posture",
       "Posture",
       `lean ${signedNumber(controls.posture.lean)} turn ${signedNumber(controls.posture.turn)} recovery ${shortPercent(controls.posture.recovery)}%`,
       Math.abs(controls.posture.lean),
+      decisionForChannel(report, "posture"),
     ),
     createControllerChannelRow(
       "motion",
       "Motion",
       `energy ${shortPercent(controls.motion.energy)}% anticipation ${shortPercent(controls.motion.anticipation)}% recovery ${shortPercent(controls.motion.recovery)}%`,
       controls.motion.energy,
+      decisionForChannel(report, "motion"),
     ),
   );
 
@@ -2997,13 +3070,12 @@ function renderControllerGallery() {
       updatedAt: 1000 + index * 180,
       version: index + 1,
     };
-    const controller = PresenceFace.createFaceControllerRuntime();
-    const controls = controller.update(snapshot, {
+    const report = PresenceFace.faceControllerDecisionsForPresence(snapshot, {
       history,
       now: snapshot.updatedAt + 120,
       profile: faceControlProfile(),
     });
-    controllerGalleryGrid.append(createControllerGalleryCard(state, controls));
+    controllerGalleryGrid.append(createControllerGalleryCard(state, report));
     history.push(snapshot);
   }
 }
@@ -5040,7 +5112,9 @@ function installRuntimeTestHarness() {
       mouth: mouth.getAttribute("d"),
       eye: eyeLeftGroup.style.transform,
       controls: controlsSummary(),
+      controllerComposition: controllerCompositionText(),
       faceControls: runtime.faceControls,
+      faceDecisionReport: runtime.faceDecisionReport,
       turns: runtime.metrics.turns,
       trace: [...runtime.trace],
     }),
@@ -5167,6 +5241,8 @@ function renderMetrics() {
   metricPrepared.textContent = runtime.prepared ? runtime.prepared.intent : "no";
   metricFace.textContent = runtime.faceLabel;
   metricControls.textContent = controlsSummary();
+  metricControls.dataset.controllerComposition = controllerCompositionText();
+  metricControls.dataset.controllerEvidence = controllerEvidenceText(activeFaceControls(), activeFaceDecisionReport());
   metricTrace.textContent = runtime.trace.length ? runtime.trace.join(" -> ") : "--";
   metricBenchmark.textContent = runtime.benchmark.summary;
 }
