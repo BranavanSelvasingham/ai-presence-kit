@@ -53,6 +53,10 @@
     return Number.isFinite(completion) ? Math.max(0, Math.min(1, completion)) : 0;
   }
 
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
   function reducePresenceState(currentState, event, payload = {}) {
     switch (event) {
       case PresenceEvent.RESET:
@@ -191,6 +195,292 @@
     });
   }
 
+  function normalizeSnapshotInput(snapshotOrState, options = {}) {
+    if (typeof snapshotOrState === "string") {
+      return {
+        state: normalizePresenceState(snapshotOrState),
+        previousState: null,
+        event: null,
+        detail: options.detail || {},
+        updatedAt: null,
+        version: 0,
+      };
+    }
+
+    return {
+      state: normalizePresenceState(snapshotOrState?.state),
+      previousState: snapshotOrState?.previousState
+        ? normalizePresenceState(snapshotOrState.previousState, null)
+        : null,
+      event: snapshotOrState?.event || null,
+      detail: snapshotOrState?.detail || {},
+      updatedAt: Number.isFinite(Number(snapshotOrState?.updatedAt))
+        ? Number(snapshotOrState.updatedAt)
+        : null,
+      version: Number(snapshotOrState?.version) || 0,
+    };
+  }
+
+  function readHistory(options = {}) {
+    if (Array.isArray(options.history)) return options.history;
+    if (options.trace && typeof options.trace.getEntries === "function") {
+      return options.trace.getEntries();
+    }
+    if (Array.isArray(options.trace)) return options.trace;
+    return [];
+  }
+
+  function resolveNow(options, snapshot, history) {
+    const optionNow = typeof options.now === "function" ? options.now() : options.now;
+    const numericNow = Number(optionNow);
+    if (Number.isFinite(numericNow)) return numericNow;
+    if (snapshot.updatedAt !== null) return snapshot.updatedAt;
+    const latest = history[history.length - 1];
+    const latestTime = Number(latest?.updatedAt);
+    return Number.isFinite(latestTime) ? latestTime : 0;
+  }
+
+  function latestHistoryEntry(history) {
+    return history.length ? history[history.length - 1] : null;
+  }
+
+  function stateAgeMs(snapshot, history, now) {
+    if (snapshot.updatedAt !== null) return Math.max(0, now - snapshot.updatedAt);
+    const latest = latestHistoryEntry(history);
+    const latestTime = Number(latest?.updatedAt);
+    return Number.isFinite(latestTime) ? Math.max(0, now - latestTime) : 0;
+  }
+
+  function includesRecentState(snapshot, history, state, windowMs, now) {
+    if (snapshot.previousState === state) return true;
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+      const entry = history[index];
+      if (entry?.state !== state) continue;
+      const updatedAt = Number(entry.updatedAt);
+      if (!Number.isFinite(updatedAt) || now - updatedAt <= windowMs) return true;
+      return false;
+    }
+    return false;
+  }
+
+  function recentStates(history) {
+    const states = [];
+    for (let index = history.length - 1; index >= 0 && states.length < 4; index -= 1) {
+      const state = normalizePresenceState(history[index]?.state, null);
+      if (state && !states.includes(state)) states.unshift(state);
+    }
+    return Object.freeze(states);
+  }
+
+  function baseControlInputsForState(state, detail = {}) {
+    switch (state) {
+      case PresenceState.USER_TYPING:
+        return {
+          attentionTarget: "input",
+          attentionX: -0.18,
+          attentionY: 0.18,
+          focus: 0.7,
+          tension: 0.08,
+          energy: 0.38,
+          anticipation: 0.18,
+          speechActivity: 0,
+          interruption: 0,
+          latencyPhase: "input",
+        };
+
+      case PresenceState.READING:
+        return {
+          attentionTarget: "content",
+          attentionX: -0.2,
+          attentionY: 0.28,
+          focus: 0.76,
+          tension: detail.revision ? 0.32 : 0.12,
+          energy: 0.42,
+          anticipation: 0.22,
+          speechActivity: 0,
+          interruption: 0,
+          latencyPhase: "input",
+        };
+
+      case PresenceState.WAITING:
+        return {
+          attentionTarget: "response",
+          attentionX: -0.08,
+          attentionY: -0.04,
+          focus: 0.66,
+          tension: 0.34,
+          energy: 0.5,
+          anticipation: 0.62,
+          speechActivity: 0,
+          interruption: 0,
+          latencyPhase: "before-output",
+        };
+
+      case PresenceState.THINKING:
+        return {
+          attentionTarget: "response",
+          attentionX: 0.16,
+          attentionY: -0.02,
+          focus: 0.58,
+          tension: 0.42,
+          energy: 0.48,
+          anticipation: 0.52,
+          speechActivity: 0,
+          interruption: 0,
+          latencyPhase: "before-output",
+        };
+
+      case PresenceState.STREAMING:
+        return {
+          attentionTarget: "audience",
+          attentionX: 0,
+          attentionY: 0,
+          focus: 0.74,
+          tension: 0.06,
+          energy: 0.72,
+          anticipation: 0.12,
+          speechActivity: 0.82,
+          interruption: 0,
+          latencyPhase: "output",
+        };
+
+      case PresenceState.SPEAKING:
+        return {
+          attentionTarget: "audience",
+          attentionX: 0,
+          attentionY: -0.02,
+          focus: 0.78,
+          tension: 0.04,
+          energy: 0.78,
+          anticipation: 0,
+          speechActivity: 1,
+          interruption: 0,
+          latencyPhase: "output",
+        };
+
+      case PresenceState.INTERRUPTED:
+        return {
+          attentionTarget: "user",
+          attentionX: -0.26,
+          attentionY: -0.08,
+          focus: 0.88,
+          tension: 0.72,
+          energy: 0.62,
+          anticipation: 0,
+          speechActivity: 0,
+          interruption: 1,
+          latencyPhase: "interrupted",
+        };
+
+      case PresenceState.READY:
+        return {
+          attentionTarget: "user",
+          attentionX: 0,
+          attentionY: 0,
+          focus: 0.68,
+          tension: 0,
+          energy: 0.3,
+          anticipation: 0,
+          speechActivity: 0,
+          interruption: 0,
+          latencyPhase: "settled",
+        };
+
+      case PresenceState.ERROR:
+        return {
+          attentionTarget: "status",
+          attentionX: 0,
+          attentionY: 0.18,
+          focus: 0.8,
+          tension: 0.66,
+          energy: 0.42,
+          anticipation: 0,
+          speechActivity: 0,
+          interruption: 0,
+          latencyPhase: "error",
+        };
+
+      case PresenceState.IDLE:
+      default:
+        return {
+          attentionTarget: "user",
+          attentionX: 0,
+          attentionY: 0,
+          focus: 0.56,
+          tension: 0,
+          energy: 0.2,
+          anticipation: 0,
+          speechActivity: 0,
+          interruption: 0,
+          latencyPhase: "settled",
+        };
+    }
+  }
+
+  function presenceControlInputsForSnapshot(snapshotOrState, options = {}) {
+    const snapshot = normalizeSnapshotInput(snapshotOrState, options);
+    const history = readHistory(options);
+    const now = resolveNow(options, snapshot, history);
+    const ageMs = stateAgeMs(snapshot, history, now);
+    const inputs = baseControlInputsForState(snapshot.state, snapshot.detail);
+    const recentlyInterrupted = includesRecentState(snapshot, history, PresenceState.INTERRUPTED, 2400, now);
+    const recentlyStreaming = includesRecentState(snapshot, history, PresenceState.STREAMING, 1800, now);
+    const recentlySpeaking = includesRecentState(snapshot, history, PresenceState.SPEAKING, 1800, now);
+    let recovery = snapshot.state === PresenceState.INTERRUPTED ? 1 : 0;
+    let latencyPhase = inputs.latencyPhase;
+
+    if (snapshot.state === PresenceState.READY && recentlyInterrupted) {
+      recovery = 0.42;
+      latencyPhase = "recovery";
+      inputs.tension = Math.max(inputs.tension, 0.18);
+    } else if (snapshot.state === PresenceState.READY && (recentlyStreaming || recentlySpeaking)) {
+      recovery = 0.24;
+      latencyPhase = "recovery";
+      inputs.speechActivity = 0.18;
+    }
+
+    if (snapshot.state === PresenceState.READY) {
+      const softness = clamp(ageMs / 1800, 0, 1);
+      inputs.focus = clamp(inputs.focus - softness * 0.1, 0.5, 0.72);
+      inputs.energy = clamp(inputs.energy - softness * 0.08, 0.16, 1);
+    }
+
+    return Object.freeze({
+      state: snapshot.state,
+      attentionTarget: inputs.attentionTarget,
+      attentionX: inputs.attentionX,
+      attentionY: inputs.attentionY,
+      focus: inputs.focus,
+      tension: inputs.tension,
+      energy: inputs.energy,
+      anticipation: inputs.anticipation,
+      recovery,
+      speechActivity: inputs.speechActivity,
+      interruption: inputs.interruption,
+      latencyPhase,
+      ageMs,
+      recentStates: recentStates(history),
+    });
+  }
+
+  function createPresenceControlInputRuntime(options = {}) {
+    const baseOptions = { ...options };
+    let lastInputs = null;
+
+    return Object.freeze({
+      getInputs() {
+        return lastInputs;
+      },
+      update(snapshot, updateOptions = {}) {
+        const inputs = presenceControlInputsForSnapshot(snapshot, { ...baseOptions, ...updateOptions });
+        lastInputs = inputs;
+        if (typeof baseOptions.update === "function") baseOptions.update(inputs, snapshot);
+        if (typeof updateOptions.update === "function") updateOptions.update(inputs, snapshot);
+        return inputs;
+      },
+    });
+  }
+
   function createPresenceRuntime(options = {}) {
     const now = typeof options.now === "function" ? options.now : Date.now;
     const onTransition = typeof options.onTransition === "function" ? options.onTransition : null;
@@ -249,10 +539,12 @@
     PresenceEvent,
     PRESENCE_STATES,
     PRESENCE_EVENTS,
+    createPresenceControlInputRuntime,
     createPresenceTrace,
     createPresenceRuntime,
     isPresenceState,
     normalizePresenceState,
+    presenceControlInputsForSnapshot,
     reducePresenceState,
   });
 

@@ -78,13 +78,56 @@ export interface PresenceTrace {
   toJSON(): PresenceTraceEntry[];
 }
 
+export type PresenceAttentionTarget = "audience" | "content" | "input" | "response" | "status" | "user";
+export type PresenceLatencyPhase = "before-output" | "error" | "input" | "interrupted" | "output" | "recovery" | "settled";
+
+export interface PresenceControlInputs {
+  state: PresenceStateValue;
+  attentionTarget: PresenceAttentionTarget;
+  attentionX: number;
+  attentionY: number;
+  focus: number;
+  tension: number;
+  energy: number;
+  anticipation: number;
+  recovery: number;
+  speechActivity: number;
+  interruption: number;
+  latencyPhase: PresenceLatencyPhase;
+  ageMs: number;
+  recentStates: readonly PresenceStateValue[];
+}
+
+export interface PresenceControlInputOptions {
+  detail?: Record<string, unknown>;
+  history?: ReadonlyArray<Partial<PresenceSnapshot> & Record<string, unknown>>;
+  now?: number | (() => number);
+  trace?: ReadonlyArray<Partial<PresenceSnapshot> & Record<string, unknown>> | {
+    getEntries(): ReadonlyArray<Partial<PresenceSnapshot> & Record<string, unknown>>;
+  };
+}
+
+export interface PresenceControlInputRuntime {
+  getInputs(): PresenceControlInputs | null;
+  update(snapshot: PresenceSnapshot | PresenceStateValue, options?: PresenceControlInputOptions & {
+    update?: (inputs: PresenceControlInputs, snapshot: PresenceSnapshot | PresenceStateValue) => void;
+  }): PresenceControlInputs;
+}
+
 export declare const PRESENCE_STATES: readonly PresenceStateValue[];
 export declare const PRESENCE_EVENTS: readonly PresenceEventValue[];
 
+export declare function createPresenceControlInputRuntime(options?: PresenceControlInputOptions & {
+  update?: (inputs: PresenceControlInputs, snapshot: PresenceSnapshot | PresenceStateValue) => void;
+}): PresenceControlInputRuntime;
 export declare function createPresenceTrace(options?: PresenceTraceOptions): PresenceTrace;
 export declare function createPresenceRuntime(options?: PresenceRuntimeOptions): PresenceRuntime;
 export declare function isPresenceState(value: unknown): value is PresenceStateValue;
 export declare function normalizePresenceState(value: unknown, fallback?: PresenceStateValue): PresenceStateValue;
+export declare function presenceControlInputsForSnapshot(
+  snapshotOrState: PresenceSnapshot | PresenceStateValue,
+  options?: PresenceControlInputOptions,
+): PresenceControlInputs;
 export declare function reducePresenceState(
   currentState: PresenceStateValue,
   event: PresenceEventValue,

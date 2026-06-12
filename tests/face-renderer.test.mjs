@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } = require("../packages/core/src/presence-core.js");
+const {
+  PresenceEvent,
+  PresenceState,
+  createPresenceRuntime,
+  createPresenceTrace,
+  presenceControlInputsForSnapshot,
+} = require("../packages/core/src/presence-core.js");
 const {
   FaceExpression,
   createFaceControllerRuntime,
@@ -42,14 +48,19 @@ assert.equal(thinkingControls.mouth.shape, "pressed");
 assert.ok(thinkingControls.brows.pinch > readingControls.brows.pinch);
 
 const waitingControls = faceControlsForPresence({ state: PresenceState.WAITING });
+const waitingInputs = presenceControlInputsForSnapshot({ state: PresenceState.WAITING });
 assert.equal(waitingControls.expression, FaceExpression.LISTENING);
 assert.equal(waitingControls.gaze.target, "response-origin");
+assert.equal(waitingInputs.attentionTarget, "response");
+assert.equal(waitingControls.gaze.x, waitingInputs.attentionX);
 assert.ok(waitingControls.motion.anticipation > thinkingControls.motion.anticipation);
 assert.ok(waitingControls.blink.cadenceMs < readingControls.blink.cadenceMs);
 
 const streamingControls = faceControlsForPresence({ state: PresenceState.STREAMING });
+const streamingInputs = presenceControlInputsForSnapshot({ state: PresenceState.STREAMING });
 assert.equal(streamingControls.expression, FaceExpression.SPEAKING);
 assert.equal(streamingControls.mouth.shape, "speaking");
+assert.equal(streamingControls.mouth.activity, streamingInputs.speechActivity);
 assert.ok(streamingControls.mouth.activity > waitingControls.mouth.activity);
 assert.ok(streamingControls.motion.energy > waitingControls.motion.energy);
 
@@ -106,7 +117,9 @@ trace.attach(traceRuntime);
 traceRuntime.send(PresenceEvent.TOKEN);
 traceRuntime.send(PresenceEvent.RESPONSE_COMPLETE);
 const readyAfterStreaming = faceControlsForPresence(traceRuntime.getSnapshot(), { trace, now: 350 });
+const readyAfterStreamingInputs = presenceControlInputsForSnapshot(traceRuntime.getSnapshot(), { trace, now: 350 });
 assert.equal(readyAfterStreaming.mouth.shape, "release");
+assert.equal(readyAfterStreamingInputs.latencyPhase, "recovery");
 assert.ok(readyAfterStreaming.motion.settleMs >= 210);
 
 const controllerRuntime = createFaceControllerRuntime();
