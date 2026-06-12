@@ -1,0 +1,27 @@
+{
+  "name": "@ai-presence/adapters",
+  "version": "0.0.0",
+  "description": "Runtime adapters for AI Presence Kit.",
+  "type": "commonjs",
+  "main": "./src/runtime-adapter.js",
+  "module": "./dist/index.mjs",
+  "types": "./src/runtime-adapter.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/runtime-adapter.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./src/runtime-adapter.js",
+      "default": "./src/runtime-adapter.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "dependencies": {
+    "@ai-presence/core": "0.0.0"
+  },
+  "sideEffects": false,
+  "license": "MIT"
+}

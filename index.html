@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Low-Latency Face Runtime</title>
+    <title>AI Presence Kit</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="app">
-      <section class="stage" aria-label="Expressive agent face">
+      <section class="stage" aria-label="AI presence reference face">
         <div class="face-shell" id="faceShell" data-state="idle">
           <svg class="face" viewBox="0 0 420 360" role="img" aria-labelledby="faceTitle faceDescription">
-            <title id="faceTitle">Minimal expressive agent face</title>
-            <desc id="faceDescription">An abstract face whose eyes, brows, and mouth react to live typed input.</desc>
+            <title id="faceTitle">AI presence reference face</title>
+            <desc id="faceDescription">An abstract face whose eyes, brows, and mouth render AI interaction states.</desc>
             <path class="face-frame" d="M100 72 C146 36 274 36 320 72 C358 102 366 241 319 288 C272 335 148 335 101 288 C54 241 62 102 100 72 Z"></path>
             <g class="brow-group brow-left-group">
               <path id="browLeft" class="brow" d="M132 133 C151 122 174 122 193 133"></path>
@@ -43,8 +43,12 @@
 
         <aside class="metrics" id="metricsPanel" aria-label="Latency metrics" hidden>
           <div class="metric-row">
-            <span>State</span>
+            <span>Presence state</span>
             <output id="metricState">idle</output>
+          </div>
+          <div class="metric-row">
+            <span>Renderer</span>
+            <output id="metricRenderer">idle</output>
           </div>
           <div class="metric-row">
             <span>Presence</span>
@@ -175,6 +179,10 @@
             <span class="toggle-dot" aria-hidden="true"></span>
             <span>Metrics</span>
           </button>
+          <button class="toggle" id="compareToggle" type="button" aria-pressed="false">
+            <span class="toggle-dot" aria-hidden="true"></span>
+            <span>Compare</span>
+          </button>
         </div>
 
         <div class="input-row" id="inputRow">
@@ -189,8 +197,81 @@
           </button>
         </div>
       </form>
+
+      <section class="comparison" id="comparisonDemo" aria-label="Spinner versus presence comparison" hidden>
+        <div class="comparison-shell">
+          <div class="comparison-bar">
+            <div class="comparison-title">
+              <span>Spinner</span>
+              <span>vs</span>
+              <span>Presence</span>
+            </div>
+            <div class="comparison-actions">
+              <output id="compareLatency">First token 1400ms</output>
+              <button class="metric-button" id="compareBack" type="button">Reference</button>
+            </div>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-pane comparison-pane-spinner" aria-label="Generic loading indicator chat">
+              <header class="comparison-pane-header">
+                <span>Generic UI</span>
+                <output id="compareSpinnerState">idle</output>
+              </header>
+              <div class="comparison-thread">
+                <p class="comparison-user" id="compareSpinnerUser">Ask the same question on both sides.</p>
+                <div class="spinner-indicator" id="compareSpinnerIndicator" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <p class="comparison-response" id="compareSpinnerResponse"></p>
+              </div>
+              <output class="comparison-timeline" id="compareSpinnerTimeline">--</output>
+            </article>
+
+            <article class="comparison-pane comparison-pane-presence" aria-label="AI Presence Kit chat">
+              <header class="comparison-pane-header">
+                <span>AI Presence Kit</span>
+                <output id="comparePresenceState">idle</output>
+              </header>
+              <div class="comparison-thread comparison-thread-presence">
+                <p class="comparison-user" id="comparePresenceUser">Ask the same question on both sides.</p>
+                <div class="compare-presence-card">
+                  <svg class="compare-face" id="compareFace" viewBox="0 0 160 132" role="img" aria-labelledby="compareFaceTitle">
+                    <title id="compareFaceTitle">Presence renderer state</title>
+                    <path class="compare-face-frame" d="M40 24 C58 10 102 10 120 24 C137 38 140 91 119 108 C98 126 62 126 41 108 C20 91 23 38 40 24 Z"></path>
+                    <ellipse class="compare-eye compare-eye-left" cx="62" cy="60" rx="8" ry="9"></ellipse>
+                    <ellipse class="compare-eye compare-eye-right" cx="98" cy="60" rx="8" ry="9"></ellipse>
+                    <path class="compare-mouth" d="M58 88 C68 94 92 94 102 88"></path>
+                  </svg>
+                  <output id="comparePresenceRenderer">idle</output>
+                </div>
+                <p class="comparison-response" id="comparePresenceResponse"></p>
+              </div>
+              <output class="comparison-timeline" id="comparePresenceTimeline">--</output>
+            </article>
+          </div>
+
+          <form class="comparison-composer" id="compareForm">
+            <label class="sr-only" for="compareInput">Comparison prompt</label>
+            <textarea id="compareInput" rows="1" placeholder="Ask both sides..." autocomplete="off" spellcheck="true">Why does this feel faster?</textarea>
+            <button class="metric-button comparison-run" id="compareRun" type="submit">Run</button>
+          </form>
+
+          <div class="comparison-choice" aria-label="Perception check">
+            <span>Which side feels responsive?</span>
+            <button class="metric-button" id="compareVoteSpinner" type="button">Spinner</button>
+            <button class="metric-button" id="compareVotePresence" type="button">Presence</button>
+            <output id="compareVoteResult">--</output>
+          </div>
+        </div>
+      </section>
     </main>
 
+    <script src="packages/core/src/presence-core.js"></script>
+    <script src="packages/face/src/presence-face.js"></script>
+    <script src="packages/adapters/src/runtime-adapter.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

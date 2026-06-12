@@ -2,6 +2,7 @@ import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import presenceCore from "./packages/core/src/presence-core.js";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 loadEnv(join(ROOT, ".env"));
@@ -21,11 +22,18 @@ const OPENAI_REALTIME_CALL_TIMEOUT_MS = Number(process.env.OPENAI_REALTIME_CALL_
 const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "marin";
 const OPENAI_TTS_FORMAT = process.env.OPENAI_TTS_FORMAT || "wav";
+const { PresenceState, normalizePresenceState } = presenceCore;
+const SPECULATION_PRESENCE_STATES = [
+  PresenceState.READING,
+  PresenceState.THINKING,
+  PresenceState.READY,
+];
 
 const MIME_TYPES = new Map([
   [".html", "text/html; charset=utf-8"],
   [".css", "text/css; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
+  [".mjs", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
   [".svg", "image/svg+xml"],
   [".png", "image/png"],
@@ -50,15 +58,16 @@ const EXPRESSIONS = new Set([
 ]);
 
 const SPECULATION_INSTRUCTIONS = [
-  "You are the slow speculative perception lane for a minimal expressive AI face.",
+  "You are the slow speculative perception lane for an AI presence prototype.",
   "The user may still be typing. Do not answer them.",
-  "Infer only leading-edge UI control signals for the face.",
-  "Keep labels short and conservative; the face can react to uncertainty, but must not overcommit.",
+  "Infer only leading-edge UI control signals for a conservative presence state.",
+  "Return interaction posture, not emotion detection or claims about the user's inner feelings.",
+  "Keep labels short and conservative; the renderer can react to uncertainty, but must not overcommit.",
 ].join(" ");
 
 const SPECULATION_TEXT_FORMAT = {
   type: "json_schema",
-  name: "face_speculation",
+  name: "presence_speculation",
   strict: true,
   schema: {
     type: "object",
@@ -69,16 +78,21 @@ const SPECULATION_TEXT_FORMAT = {
       },
       tone: {
         type: "string",
-        description: "Short label for the user's apparent tone, such as steady, curious, uncertain, bright, or frustrated.",
+        description: "Short label for interaction posture, such as steady, forming, revising, inquiring, or settled.",
       },
       completion: {
         type: "number",
         description: "Likelihood from 0 to 1 that the user has finished the thought.",
       },
+      presenceState: {
+        type: "string",
+        enum: SPECULATION_PRESENCE_STATES,
+        description: "Canonical AI Presence Kit interaction state for this partial input.",
+      },
       expression: {
         type: "string",
         enum: ["listening", "reading", "thinking", "curious", "amused", "delighted", "uncertain", "concerned", "ready"],
-        description: "The best face expression for this partial input.",
+        description: "The best reference-renderer expression for this partial input.",
       },
       confidence: {
         type: "number",
@@ -89,13 +103,13 @@ const SPECULATION_TEXT_FORMAT = {
         description: "Brief response-direction phrase, not a user-facing reply.",
       },
     },
-    required: ["intent", "tone", "completion", "expression", "confidence", "prepared"],
+    required: ["intent", "tone", "completion", "presenceState", "expression", "confidence", "prepared"],
     additionalProperties: false,
   },
 };
 
 const RESPONSE_INSTRUCTIONS = [
-  "You are a concise AI agent inside a low-latency expressive face prototype.",
+  "You are a concise AI agent inside a low-latency AI presence prototype.",
   "Respond naturally to the user's message.",
   "Default to one or two short sentences.",
   "Keep responses concrete and conversational.",
@@ -166,7 +180,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`Low-latency face runtime on http://127.0.0.1:${PORT}`);
+  console.log(`AI Presence Kit prototype on http://127.0.0.1:${PORT}`);
   console.log(`OpenAI configured: ${OPENAI_API_KEY ? "yes" : "no"}`);
 });
 
@@ -498,15 +512,34 @@ function abortSignalFor(request, response, timeoutMs = 0) {
 function normalizeSpeculation(rawText) {
   const parsed = parseFirstJsonObject(rawText) || {};
   const expression = EXPRESSIONS.has(parsed.expression) ? parsed.expression : "thinking";
+  const completion = clampNumber(parsed.completion, 0, 1, 0.4);
+  const presenceState = normalizeSpeculationPresenceState(
+    parsed.presenceState,
+    presenceStateForExpression(expression, completion),
+  );
 
   return {
     intent: typeof parsed.intent === "string" ? parsed.intent.slice(0, 40) : "thought",
     tone: typeof parsed.tone === "string" ? parsed.tone.slice(0, 40) : "steady",
-    completion: clampNumber(parsed.completion, 0, 1, 0.4),
+    completion,
+    presenceState,
     expression,
     confidence: clampNumber(parsed.confidence, 0, 1, 0.4),
     prepared: typeof parsed.prepared === "string" ? parsed.prepared.slice(0, 80) : "response direction",
   };
+}
+
+function presenceStateForExpression(expression, completion = 0) {
+  if (expression === "ready" || completion > 0.72) return PresenceState.READY;
+  if (expression === "thinking" || expression === "uncertain" || expression === "concerned") {
+    return PresenceState.THINKING;
+  }
+  return PresenceState.READING;
+}
+
+function normalizeSpeculationPresenceState(value, fallback) {
+  const normalized = normalizePresenceState(value, fallback);
+  return SPECULATION_PRESENCE_STATES.includes(normalized) ? normalized : fallback;
 }
 
 function parseFirstJsonObject(text) {
@@ -565,6 +598,10 @@ function compactPrepared(prepared) {
     intent: typeof prepared.intent === "string" ? prepared.intent.slice(0, 40) : "thought",
     tone: typeof prepared.tone === "string" ? prepared.tone.slice(0, 40) : "steady",
     completion: clampNumber(prepared.completion, 0, 1, 0),
+    presenceState: normalizeSpeculationPresenceState(
+      prepared.presenceState,
+      presenceStateForExpression(prepared.expression, prepared.completion),
+    ),
     expression: EXPRESSIONS.has(prepared.expression) ? prepared.expression : "thinking",
     confidence: clampNumber(prepared.confidence, 0, 1, 0),
     prepared: typeof prepared.prepared === "string" ? prepared.prepared.slice(0, 80) : "response direction",

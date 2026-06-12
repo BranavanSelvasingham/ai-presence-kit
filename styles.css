@@ -618,6 +618,294 @@ textarea::placeholder {
   opacity: 0.48;
 }
 
+body.comparison-mode .stage,
+body.comparison-mode .response,
+body.comparison-mode .composer {
+  display: none;
+}
+
+body.comparison-mode .app {
+  grid-template-rows: 1fr;
+  overflow: auto;
+}
+
+.comparison:not([hidden]) {
+  min-height: 100vh;
+  display: grid;
+  align-items: stretch;
+  padding: clamp(18px, 4vh, 34px);
+}
+
+.comparison-shell {
+  width: min(1180px, 100%);
+  min-height: min(820px, calc(100vh - 36px));
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 14px;
+}
+
+.comparison-bar,
+.comparison-actions,
+.comparison-title,
+.comparison-choice,
+.comparison-composer {
+  display: flex;
+  align-items: center;
+}
+
+.comparison-bar {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comparison-title {
+  gap: 9px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.comparison-title span:nth-child(2),
+.comparison-actions output,
+.comparison-choice span,
+.comparison-timeline,
+.comparison-pane-header output,
+.compare-presence-card output {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.comparison-actions {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.comparison-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.comparison-pane {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: clamp(14px, 2vw, 18px);
+  border: 1px solid rgba(217, 221, 216, 0.78);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 18px 52px rgba(23, 23, 23, 0.065);
+  backdrop-filter: blur(18px);
+}
+
+.comparison-pane-presence {
+  border-color: rgba(47, 122, 103, 0.26);
+}
+
+.comparison-pane-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.comparison-thread {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding-top: clamp(8px, 2vh, 22px);
+}
+
+.comparison-user,
+.comparison-response {
+  max-width: 42ch;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.comparison-user {
+  justify-self: end;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #252723;
+  font-size: 13px;
+}
+
+.comparison-response {
+  min-height: 5.8em;
+  color: #292b27;
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  font-size: clamp(18px, 2vw, 26px);
+}
+
+.spinner-indicator {
+  width: 64px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 999px;
+  background: rgba(23, 23, 23, 0.055);
+  opacity: 0;
+}
+
+.spinner-indicator.is-visible {
+  opacity: 1;
+}
+
+.spinner-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(23, 23, 23, 0.48);
+  animation: spinnerPulse 900ms ease-in-out infinite;
+}
+
+.spinner-indicator span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.spinner-indicator span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+.compare-presence-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.compare-face {
+  width: 96px;
+  height: auto;
+  overflow: visible;
+  color: var(--blue);
+  transform: rotate(var(--compare-face-tilt, 0deg));
+  transition: color var(--fast), transform var(--fast);
+}
+
+.compare-face-frame {
+  fill: rgba(255, 255, 255, 0.46);
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.compare-eye {
+  fill: #171717;
+  transition: transform var(--fast), ry var(--fast);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.compare-mouth {
+  fill: none;
+  stroke: #171717;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 5;
+  transition: d var(--fast), transform var(--fast), stroke var(--fast);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.compare-face[data-renderer-state="listening"],
+.compare-face[data-renderer-state="reading"] {
+  --compare-face-tilt: -1.2deg;
+  color: var(--blue);
+}
+
+.compare-face[data-renderer-state="thinking"] {
+  --compare-face-tilt: -1.8deg;
+  color: var(--violet);
+}
+
+.compare-face[data-renderer-state="ready"] {
+  color: var(--green);
+}
+
+.compare-face[data-renderer-state="speaking"] {
+  --compare-face-tilt: 0.8deg;
+  color: var(--blue);
+}
+
+.compare-face[data-renderer-state="uncertain"],
+.compare-face[data-renderer-state="concerned"] {
+  --compare-face-tilt: 1.6deg;
+  color: var(--coral);
+}
+
+.compare-face[data-renderer-state="thinking"] .compare-eye {
+  transform: scaleY(0.58) translateY(5px);
+}
+
+.compare-face[data-renderer-state="ready"] .compare-eye,
+.compare-face[data-renderer-state="speaking"] .compare-eye {
+  transform: scaleY(0.92);
+}
+
+.comparison-timeline {
+  min-height: 1.4em;
+  overflow-wrap: anywhere;
+}
+
+.comparison-composer {
+  gap: 8px;
+  border: 1px solid rgba(217, 221, 216, 0.74);
+  border-radius: 28px;
+  padding: 5px 5px 5px 18px;
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 18px 58px rgba(23, 23, 23, 0.06);
+  backdrop-filter: blur(20px);
+}
+
+.comparison-composer textarea {
+  min-height: 42px;
+  padding-block: 10px;
+}
+
+.comparison-run {
+  min-width: 56px;
+  min-height: 38px;
+  font-size: 12px;
+}
+
+.comparison-choice {
+  min-height: 30px;
+  gap: 8px;
+  justify-content: center;
+}
+
+.comparison-choice output {
+  min-width: 72px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@keyframes spinnerPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.38;
+  }
+
+  50% {
+    transform: translateY(-4px);
+    opacity: 0.92;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -720,6 +1008,38 @@ textarea::placeholder {
   .response {
     min-height: 46px;
     padding-inline: 14px;
+  }
+
+  .comparison:not([hidden]) {
+    padding: 12px;
+  }
+
+  .comparison-shell {
+    min-height: calc(100vh - 24px);
+    gap: 10px;
+  }
+
+  .comparison-bar,
+  .comparison-choice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-pane {
+    min-height: 260px;
+  }
+
+  .comparison-response {
+    min-height: 3.4em;
+    font-size: 18px;
+  }
+
+  .comparison-composer {
+    border-radius: 22px;
   }
 }
 
