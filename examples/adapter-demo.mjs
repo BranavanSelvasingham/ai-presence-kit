@@ -1,7 +1,11 @@
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { createPresenceRuntime, createPresenceTrace } = require("../packages/core/src/presence-core.js");
+const {
+  createPresenceRuntime,
+  createPresenceTrace,
+  presenceControlInputsForSnapshot,
+} = require("../packages/core/src/presence-core.js");
 const {
   createChatEventAdapter,
   createOpenAIRealtimeAdapter,
@@ -31,7 +35,18 @@ function collect(label) {
 function renderTrace(collected) {
   return collected.trace
     .getEntries()
-    .map((entry) => `${collected.label}:${entry.event}->${entry.state}+${entry.elapsedMs}ms`);
+    .map((entry) => {
+      const inputs = presenceControlInputsForSnapshot(entry, {
+        trace: collected.trace,
+        now: entry.updatedAt,
+      });
+
+      return [
+        `${collected.label}:${entry.event}->${entry.state}+${entry.elapsedMs}ms`,
+        `phase=${inputs.latencyPhase}`,
+        `attention=${inputs.attentionTarget}`,
+      ].join(" ");
+    });
 }
 
 const vercel = collect("vercel");
