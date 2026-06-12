@@ -10,10 +10,13 @@ const {
   presenceControlInputsForSnapshot,
 } = require("../packages/core/src/presence-core.js");
 const {
+  FACE_CONTROL_CHANNELS,
   FaceExpression,
+  createFaceControllerFrameRuntime,
   createFaceControllerRuntime,
   createFaceRenderer,
   faceControllerDecisionsForPresence,
+  faceControllerFrameForPresence,
   faceControlsForPresence,
   faceExpressionForPresence,
 } = require("../packages/face/src/presence-face.js");
@@ -42,6 +45,48 @@ function assertParallelDecisionReport(snapshot, controls, options = {}) {
   assert.notDeepEqual(report.decisions.blink.reads, report.decisions.motion.reads);
 
   return report;
+}
+
+function assertFiniteFrameValue(value, path) {
+  if (typeof value === "number") {
+    assert.ok(Number.isFinite(value), `${path} is finite`);
+    assert.ok(value >= -1 && value <= 20000, `${path} is bounded`);
+  }
+}
+
+function assertFrameChannel(frame, channel) {
+  assert.ok(Object.isFrozen(frame[channel]), `${channel} frame is frozen`);
+  for (const [key, value] of Object.entries(frame[channel])) {
+    assertFiniteFrameValue(value, `${channel}.${key}`);
+  }
+}
+
+function assertControllerFrame(snapshot, options = {}) {
+  const frameReport = faceControllerFrameForPresence(snapshot, options);
+  const decisionReport = faceControllerDecisionsForPresence(snapshot, options);
+
+  assert.ok(Object.isFrozen(frameReport), "frame report is frozen");
+  assert.ok(Object.isFrozen(frameReport.frame), "frame object is frozen");
+  assert.equal(frameReport.state, decisionReport.state);
+  assert.equal(frameReport.expression, decisionReport.expression);
+  assert.deepEqual(frameReport.sharedInputs, decisionReport.sharedInputs);
+  assert.deepEqual(frameReport.decisions, decisionReport.decisions);
+  assert.deepEqual(Object.keys(frameReport.frame), FACE_CONTROL_CHANNELS);
+
+  for (const channel of FACE_CONTROL_CHANNELS) {
+    assertFrameChannel(frameReport.frame, channel);
+  }
+
+  assert.equal(frameReport.frame.gaze.target, frameReport.decisions.gaze.control.target);
+  assert.equal(frameReport.frame.mouth.shape, frameReport.decisions.mouth.control.shape);
+  assert.ok(frameReport.frame.blink.phase >= 0 && frameReport.frame.blink.phase < 1);
+  assert.ok(frameReport.frame.blink.openness >= 0 && frameReport.frame.blink.openness <= 1);
+  assert.ok(frameReport.frame.mouth.beat >= 0 && frameReport.frame.mouth.beat <= 1);
+  assert.ok(frameReport.frame.posture.breath >= 0 && frameReport.frame.posture.breath <= 1);
+  assert.ok(frameReport.frame.motion.offsetX >= -1 && frameReport.frame.motion.offsetX <= 1);
+  assert.ok(frameReport.frame.motion.offsetY >= -1 && frameReport.frame.motion.offsetY <= 1);
+
+  return frameReport;
 }
 
 assert.equal(
@@ -86,9 +131,12 @@ const waitingSnapshot = { state: PresenceState.WAITING };
 const waitingControls = faceControlsForPresence(waitingSnapshot);
 const waitingInputs = presenceControlInputsForSnapshot({ state: PresenceState.WAITING });
 const waitingReport = assertParallelDecisionReport(waitingSnapshot, waitingControls);
+const waitingFrame = assertControllerFrame(waitingSnapshot, { now: 1200 });
 assert.equal(waitingControls.expression, FaceExpression.LISTENING);
 assert.equal(waitingControls.gaze.target, "response-origin");
 assert.equal(waitingReport.sharedInputs.latencyPhase, "before-output");
+assert.equal(waitingFrame.frame.mouth.shape, "preparing");
+assert.ok(waitingFrame.frame.motion.anticipation > 0);
 assert.equal(waitingInputs.attentionTarget, "response");
 assert.equal(waitingControls.gaze.x, waitingInputs.attentionX);
 assert.ok(waitingControls.motion.anticipation > thinkingControls.motion.anticipation);
@@ -98,8 +146,10 @@ const streamingSnapshot = { state: PresenceState.STREAMING };
 const streamingControls = faceControlsForPresence(streamingSnapshot);
 const streamingInputs = presenceControlInputsForSnapshot({ state: PresenceState.STREAMING });
 assertParallelDecisionReport(streamingSnapshot, streamingControls);
+const streamingFrame = assertControllerFrame(streamingSnapshot, { now: 1400 });
 assert.equal(streamingControls.expression, FaceExpression.SPEAKING);
 assert.equal(streamingControls.mouth.shape, "speaking");
+assert.ok(streamingFrame.frame.mouth.beat > 0);
 assert.equal(streamingControls.mouth.activity, streamingInputs.speechActivity);
 assert.ok(streamingControls.mouth.activity > waitingControls.mouth.activity);
 assert.ok(streamingControls.motion.energy > waitingControls.motion.energy);
@@ -115,8 +165,11 @@ assert.ok(speakingControls.blink.cadenceMs > streamingControls.blink.cadenceMs);
 const interruptedSnapshot = { state: PresenceState.INTERRUPTED };
 const interruptedControls = faceControlsForPresence(interruptedSnapshot);
 const interruptedReport = assertParallelDecisionReport(interruptedSnapshot, interruptedControls);
+const interruptedFrame = assertControllerFrame(interruptedSnapshot, { now: 1800 });
 assert.equal(interruptedControls.expression, FaceExpression.UNCERTAIN);
 assert.equal(interruptedControls.blink.pulse, true);
+assert.equal(interruptedFrame.frame.blink.pulse, true);
+assert.ok(interruptedFrame.frame.motion.recovery > 0);
 assert.equal(interruptedReport.sharedInputs.interruption, 1);
 assert.ok(interruptedControls.posture.lean < 0);
 assert.ok(interruptedControls.motion.recovery > speakingControls.motion.recovery);
@@ -130,10 +183,42 @@ const readyOptions = {
 };
 const readyControls = faceControlsForPresence(readySnapshot, readyOptions);
 assertParallelDecisionReport(readySnapshot, readyControls, readyOptions);
+const readyFrame = assertControllerFrame(readySnapshot, { ...readyOptions, timeMs: 2700 });
 assert.equal(readyControls.expression, FaceExpression.READY);
 assert.equal(readyControls.mouth.shape, "soft-smile");
+assert.equal(readyFrame.frame.mouth.shape, "soft-smile");
 assert.ok(readyControls.gaze.focus < 0.68);
 assert.ok(readyControls.motion.energy < 0.24);
+
+const earlyFrame = faceControllerFrameForPresence({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1100,
+});
+const laterFrame = faceControllerFrameForPresence({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1900,
+});
+assert.deepEqual(earlyFrame.decisions, laterFrame.decisions);
+assert.deepEqual(earlyFrame.sharedInputs, laterFrame.sharedInputs);
+assert.notDeepEqual(earlyFrame.frame, laterFrame.frame);
+assert.notEqual(earlyFrame.frame.blink.phase, laterFrame.frame.blink.phase);
+
+let frameNowCalls = 0;
+const singleNowFrame = faceControllerFrameForPresence({ state: PresenceState.WAITING }, {
+  now: () => {
+    frameNowCalls += 1;
+    return 2200 + frameNowCalls;
+  },
+});
+assert.equal(frameNowCalls, 1);
+assert.equal(singleNowFrame.state, PresenceState.WAITING);
+assert.ok(singleNowFrame.frame.blink.phase > 0);
 
 const readyAfterInterrupt = faceControlsForPresence({
   state: PresenceState.READY,
@@ -179,6 +264,12 @@ assert.equal(controllerRuntime.getControls(), null);
 const controllerControls = controllerRuntime.update({ state: PresenceState.SPEAKING });
 assert.equal(controllerControls.mouth.activity, 1);
 assert.equal(controllerRuntime.getControls(), controllerControls);
+
+const frameRuntime = createFaceControllerFrameRuntime({ timeMs: 2400 });
+assert.equal(frameRuntime.getFrame(), null);
+const runtimeFrame = frameRuntime.update({ state: PresenceState.STREAMING });
+assert.equal(runtimeFrame.frame.mouth.shape, "speaking");
+assert.equal(frameRuntime.getFrame(), runtimeFrame);
 
 const rendered = [];
 const runtime = createPresenceRuntime({ initialState: PresenceState.IDLE });

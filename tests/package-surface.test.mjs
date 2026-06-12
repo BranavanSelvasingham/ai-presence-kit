@@ -83,9 +83,11 @@ const packages = [
     types: "src/presence-face.d.ts",
     exports: [
       "FACE_CONTROL_CHANNELS",
+      "createFaceControllerFrameRuntime",
       "FaceExpression",
       "createFaceControllerRuntime",
       "createFaceRenderer",
+      "faceControllerFrameForPresence",
       "faceControllerDecisionsForPresence",
       "faceControlsForPresence",
       "faceExpressionForPresence",
@@ -126,6 +128,8 @@ for (const packageInfo of packages) {
 
 const faceGlobal = globalThis.AIPresenceFace;
 assert.equal(typeof faceGlobal.faceControllerDecisionsForPresence, "function");
+assert.equal(typeof faceGlobal.faceControllerFrameForPresence, "function");
+assert.equal(typeof faceGlobal.createFaceControllerFrameRuntime, "function");
 assert.deepEqual(faceGlobal.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
 const coreApi = require(resolve(root, "packages/core"));

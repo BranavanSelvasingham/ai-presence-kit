@@ -120,6 +120,15 @@
     return Math.max(min, Math.min(max, value));
   }
 
+  function finiteNumber(value, fallback = 0) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  }
+
+  function finiteClamp(value, min, max, fallback = 0) {
+    return clamp(finiteNumber(value, fallback), min, max);
+  }
+
   function readHistory(options = {}) {
     if (Array.isArray(options.history)) return options.history;
     if (options.trace && typeof options.trace.getEntries === "function") {
@@ -137,6 +146,12 @@
     const latest = history[history.length - 1];
     const latestTime = Number(latest?.updatedAt);
     return Number.isFinite(latestTime) ? latestTime : 0;
+  }
+
+  function resolveFrameTime(options, fallbackTime) {
+    const optionTime = typeof options.timeMs === "function" ? options.timeMs() : options.timeMs;
+    const numericTime = Number(optionTime);
+    return Number.isFinite(numericTime) ? numericTime : fallbackTime;
   }
 
   function latestHistoryEntry(history) {
@@ -777,8 +792,101 @@
     });
   }
 
-  function faceControllerDecisionsForPresence(snapshotOrState, options = {}) {
-    const context = createFaceControllerContext(snapshotOrState, options);
+  function normalizedWave(timeMs, periodMs, offset = 0) {
+    const period = Math.max(1, finiteNumber(periodMs, 1));
+    const turns = (finiteNumber(timeMs, 0) / period) + offset;
+    return Math.sin(turns * Math.PI * 2);
+  }
+
+  function normalizedPhase(timeMs, periodMs, offset = 0) {
+    const period = Math.max(1, finiteNumber(periodMs, 1));
+    const raw = (finiteNumber(timeMs, 0) / period) + offset;
+    return raw - Math.floor(raw);
+  }
+
+  function blinkClosureForPhase(phase, pulse) {
+    const closure = phase < 0.08
+      ? 1 - Math.abs(phase - 0.04) / 0.04
+      : phase > 0.92
+        ? (phase - 0.92) / 0.08
+        : 0;
+    return clamp(closure * (pulse ? 0.52 : 0.32), 0, 0.72);
+  }
+
+  function composeFaceControllerFrame(report, context, options = {}) {
+    const timeMs = resolveFrameTime(options, context.now);
+    const ageMs = stateAgeMs(context.snapshot, context.history, timeMs);
+    const controls = freezeControlsFromDecisions(report.expression, report.decisions);
+    const motion = controls.motion;
+    const blink = controls.blink;
+    const mouth = controls.mouth;
+    const posture = controls.posture;
+    const cadenceMs = finiteClamp(blink.cadenceMs, 300, 20000, context.profile.blinkCadenceMs);
+    const phase = normalizedPhase(timeMs, cadenceMs);
+    const closure = blinkClosureForPhase(phase, blink.pulse);
+    const energy = finiteClamp(motion.energy, 0, 1, 0);
+    const drift = finiteClamp(motion.drift, 0, 1, context.profile.drift);
+    const anticipation = finiteClamp(motion.anticipation, 0, 1, 0);
+    const recovery = finiteClamp(motion.recovery, 0, 1, 0);
+    const speechActivity = finiteClamp(mouth.activity, 0, 1, 0);
+    const driftWaveX = normalizedWave(timeMs, 2400, 0.13);
+    const driftWaveY = normalizedWave(timeMs, 3100, 0.41);
+    const speechBeat = speechActivity * (0.5 + normalizedWave(timeMs, 260, 0.08) * 0.5);
+    const breath = clamp(0.5 + normalizedWave(timeMs, 3600, 0.32) * 0.5, 0, 1);
+    const settle = clamp(ageMs / Math.max(1, finiteNumber(motion.settleMs, context.profile.settleMs)), 0, 1);
+    const driftScale = drift * (0.18 + energy * 0.32) * (1 - recovery * 0.35);
+    const driftX = driftWaveX * driftScale;
+    const driftY = driftWaveY * driftScale * 0.72;
+    const anticipationKick = anticipation * (1 - settle) * 0.08;
+    const recoveryDrop = recovery * (1 - settle * 0.45) * 0.08;
+
+    return Object.freeze({
+      gaze: Object.freeze({
+        target: controls.gaze.target,
+        x: finiteClamp(controls.gaze.x + driftX * 0.18 - recoveryDrop, -1, 1, 0),
+        y: finiteClamp(controls.gaze.y + driftY * 0.12 - anticipationKick, -1, 1, 0),
+        focus: finiteClamp(controls.gaze.focus - closure * 0.2 + anticipation * 0.04, 0, 1, 0.56),
+        driftX: finiteClamp(driftX, -0.2, 0.2, 0),
+        driftY: finiteClamp(driftY, -0.2, 0.2, 0),
+      }),
+      blink: Object.freeze({
+        openness: finiteClamp(blink.openness - closure, 0, 1, 1),
+        cadenceMs,
+        pulse: Boolean(blink.pulse),
+        phase: finiteClamp(phase, 0, 1, 0),
+      }),
+      brows: Object.freeze({
+        lift: finiteClamp(controls.brows.lift + breath * 0.018 + anticipation * 0.04 - recovery * 0.03, -1, 1, 0),
+        pinch: finiteClamp(controls.brows.pinch + anticipation * 0.04 + recovery * 0.06, 0, 1, 0),
+        asymmetry: finiteClamp(controls.brows.asymmetry + driftWaveX * drift * 0.06, -1, 1, 0),
+      }),
+      mouth: Object.freeze({
+        shape: mouth.shape,
+        openness: finiteClamp(mouth.openness + speechBeat * 0.16 - closure * 0.04, 0, 1, 0),
+        activity: speechActivity,
+        tension: finiteClamp(mouth.tension + anticipation * 0.04 + recovery * 0.08, 0, 1, 0),
+        beat: finiteClamp(speechBeat, 0, 1, 0),
+      }),
+      posture: Object.freeze({
+        lean: finiteClamp(posture.lean + breath * energy * 0.025 + anticipationKick - recoveryDrop, -1, 1, 0),
+        turn: finiteClamp(posture.turn + driftWaveX * drift * 0.04, -1, 1, 0),
+        energy: finiteClamp(posture.energy, 0, 1, energy),
+        recovery: finiteClamp(posture.recovery, 0, 1, recovery),
+        breath,
+      }),
+      motion: Object.freeze({
+        energy,
+        drift,
+        anticipation,
+        recovery,
+        settleMs: finiteClamp(motion.settleMs, 0, 20000, context.profile.settleMs),
+        offsetX: finiteClamp(driftX + anticipationKick - recoveryDrop, -1, 1, 0),
+        offsetY: finiteClamp(driftY + breath * energy * 0.02 - recoveryDrop, -1, 1, 0),
+      }),
+    });
+  }
+
+  function faceControllerDecisionReportFromContext(context, options = {}) {
     const expression = faceExpressionForPresence(context.snapshotOrState, options);
     return Object.freeze({
       state: context.stateName,
@@ -788,9 +896,26 @@
     });
   }
 
+  function faceControllerDecisionsForPresence(snapshotOrState, options = {}) {
+    return faceControllerDecisionReportFromContext(
+      createFaceControllerContext(snapshotOrState, options),
+      options,
+    );
+  }
+
   function faceControlsForPresence(snapshotOrState, options = {}) {
     const report = faceControllerDecisionsForPresence(snapshotOrState, options);
     return freezeControlsFromDecisions(report.expression, report.decisions);
+  }
+
+  function faceControllerFrameForPresence(snapshotOrState, options = {}) {
+    const context = createFaceControllerContext(snapshotOrState, options);
+    const report = faceControllerDecisionReportFromContext(context, options);
+
+    return Object.freeze({
+      ...report,
+      frame: composeFaceControllerFrame(report, context, options),
+    });
   }
 
   function createFaceControllerRuntime(options = {}) {
@@ -807,6 +932,24 @@
         if (typeof baseOptions.update === "function") baseOptions.update(controls, snapshot);
         if (typeof updateOptions.update === "function") updateOptions.update(controls, snapshot);
         return controls;
+      },
+    });
+  }
+
+  function createFaceControllerFrameRuntime(options = {}) {
+    const baseOptions = { ...options };
+    let lastFrame = null;
+
+    return Object.freeze({
+      getFrame() {
+        return lastFrame;
+      },
+      update(snapshot, updateOptions = {}) {
+        const frame = faceControllerFrameForPresence(snapshot, { ...baseOptions, ...updateOptions });
+        lastFrame = frame;
+        if (typeof baseOptions.update === "function") baseOptions.update(frame, snapshot);
+        if (typeof updateOptions.update === "function") updateOptions.update(frame, snapshot);
+        return frame;
       },
     });
   }
@@ -835,8 +978,10 @@
     FACE_EXPRESSIONS,
     DEFAULT_FACE_MAP,
     FACE_CONTROL_CHANNELS,
+    createFaceControllerFrameRuntime,
     createFaceControllerRuntime,
     createFaceRenderer,
+    faceControllerFrameForPresence,
     faceControllerDecisionsForPresence,
     faceControlsForPresence,
     faceExpressionForPresence,
