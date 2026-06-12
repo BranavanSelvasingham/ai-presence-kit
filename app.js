@@ -30,6 +30,8 @@ const benchmarkButton = document.querySelector("#benchmarkButton");
 const presenceButtons = Array.from(document.querySelectorAll("button[data-presence]"));
 const metricsPanel = document.querySelector("#metricsPanel");
 const comparisonDemo = document.querySelector("#comparisonDemo");
+const controllerGallery = document.querySelector("#controllerGallery");
+const controllerGalleryGrid = document.querySelector("#controllerGalleryGrid");
 const compareBack = document.querySelector("#compareBack");
 const compareForm = document.querySelector("#compareForm");
 const compareInput = document.querySelector("#compareInput");
@@ -319,6 +321,18 @@ const comparisonState = {
 
 const runtimeTestOptions = new URLSearchParams(window.location.search);
 const runtimeTestMode = runtimeTestOptions.get("test") === "1" || runtimeTestOptions.get("test") === "true";
+const controllerGalleryStates = Object.freeze([
+  PresenceState.IDLE,
+  PresenceState.USER_TYPING,
+  PresenceState.READING,
+  PresenceState.THINKING,
+  PresenceState.WAITING,
+  PresenceState.STREAMING,
+  PresenceState.SPEAKING,
+  PresenceState.READY,
+  PresenceState.INTERRUPTED,
+  PresenceState.ERROR,
+]);
 
 const presenceProfiles = {
   still: {
@@ -570,6 +584,26 @@ function controlsSummary(controls = activeFaceControls()) {
     `posture:${Math.round(controls.posture.lean * 100)}`,
     `motion:${Math.round(controls.motion.energy * 100)}`,
   ].join(" ");
+}
+
+function shortPercent(value) {
+  return `${Math.round(clamp(value, 0, 1) * 100)}`;
+}
+
+function signedNumber(value) {
+  const rounded = Number(value || 0).toFixed(2);
+  return rounded === "-0.00" ? "0.00" : rounded;
+}
+
+function controllerEvidenceText(controls) {
+  return [
+    `gaze target ${controls.gaze.target} focus ${shortPercent(controls.gaze.focus)}%`,
+    `blink open ${shortPercent(controls.blink.openness)}% cadence ${Math.round(controls.blink.cadenceMs)}ms pulse ${controls.blink.pulse ? "yes" : "no"}`,
+    `brows lift ${signedNumber(controls.brows.lift)} pinch ${signedNumber(controls.brows.pinch)}`,
+    `mouth ${controls.mouth.shape} open ${shortPercent(controls.mouth.openness)}% activity ${shortPercent(controls.mouth.activity)}%`,
+    `posture lean ${signedNumber(controls.posture.lean)} recovery ${shortPercent(controls.posture.recovery)}%`,
+    `motion energy ${shortPercent(controls.motion.energy)}% anticipation ${shortPercent(controls.motion.anticipation)}% recovery ${shortPercent(controls.motion.recovery)}%`,
+  ].join(" | ");
 }
 
 function syncPresenceSnapshot(snapshot) {
@@ -2755,6 +2789,252 @@ function toggleMetrics() {
   renderMetrics();
 }
 
+function createSvgElement(tagName, attributes = {}) {
+  const element = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+  for (const [name, value] of Object.entries(attributes)) {
+    element.setAttribute(name, String(value));
+  }
+  return element;
+}
+
+function createControllerFaceSvg(state, controls) {
+  const expression = expressions[controls.expression] || expressions.idle;
+  const profile = currentPresenceProfile();
+  const eyes = scaleEyes(expression.eyes, profile.gain);
+  const color = expression.color;
+  const postureTilt = (controls.posture.turn * 12) - (controls.posture.lean * 4) + (controls.motion.recovery * 1.5);
+  const tilt = scaleValue((expressionTilts[controls.expression] || 0) + postureTilt, profile.tilt);
+  const lift = scaleValue(-8 * controls.brows.lift + 2.5 * controls.brows.pinch, profile.gain);
+  const pinch = scaleValue(4.8 * controls.brows.pinch, profile.gain);
+  const asymmetry = scaleValue(5 * controls.brows.asymmetry, profile.gain);
+  const gazeX = controls.gaze.x * 9.6;
+  const gazeY = controls.gaze.y * 6.2;
+  const scaleY = clamp(eyes.scaleY * controls.blink.openness, 0.08, 1.4);
+  const focus = controls.gaze.focus;
+  const eyeShare = clamp(0.16 + focus * 0.16, 0.18, 0.32);
+  const glintShare = clamp(0.62 + focus * 0.34, 0.72, 0.9);
+  const leftLook = { x: eyes.lx + gazeX, y: eyes.ly + gazeY };
+  const rightLook = { x: eyes.rxp + gazeX, y: eyes.ryp + gazeY };
+  const mouthShape = normalizeMouth(expression.mouth);
+  const mouthX = scaleValue(mouthShape.x || 0, profile.gain);
+  const mouthY = scaleValue((mouthShape.y || 0) + controls.mouth.tension * 1.4 - controls.mouth.openness * 0.9, profile.gain);
+  const mouthScaleX = scaleFromNeutral(
+    (mouthShape.scaleX || 1) + controls.mouth.activity * 0.035 - controls.mouth.tension * 0.035,
+    1,
+    profile.gain,
+  );
+  const mouthScaleY = scaleFromNeutral(
+    (mouthShape.scaleY || 1) + controls.mouth.openness * 0.52 + controls.mouth.activity * 0.06 - controls.mouth.tension * 0.09,
+    1,
+    profile.gain,
+  );
+
+  const svg = createSvgElement("svg", {
+    class: "controller-face",
+    viewBox: "0 0 420 360",
+    role: "img",
+    "aria-label": `${state} reference face controls`,
+  });
+  svg.dataset.presenceState = state;
+  svg.dataset.rendererState = controls.expression;
+  svg.style.color = color;
+  svg.style.setProperty("--controller-face-tilt", `${tilt.toFixed(2)}deg`);
+
+  const frame = createSvgElement("path", {
+    class: "face-frame controller-face-frame",
+    d: "M100 72 C146 36 274 36 320 72 C358 102 366 241 319 288 C272 335 148 335 101 288 C54 241 62 102 100 72 Z",
+  });
+  frame.style.stroke = color;
+  frame.style.fill = colorWash(color, profile.color);
+  svg.append(frame);
+
+  const browLeftGroup = createSvgElement("g", { class: "brow-group brow-left-group" });
+  browLeftGroup.style.transform = `translate(${formatSvgNumber(-pinch)}px, ${formatSvgNumber(lift - asymmetry)}px)`;
+  browLeftGroup.append(createSvgElement("path", {
+    class: "brow",
+    d: expression.brows[0],
+    "stroke-width": formatSvgNumber(6.5 * profile.line),
+  }));
+
+  const browRightGroup = createSvgElement("g", { class: "brow-group brow-right-group" });
+  browRightGroup.style.transform = `translate(${formatSvgNumber(pinch)}px, ${formatSvgNumber(lift + asymmetry)}px)`;
+  browRightGroup.append(createSvgElement("path", {
+    class: "brow",
+    d: expression.brows[1],
+    "stroke-width": formatSvgNumber(6.5 * profile.line),
+  }));
+
+  const eyeLeftGalleryGroup = createSvgElement("g", { class: "eye-group eye-left-group" });
+  eyeLeftGalleryGroup.style.transform = `translate(${formatSvgNumber(clamp(leftLook.x * eyeShare, -8.8, 8.8))}px, ${formatSvgNumber(clamp(leftLook.y * eyeShare, -5.2, 5.2))}px) scaleY(${formatSvgNumber(scaleY)})`;
+  eyeLeftGalleryGroup.append(
+    createSvgElement("ellipse", { class: "eye", cx: 162, cy: 165, rx: formatSvgNumber(eyes.rx), ry: formatSvgNumber(eyes.ry) }),
+    createSvgElement("circle", { class: "pupil", cx: 162, cy: 165, r: 5 }),
+  );
+  eyeLeftGalleryGroup.querySelector(".pupil").style.transform = `translate(${formatSvgNumber(clamp(leftLook.x * glintShare, -4.2, 4.2))}px, ${formatSvgNumber(clamp(leftLook.y * glintShare, -2.8, 2.8))}px)`;
+
+  const eyeRightGalleryGroup = createSvgElement("g", { class: "eye-group eye-right-group" });
+  eyeRightGalleryGroup.style.transform = `translate(${formatSvgNumber(clamp(rightLook.x * eyeShare, -8.8, 8.8))}px, ${formatSvgNumber(clamp(rightLook.y * eyeShare, -5.2, 5.2))}px) scaleY(${formatSvgNumber(scaleY)})`;
+  eyeRightGalleryGroup.append(
+    createSvgElement("ellipse", { class: "eye", cx: 258, cy: 165, rx: formatSvgNumber(eyes.rx), ry: formatSvgNumber(eyes.ry) }),
+    createSvgElement("circle", { class: "pupil", cx: 258, cy: 165, r: 5 }),
+  );
+  eyeRightGalleryGroup.querySelector(".pupil").style.transform = `translate(${formatSvgNumber(clamp(rightLook.x * glintShare, -4.2, 4.2))}px, ${formatSvgNumber(clamp(rightLook.y * glintShare, -2.8, 2.8))}px)`;
+
+  const mouthGalleryGroup = createSvgElement("g", { class: "mouth-group" });
+  mouthGalleryGroup.style.transform = `translate(${formatSvgNumber(mouthX)}px, ${formatSvgNumber(mouthY)}px) scale(${formatSvgNumber(mouthScaleX)}, ${formatSvgNumber(mouthScaleY)})`;
+  mouthGalleryGroup.append(createSvgElement("path", {
+    class: "mouth",
+    d: mouthShape.d,
+    "stroke-width": formatSvgNumber((mouthShape.width || 7.2) * profile.line),
+  }));
+
+  const breathPath = createSvgElement("path", {
+    class: "breath",
+    d: expression.breath,
+    "stroke-width": formatSvgNumber(3 * profile.line),
+  });
+  breathPath.style.stroke = color;
+
+  svg.append(browLeftGroup, browRightGroup, eyeLeftGalleryGroup, eyeRightGalleryGroup, mouthGalleryGroup, breathPath);
+  return svg;
+}
+
+function createControllerChannelRow(channel, label, value, meterValue = null) {
+  const row = document.createElement("div");
+  row.className = "controller-channel";
+  row.dataset.channel = channel;
+
+  const name = document.createElement("span");
+  name.textContent = label;
+  const output = document.createElement("output");
+  output.textContent = value;
+
+  row.append(name, output);
+  if (meterValue !== null) {
+    const meter = document.createElement("span");
+    meter.className = "controller-meter";
+    meter.style.setProperty("--value", String(clamp(meterValue, 0, 1)));
+    row.append(meter);
+  }
+  return row;
+}
+
+function createControllerGalleryCard(state, controls) {
+  const card = document.createElement("article");
+  card.className = "controller-card";
+  card.dataset.presenceState = state;
+  card.dataset.rendererState = controls.expression;
+  card.dataset.faceControls = controlsSummary(controls);
+  card.dataset.controllerEvidence = controllerEvidenceText(controls);
+
+  const title = document.createElement("h2");
+  title.textContent = state;
+  const renderer = document.createElement("output");
+  renderer.className = "controller-renderer";
+  renderer.textContent = controls.expression;
+
+  const heading = document.createElement("div");
+  heading.className = "controller-card-heading";
+  heading.append(title, renderer);
+
+  const channels = document.createElement("div");
+  channels.className = "controller-channels";
+  channels.append(
+    createControllerChannelRow(
+      "gaze",
+      "Gaze",
+      `${controls.gaze.target} x ${signedNumber(controls.gaze.x)} y ${signedNumber(controls.gaze.y)} focus ${shortPercent(controls.gaze.focus)}%`,
+      controls.gaze.focus,
+    ),
+    createControllerChannelRow(
+      "blink",
+      "Blink",
+      `open ${shortPercent(controls.blink.openness)}% cadence ${Math.round(controls.blink.cadenceMs)}ms pulse ${controls.blink.pulse ? "yes" : "no"}`,
+      controls.blink.openness,
+    ),
+    createControllerChannelRow(
+      "brows",
+      "Brows",
+      `lift ${signedNumber(controls.brows.lift)} pinch ${signedNumber(controls.brows.pinch)} asym ${signedNumber(controls.brows.asymmetry)}`,
+      clamp((controls.brows.pinch + 0.1) / 0.7, 0, 1),
+    ),
+    createControllerChannelRow(
+      "mouth",
+      "Mouth",
+      `${controls.mouth.shape} open ${shortPercent(controls.mouth.openness)}% activity ${shortPercent(controls.mouth.activity)}% tension ${shortPercent(controls.mouth.tension)}%`,
+      controls.mouth.activity || controls.mouth.openness,
+    ),
+    createControllerChannelRow(
+      "posture",
+      "Posture",
+      `lean ${signedNumber(controls.posture.lean)} turn ${signedNumber(controls.posture.turn)} recovery ${shortPercent(controls.posture.recovery)}%`,
+      Math.abs(controls.posture.lean),
+    ),
+    createControllerChannelRow(
+      "motion",
+      "Motion",
+      `energy ${shortPercent(controls.motion.energy)}% anticipation ${shortPercent(controls.motion.anticipation)}% recovery ${shortPercent(controls.motion.recovery)}%`,
+      controls.motion.energy,
+    ),
+  );
+
+  card.append(heading, createControllerFaceSvg(state, controls), channels);
+  return card;
+}
+
+function renderControllerGallery() {
+  if (!controllerGalleryGrid) return;
+
+  controllerGalleryGrid.textContent = "";
+  const history = [];
+  for (const [index, state] of controllerGalleryStates.entries()) {
+    const snapshot = {
+      state,
+      previousState: history.at(-1)?.state || null,
+      event: "controller-gallery",
+      detail: { source: "controller-gallery" },
+      changed: true,
+      updatedAt: 1000 + index * 180,
+      version: index + 1,
+    };
+    const controller = PresenceFace.createFaceControllerRuntime();
+    const controls = controller.update(snapshot, {
+      history,
+      now: snapshot.updatedAt + 120,
+      profile: faceControlProfile(),
+    });
+    controllerGalleryGrid.append(createControllerGalleryCard(state, controls));
+    history.push(snapshot);
+  }
+}
+
+function setControllerGalleryMode(enabled, options = {}) {
+  const active = Boolean(enabled);
+  if (!controllerGallery) return;
+
+  controllerGallery.hidden = !active;
+  document.body.classList.toggle("controller-gallery-mode", active);
+  if (active) {
+    comparisonDemo.hidden = true;
+    document.body.classList.remove("comparison-mode");
+    setPressed(compareToggle, false);
+    renderControllerGallery();
+  }
+  if (!active && options.focus !== false) {
+    input.focus({ preventScroll: true });
+  }
+  if (options.updateUrl !== false) {
+    const url = new URL(window.location.href);
+    if (active) {
+      url.searchParams.set("controls", "1");
+    } else {
+      url.searchParams.delete("controls");
+      url.searchParams.delete("controllerGallery");
+    }
+    window.history.replaceState({}, "", url);
+  }
+}
+
 function applyInitialViewState() {
   const params = new URLSearchParams(window.location.search);
   const initialPresence = params.get("presence");
@@ -2765,6 +3045,11 @@ function applyInitialViewState() {
   if (params.get("metrics") === "1" || params.get("metrics") === "true") {
     metricsPanel.hidden = false;
     setPressed(metricsToggle, true);
+  }
+
+  if (params.get("controls") === "1" || params.get("controls") === "true" || params.get("controllerGallery") === "1") {
+    setControllerGalleryMode(true, { updateUrl: false, focus: false });
+    return;
   }
 
   if (params.get("compare") === "1" || params.get("compare") === "true") {
