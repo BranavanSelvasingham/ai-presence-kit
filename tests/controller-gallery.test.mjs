@@ -12,6 +12,7 @@ const { PresenceState } = require("../packages/core/src/presence-core.js");
 const {
   FACE_CONTROL_CHANNELS,
   faceControllerDecisionsForPresence,
+  faceControllerFrameForPresence,
 } = require("../packages/face/src/presence-face.js");
 
 assert.match(html, /id="controllerGallery"/);
@@ -31,6 +32,12 @@ assert.match(app, /dataset\.reads/);
 assert.match(app, /dataset\.controllerComposition/);
 assert.match(app, /dataset\.controllerEvidence/);
 assert.match(app, /dataset\.controllerFrame/);
+assert.match(app, /CONTROLLER_FRAME_SAMPLE_OFFSETS/);
+assert.match(app, /createControllerFrameSequence/);
+assert.match(app, /createControllerFrameStrip/);
+assert.match(app, /dataset\.frameSequence/);
+assert.match(app, /dataset\.frameSamples/);
+assert.match(app, /dataset\.frameChannels/);
 assert.match(app, /faceDecisionReport/);
 assert.match(app, /metricControls\.dataset\.controllerComposition/);
 assert.match(app, /metricControls\.dataset\.controllerEvidence/);
@@ -38,6 +45,8 @@ assert.match(app, /metricControls\.dataset\.controllerFrame/);
 assert.match(css, /body\.controller-gallery-mode/);
 assert.match(css, /--face-offset-x/);
 assert.match(css, /--face-offset-y/);
+assert.match(css, /\.controller-frame-strip/);
+assert.match(css, /\.controller-frame-sample/);
 
 for (const constantName of [
   "IDLE",
@@ -103,6 +112,31 @@ for (const state of [
     assert.equal(decision.controller, `${channel}-controller`, `${state} ${channel} controller name`);
     assert.ok(decision.reads.includes("state"), `${state} ${channel} reads state`);
     assert.deepEqual(decision.control, controls[channel], `${state} ${channel} decision control`);
+  }
+
+  const frameSamples = [0, 240, 480, 720].map((offsetMs) => faceControllerFrameForPresence(snapshot, {
+    history,
+    now: snapshot.updatedAt + 120,
+    timeMs: snapshot.updatedAt + offsetMs,
+  }));
+
+  assert.equal(frameSamples.length, 4, `${state} frame sample count`);
+  for (const frameReport of frameSamples) {
+    assert.equal(frameReport.state, state, `${state} frame report state`);
+    assert.deepEqual(Object.keys(frameReport.frame), FACE_CONTROL_CHANNELS, `${state} frame channel order`);
+    assert.deepEqual(frameReport.decisions, report.decisions, `${state} frame decisions stay fixed across samples`);
+    for (const channel of FACE_CONTROL_CHANNELS) {
+      assert.ok(frameReport.frame[channel], `${state} frame has ${channel}`);
+    }
+  }
+
+  if (state === PresenceState.THINKING || state === PresenceState.WAITING) {
+    assert.notDeepEqual(frameSamples[0].frame, frameSamples.at(-1).frame, `${state} frame sequence varies over time`);
+    assert.notEqual(
+      frameSamples[0].frame.motion.offsetX,
+      frameSamples.at(-1).frame.motion.offsetX,
+      `${state} motion offset changes over samples`,
+    );
   }
   history.push(snapshot);
 }
