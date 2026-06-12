@@ -323,6 +323,11 @@ const comparisonState = {
   timers: [],
   runId: 0,
   startedAt: 0,
+  beforeTokenStates: [],
+  beforeTokenRenderers: [],
+  beforeTokenFrameSummary: "none",
+  beforeTokenFrameChannels: "",
+  genericBeforeTokenState: "idle",
 };
 
 const runtimeTestOptions = new URLSearchParams(window.location.search);
@@ -3406,6 +3411,88 @@ function appendComparisonTimeline(output, label) {
   output.textContent = output.textContent === "--" ? label : `${output.textContent} -> ${label}`;
 }
 
+function uniqueComparisonValues(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function resetComparisonEvidence() {
+  comparisonState.beforeTokenStates = [];
+  comparisonState.beforeTokenRenderers = [];
+  comparisonState.beforeTokenFrameSummary = "none";
+  comparisonState.beforeTokenFrameChannels = "";
+  comparisonState.genericBeforeTokenState = "idle";
+  if (!comparisonDemo) return;
+
+  comparisonDemo.dataset.equalLatency = "true";
+  comparisonDemo.dataset.spinnerFirstTokenMs = String(comparisonTiming.firstToken);
+  comparisonDemo.dataset.presenceFirstTokenMs = String(comparisonTiming.firstToken);
+  comparisonDemo.dataset.firstTokenMs = String(comparisonTiming.firstToken);
+  comparisonDemo.dataset.genericBeforeToken = "idle";
+  comparisonDemo.dataset.genericBeforeTokenState = "idle";
+  comparisonDemo.dataset.genericBeforeTokenLoading = "false";
+  comparisonDemo.dataset.presenceBeforeToken = "false";
+  comparisonDemo.dataset.presenceBeforeTokenStates = "";
+  comparisonDemo.dataset.presenceRendererBeforeToken = "";
+  comparisonDemo.dataset.presenceFrameBeforeToken = "false";
+  comparisonDemo.dataset.presenceFrameBeforeTokenChannels = "";
+  comparisonDemo.dataset.presenceFrameBeforeTokenSummary = "none";
+  if (compareFace) {
+    compareFace.dataset.presenceBeforeTokenStates = "";
+    compareFace.dataset.controllerFrameBeforeToken = "none";
+    compareFace.dataset.controllerFrameBeforeTokenChannels = "";
+  }
+}
+
+function comparisonFrameReport(snapshot) {
+  if (!snapshot || typeof PresenceFace.faceControllerFrameForPresence !== "function") return null;
+  return PresenceFace.faceControllerFrameForPresence(snapshot, {
+    history: [],
+    now: performance.now(),
+    timeMs: performance.now(),
+  });
+}
+
+function recordComparisonBeforeTokenEvidence() {
+  if (!comparisonDemo || compareSpinnerResponse.textContent) return;
+
+  const snapshot = comparisonRuntime.getSnapshot();
+  const expression = PresenceFace.faceExpressionForPresence(snapshot);
+  const state = snapshot.state;
+  if (
+    state === PresenceState.READING
+    || state === PresenceState.THINKING
+    || state === PresenceState.WAITING
+  ) {
+    comparisonState.beforeTokenStates = uniqueComparisonValues([...comparisonState.beforeTokenStates, state]);
+    comparisonState.beforeTokenRenderers = uniqueComparisonValues([...comparisonState.beforeTokenRenderers, expression]);
+  }
+
+  const frameReport = comparisonFrameReport(snapshot);
+  const frameChannels = Object.keys(frameReport?.frame || {});
+  if (frameChannels.length) {
+    comparisonState.beforeTokenFrameSummary = frameSummary(frameReport);
+    comparisonState.beforeTokenFrameChannels = frameChannels.join(" ");
+  }
+
+  const genericState = compareSpinnerState.textContent || "idle";
+  const genericLoading = compareSpinnerIndicator.classList.contains("is-visible");
+  comparisonState.genericBeforeTokenState = genericState;
+  comparisonDemo.dataset.genericBeforeToken = genericLoading ? "loading" : genericState;
+  comparisonDemo.dataset.genericBeforeTokenState = genericState;
+  comparisonDemo.dataset.genericBeforeTokenLoading = String(genericLoading);
+  comparisonDemo.dataset.presenceBeforeToken = String(comparisonState.beforeTokenStates.length > 0);
+  comparisonDemo.dataset.presenceBeforeTokenStates = comparisonState.beforeTokenStates.join(" ");
+  comparisonDemo.dataset.presenceRendererBeforeToken = comparisonState.beforeTokenRenderers.join(" ");
+  comparisonDemo.dataset.presenceFrameBeforeToken = String(frameChannels.length > 0);
+  comparisonDemo.dataset.presenceFrameBeforeTokenChannels = comparisonState.beforeTokenFrameChannels;
+  comparisonDemo.dataset.presenceFrameBeforeTokenSummary = comparisonState.beforeTokenFrameSummary;
+  if (compareFace) {
+    compareFace.dataset.presenceBeforeTokenStates = comparisonState.beforeTokenStates.join(" ");
+    compareFace.dataset.controllerFrameBeforeToken = comparisonState.beforeTokenFrameSummary;
+    compareFace.dataset.controllerFrameBeforeTokenChannels = comparisonState.beforeTokenFrameChannels;
+  }
+}
+
 function renderComparisonPresence() {
   if (!comparePresenceState || !compareFace) return;
 
@@ -3422,6 +3509,7 @@ function resetComparisonDemo(message) {
   clearComparisonTimers();
   comparisonState.runId += 1;
   comparisonAdapter.send({ type: RuntimeSignal.RESET });
+  resetComparisonEvidence();
   compareLatency.textContent = `First token ${comparisonTiming.firstToken}ms`;
   compareSpinnerState.textContent = "idle";
   compareSpinnerUser.textContent = message;
@@ -3464,6 +3552,7 @@ function runComparisonDemo(event = null) {
     completion: 0.28,
     source: "comparison",
   });
+  recordComparisonBeforeTokenEvidence();
 
   scheduleComparison(comparisonTiming.pause, () => {
     comparisonAdapter.send({
@@ -3473,15 +3562,18 @@ function runComparisonDemo(event = null) {
       source: "comparison",
     });
     appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.pause}ms thinking`);
+    recordComparisonBeforeTokenEvidence();
   });
 
   scheduleComparison(comparisonTiming.streamOpen, () => {
     comparisonAdapter.send({ type: RuntimeSignal.STREAM_OPEN, source: "comparison" });
     appendComparisonTimeline(compareSpinnerTimeline, `${comparisonTiming.streamOpen}ms stream open`);
     appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.streamOpen}ms waiting`);
+    recordComparisonBeforeTokenEvidence();
   });
 
   scheduleComparison(comparisonTiming.firstToken, () => {
+    recordComparisonBeforeTokenEvidence();
     comparisonAdapter.send({ type: RuntimeSignal.TOKEN, source: "comparison" });
     compareSpinnerState.textContent = "streaming";
     compareSpinnerIndicator.classList.remove("is-visible");
