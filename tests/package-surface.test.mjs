@@ -74,7 +74,7 @@ const packages = [
     dir: "packages/face",
     name: "@ai-presence/face",
     types: "src/presence-face.d.ts",
-    exports: ["createFaceRenderer", "faceExpressionForPresence", "FaceExpression"],
+    exports: ["createFaceControllerRuntime", "createFaceRenderer", "faceControlsForPresence", "faceExpressionForPresence", "FaceExpression"],
   },
   {
     dir: "packages/adapters",

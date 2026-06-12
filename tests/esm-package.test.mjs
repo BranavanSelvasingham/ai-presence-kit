@@ -26,6 +26,7 @@ runtime.send(core.PresenceEvent.SUBMIT);
 assert.equal(runtime.getSnapshot().state, core.PresenceState.THINKING);
 assert.equal(trace.getEntries().at(-1).state, core.PresenceState.THINKING);
 assert.equal(face.faceExpressionForPresence(runtime.getSnapshot()), face.FaceExpression.THINKING);
+assert.equal(face.faceControlsForPresence(runtime.getSnapshot()).gaze.target, "middle-distance");
 
 const adapter = adapters.createRuntimeSignalAdapter(runtime);
 adapter.send({ type: adapters.RuntimeSignal.STREAM_OPEN });
@@ -50,7 +51,7 @@ try {
     [
       'import { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";',
       'import { RuntimeSignal, createRuntimeSignalAdapter } from "@ai-presence/adapters";',
-      'import { FaceExpression, faceExpressionForPresence } from "@ai-presence/face";',
+      'import { FaceExpression, faceControlsForPresence, faceExpressionForPresence } from "@ai-presence/face";',
       'import { createPresenceReactBindings } from "@ai-presence/react";',
       "const runtime = createPresenceRuntime();",
       "const trace = createPresenceTrace({ limit: 4 });",
@@ -60,6 +61,7 @@ try {
       "if (runtime.getSnapshot().state !== PresenceState.STREAMING) throw new Error('state mismatch');",
       "if (trace.getEntries().at(-1).state !== PresenceState.STREAMING) throw new Error('trace mismatch');",
       "if (faceExpressionForPresence(runtime.getSnapshot()) !== FaceExpression.SPEAKING) throw new Error('face mismatch');",
+      "if (faceControlsForPresence(runtime.getSnapshot()).mouth.shape !== 'speaking') throw new Error('face controls mismatch');",
       "if (typeof createPresenceReactBindings !== 'function') throw new Error('react export mismatch');",
       "console.log('specifier import ok');",
       "",
