@@ -14,7 +14,7 @@
 
   const { PresenceEvent, createPresenceRuntime } = PresenceCore;
   const { createVercelAISDKAdapter } = PresenceAdapters;
-  const { faceExpressionForPresence } = PresenceFace;
+  const { faceExpressionForPresence, renderPresenceFaceSvg } = PresenceFace;
 
   const runtime = createPresenceRuntime();
   const aiSdkPresence = createVercelAISDKAdapter(runtime);
@@ -23,17 +23,6 @@
     : PresenceReact;
 
   const RESPONSE_TEXT = "Presence moved through thinking and waiting before the first visible token.";
-  const MOUTH_PATHS = Object.freeze({
-    idle: "M34 62 C42 66 58 66 66 62",
-    listening: "M34 63 C42 66 58 66 66 63",
-    reading: "M36 62 C43 64 57 64 64 62",
-    thinking: "M36 64 C43 62 57 62 64 64",
-    curious: "M36 62 C45 68 57 66 64 60",
-    uncertain: "M36 64 C44 66 56 62 64 64",
-    concerned: "M36 66 C44 60 56 60 64 66",
-    ready: "M34 61 C43 68 57 68 66 61",
-    speaking: "M38 58 C45 68 55 68 62 58",
-  });
 
   function App() {
     const [prompt, setPrompt] = React.useState("Why does this feel faster?");
@@ -135,7 +124,11 @@
       { className: "presence-panel", "data-rendered-state": snapshot.state },
       React.createElement("p", { className: "eyebrow" }, "AI Presence Kit"),
       React.createElement("h1", null, "React runtime"),
-      React.createElement(Face, { expression, state: snapshot.state }),
+      React.createElement(
+        bindings.PresenceRenderer,
+        null,
+        (renderSnapshot) => React.createElement(FaceRendererSlot, { snapshot: renderSnapshot }),
+      ),
       React.createElement(
         "dl",
         { className: "presence-readout" },
@@ -145,35 +138,27 @@
         React.createElement("div", null, React.createElement("dt", null, "Renderer"), React.createElement("dd", { "data-presence-expression": "" }, expression)),
         React.createElement("div", null, React.createElement("dt", null, "Event"), React.createElement("dd", { "data-presence-event": "" }, snapshot.event)),
       ),
-      React.createElement(
-        bindings.PresenceRenderer,
-        null,
-        (renderSnapshot) => React.createElement(
-          "output",
-          { className: "renderer-slot", "data-renderer-slot": "" },
-          `slot:${renderSnapshot.state}`,
-        ),
-      ),
+      React.createElement("output", { className: "renderer-slot", "data-renderer-slot": "" }, `slot:${snapshot.state}`),
     );
   }
 
-  function Face({ expression, state }) {
+  function FaceRendererSlot({ snapshot }) {
+    const renderedFace = renderPresenceFaceSvg(snapshot, {
+      className: "react-face",
+      timeMs: snapshot.updatedAt,
+      title: `Reference face rendering ${snapshot.state}`,
+    });
+
     return React.createElement(
-      "svg",
+      "div",
       {
-        className: "react-face",
-        viewBox: "0 0 100 86",
-        role: "img",
-        "aria-label": `Reference face rendering ${state}`,
-        "data-face-expression": expression,
+        className: "face-renderer-slot",
+        "data-face-svg-renderer": "@ai-presence/face",
+        "data-face-svg-state": renderedFace.state,
+        "data-face-svg-channels": renderedFace.attributes.channels,
+        "data-renderer-slot-face": "",
+        dangerouslySetInnerHTML: { __html: renderedFace.svg },
       },
-      React.createElement("path", {
-        className: "react-face-frame",
-        d: "M24 14 C36 5 64 5 76 14 C87 24 89 61 75 72 C61 83 39 83 25 72 C11 61 13 24 24 14 Z",
-      }),
-      React.createElement("ellipse", { className: "react-eye react-eye-left", cx: "38", cy: "38", rx: "5", ry: "6" }),
-      React.createElement("ellipse", { className: "react-eye react-eye-right", cx: "62", cy: "38", rx: "5", ry: "6" }),
-      React.createElement("path", { className: "react-mouth", d: MOUTH_PATHS[expression] || MOUTH_PATHS.idle }),
     );
   }
 
