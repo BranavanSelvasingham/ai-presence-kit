@@ -11,12 +11,37 @@ const expression = faceExpressionForPresence(snapshot);
 ```
 
 ```js
-import { faceControlsForPresence } from "@ai-presence/face";
+import { faceControllerDecisionsForPresence, faceControlsForPresence } from "@ai-presence/face";
 
 const controls = faceControlsForPresence(snapshot, { trace });
+const report = faceControllerDecisionsForPresence(snapshot, { trace });
 
 renderer.setGaze(controls.gaze);
 renderer.setMouth(controls.mouth);
+
+console.log(report.decisions.gaze.controller); // "gaze-controller"
 ```
 
-The controller does not infer private emotion. It stays grounded in observable states such as `reading`, `thinking`, `waiting`, `streaming`, `speaking`, `interrupted`, and `ready`, then lets each facial subsystem make a small local decision from the shared snapshot and optional trace/history.
+The controller does not claim hidden internal state. It stays grounded in observable states such as `reading`, `thinking`, `waiting`, `streaming`, `speaking`, `interrupted`, and `ready`, then lets each facial subsystem make a small local decision from the shared snapshot and optional trace/history.
+
+`faceControlsForPresence` remains the renderer-friendly compatibility surface. `faceControllerDecisionsForPresence` exposes the same composition as an inspection report:
+
+```js
+{
+  state: "waiting",
+  expression: "listening",
+  sharedInputs: {
+    state: "waiting",
+    attentionTarget: "response",
+    latencyPhase: "before-output"
+  },
+  decisions: {
+    gaze: { channel: "gaze", controller: "gaze-controller", reads: ["state", "attentionTarget", "..."], control: {} },
+    blink: { channel: "blink", controller: "blink-controller", reads: ["state", "..."], control: {} },
+    brows: { channel: "brows", controller: "brows-controller", reads: ["state", "..."], control: {} },
+    mouth: { channel: "mouth", controller: "mouth-controller", reads: ["state", "speechActivity", "..."], control: {} },
+    posture: { channel: "posture", controller: "posture-controller", reads: ["state", "energy", "..."], control: {} },
+    motion: { channel: "motion", controller: "motion-controller", reads: ["state", "anticipation", "..."], control: {} }
+  }
+}
+```

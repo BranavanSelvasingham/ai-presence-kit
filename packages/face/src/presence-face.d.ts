@@ -1,4 +1,4 @@
-import type { PresenceSnapshot, PresenceStateValue } from "@ai-presence/core";
+import type { PresenceControlInputs, PresenceSnapshot, PresenceStateValue } from "@ai-presence/core";
 
 export declare const FaceExpression: Readonly<{
   IDLE: "idle";
@@ -73,6 +73,31 @@ export interface FaceMotionControl {
   settleMs: number;
 }
 
+export type FaceControlChannel = "gaze" | "blink" | "brows" | "mouth" | "posture" | "motion";
+
+export interface FaceControllerDecision<TControl> {
+  channel: FaceControlChannel;
+  controller: string;
+  reads: readonly string[];
+  control: TControl;
+}
+
+export interface FaceControllerDecisions {
+  gaze: FaceControllerDecision<FaceGazeControl>;
+  blink: FaceControllerDecision<FaceBlinkControl>;
+  brows: FaceControllerDecision<FaceBrowsControl>;
+  mouth: FaceControllerDecision<FaceMouthControl>;
+  posture: FaceControllerDecision<FacePostureControl>;
+  motion: FaceControllerDecision<FaceMotionControl>;
+}
+
+export interface FaceControllerDecisionReport {
+  state: PresenceStateValue;
+  expression: FaceExpressionValue;
+  sharedInputs: PresenceControlInputs | null;
+  decisions: FaceControllerDecisions;
+}
+
 export interface FaceControls {
   expression: FaceExpressionValue;
   gaze: FaceGazeControl;
@@ -106,12 +131,17 @@ export declare const DEFAULT_FACE_CONTROL_PROFILE: Readonly<{
   drift: number;
   settleMs: number;
 }>;
+export declare const FACE_CONTROL_CHANNELS: readonly FaceControlChannel[];
 export declare const DEFAULT_FACE_MAP: Readonly<Record<PresenceStateValue, FaceExpressionValue>>;
 
 export declare function createFaceControllerRuntime(options?: FaceControlOptions & {
   update?: (controls: FaceControls, snapshot: PresenceSnapshot | PresenceStateValue) => void;
 }): FaceControllerRuntime;
 export declare function createFaceRenderer(options?: FaceRendererOptions): FaceRenderer;
+export declare function faceControllerDecisionsForPresence(
+  snapshotOrState: PresenceSnapshot | PresenceStateValue,
+  options?: FaceControlOptions,
+): FaceControllerDecisionReport;
 export declare function faceControlsForPresence(
   snapshotOrState: PresenceSnapshot | PresenceStateValue,
   options?: FaceControlOptions,
