@@ -19,6 +19,7 @@ const {
   faceControllerFrameForPresence,
   faceControlsForPresence,
   faceExpressionForPresence,
+  renderPresenceFaceSvg,
 } = require("../packages/face/src/presence-face.js");
 
 function assertChannelDecision(report, channel, controls) {
@@ -208,6 +209,40 @@ assert.deepEqual(earlyFrame.decisions, laterFrame.decisions);
 assert.deepEqual(earlyFrame.sharedInputs, laterFrame.sharedInputs);
 assert.notDeepEqual(earlyFrame.frame, laterFrame.frame);
 assert.notEqual(earlyFrame.frame.blink.phase, laterFrame.frame.blink.phase);
+
+const earlySvg = renderPresenceFaceSvg({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1100,
+  title: 'waiting "before-output" face',
+});
+const laterSvg = renderPresenceFaceSvg({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1900,
+  title: 'waiting "before-output" face',
+});
+assert.equal(earlySvg.state, PresenceState.WAITING);
+assert.equal(earlySvg.expression, FaceExpression.LISTENING);
+assert.equal(earlySvg.attributes.channels, FACE_CONTROL_CHANNELS.join(" "));
+assert.match(earlySvg.svg, /^<svg/);
+assert.match(earlySvg.svg, /data-presence-state="waiting"/);
+assert.match(earlySvg.svg, /data-face-channels="gaze blink brows mouth posture motion"/);
+assert.match(earlySvg.svg, /data-gaze-target="response-origin"/);
+assert.match(earlySvg.svg, /waiting &quot;before-output&quot; face/);
+assert.deepEqual(Object.keys(earlySvg.channelEvidence), FACE_CONTROL_CHANNELS);
+for (const channel of FACE_CONTROL_CHANNELS) {
+  assert.equal(earlySvg.channelEvidence[channel].controller, `${channel}-controller`);
+  assert.equal(earlySvg.channelEvidence[channel].frame, earlySvg.frame[channel]);
+  assert.ok(earlySvg.channelEvidence[channel].reads.includes("state"));
+}
+assert.deepEqual(earlySvg.frameReport.decisions, earlyFrame.decisions);
+assert.notEqual(earlySvg.svg, laterSvg.svg);
+assert.notDeepEqual(earlySvg.frame, laterSvg.frame);
 
 let frameNowCalls = 0;
 const singleNowFrame = faceControllerFrameForPresence({ state: PresenceState.WAITING }, {

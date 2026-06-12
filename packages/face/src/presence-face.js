@@ -886,6 +886,135 @@
     });
   }
 
+  function formatSvgNumber(value, fallback = 0) {
+    const numeric = finiteNumber(value, fallback);
+    if (Math.abs(numeric) < 0.0005) return "0";
+    return String(Math.round(numeric * 1000) / 1000);
+  }
+
+  function escapeSvgAttribute(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function svgAttribute(name, value) {
+    if (value === false || value === null || value === undefined) return "";
+    return ` ${name}="${escapeSvgAttribute(value === true ? "" : value)}"`;
+  }
+
+  function svgAttrs(attributes) {
+    return Object.entries(attributes)
+      .map(([name, value]) => svgAttribute(name, value))
+      .join("");
+  }
+
+  function serializeChannelEvidence(report) {
+    const evidence = {};
+    for (const channel of FACE_CONTROL_CHANNELS) {
+      evidence[channel] = Object.freeze({
+        controller: report.decisions[channel].controller,
+        reads: report.decisions[channel].reads,
+        frame: report.frame[channel],
+      });
+    }
+    return Object.freeze(evidence);
+  }
+
+  function mouthPathForFrame(mouth) {
+    const centerY = 126 + mouth.tension * 6 - mouth.openness * 8 - mouth.beat * 4;
+    const open = mouth.openness * 18 + mouth.beat * 10;
+    const smile = mouth.shape === "soft-smile" || mouth.shape === "release" ? 9 : 0;
+    const downturn = mouth.shape === "downturned" ? -10 : 0;
+    const width = 28 + mouth.activity * 12 - mouth.tension * 5;
+    const leftX = 120 - width;
+    const rightX = 120 + width;
+    const curveY = centerY + open + smile + downturn;
+
+    if (mouth.shape === "pressed") {
+      return `M${formatSvgNumber(leftX)} ${formatSvgNumber(centerY)} L${formatSvgNumber(rightX)} ${formatSvgNumber(centerY)}`;
+    }
+
+    return `M${formatSvgNumber(leftX)} ${formatSvgNumber(centerY)} C${formatSvgNumber(120 - width * 0.35)} ${formatSvgNumber(curveY)} ${formatSvgNumber(120 + width * 0.35)} ${formatSvgNumber(curveY)} ${formatSvgNumber(rightX)} ${formatSvgNumber(centerY)}`;
+  }
+
+  function renderPresenceFaceSvg(snapshotOrState, options = {}) {
+    const report = faceControllerFrameForPresence(snapshotOrState, options);
+    const frame = report.frame;
+    const width = Number.isFinite(Number(options.width)) ? Number(options.width) : 240;
+    const height = Number.isFinite(Number(options.height)) ? Number(options.height) : 180;
+    const className = options.className || "presence-face-svg";
+    const title = options.title || `${report.state} reference face`;
+    const faceX = 120 + frame.motion.offsetX * 18 + frame.posture.turn * 12;
+    const faceY = 88 + frame.motion.offsetY * 12 - frame.posture.lean * 10;
+    const eyeOpen = clamp(frame.blink.openness, 0.08, 1);
+    const focus = clamp(frame.gaze.focus, 0, 1);
+    const eyeShare = 10 + focus * 8;
+    const lookX = frame.gaze.x * eyeShare;
+    const lookY = frame.gaze.y * 6;
+    const browLift = -frame.brows.lift * 14 + frame.brows.pinch * 5;
+    const browPinch = frame.brows.pinch * 8;
+    const browAsymmetry = frame.brows.asymmetry * 6;
+    const mouthPath = mouthPathForFrame(frame.mouth);
+    const attributes = Object.freeze({
+      state: report.state,
+      expression: report.expression,
+      channels: FACE_CONTROL_CHANNELS.join(" "),
+      gazeTarget: frame.gaze.target,
+      blinkOpenness: formatSvgNumber(frame.blink.openness),
+      browsPinch: formatSvgNumber(frame.brows.pinch),
+      mouthShape: frame.mouth.shape,
+      postureLean: formatSvgNumber(frame.posture.lean),
+      motionEnergy: formatSvgNumber(frame.motion.energy),
+    });
+    const channelEvidence = serializeChannelEvidence(report);
+    const rootAttributes = {
+      xmlns: "http://www.w3.org/2000/svg",
+      viewBox: "0 0 240 180",
+      width: formatSvgNumber(width, 240),
+      height: formatSvgNumber(height, 180),
+      role: "img",
+      class: className,
+      "aria-label": title,
+      "data-presence-state": attributes.state,
+      "data-face-expression": attributes.expression,
+      "data-face-channels": attributes.channels,
+      "data-gaze-target": attributes.gazeTarget,
+      "data-blink-openness": attributes.blinkOpenness,
+      "data-brows-pinch": attributes.browsPinch,
+      "data-mouth-shape": attributes.mouthShape,
+      "data-posture-lean": attributes.postureLean,
+      "data-motion-energy": attributes.motionEnergy,
+    };
+    const svg = [
+      `<svg${svgAttrs(rootAttributes)}>`,
+      `<title>${escapeSvgAttribute(title)}</title>`,
+      `<g transform="translate(${formatSvgNumber(faceX - 120)} ${formatSvgNumber(faceY - 88)})">`,
+      `<ellipse cx="120" cy="88" rx="${formatSvgNumber(67 - frame.posture.recovery * 4)}" ry="${formatSvgNumber(72 + frame.posture.lean * 8)}" fill="none" stroke="currentColor" stroke-width="4"/>`,
+      `<path d="M71 ${formatSvgNumber(61 + browLift - browAsymmetry)} C88 ${formatSvgNumber(52 + browLift)} ${formatSvgNumber(100 + browPinch)} ${formatSvgNumber(54 + browLift)} 111 ${formatSvgNumber(63 + browLift)}" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"/>`,
+      `<path d="M129 ${formatSvgNumber(63 + browLift)} C${formatSvgNumber(140 - browPinch)} ${formatSvgNumber(54 + browLift)} 152 ${formatSvgNumber(52 + browLift)} 169 ${formatSvgNumber(61 + browLift + browAsymmetry)}" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"/>`,
+      `<g transform="translate(${formatSvgNumber(lookX)} ${formatSvgNumber(lookY)}) scale(1 ${formatSvgNumber(eyeOpen)})">`,
+      `<ellipse cx="88" cy="82" rx="12" ry="14" fill="currentColor"/>`,
+      `<ellipse cx="152" cy="82" rx="12" ry="14" fill="currentColor"/>`,
+      `</g>`,
+      `<path d="${mouthPath}" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="${formatSvgNumber(4 + frame.mouth.activity * 2 + frame.mouth.tension)}"/>`,
+      `</g>`,
+      `</svg>`,
+    ].join("");
+
+    return Object.freeze({
+      svg,
+      state: report.state,
+      expression: report.expression,
+      frame: report.frame,
+      frameReport: report,
+      attributes,
+      channelEvidence,
+    });
+  }
+
   function faceControllerDecisionReportFromContext(context, options = {}) {
     const expression = faceExpressionForPresence(context.snapshotOrState, options);
     return Object.freeze({
@@ -981,6 +1110,7 @@
     createFaceControllerFrameRuntime,
     createFaceControllerRuntime,
     createFaceRenderer,
+    renderPresenceFaceSvg,
     faceControllerFrameForPresence,
     faceControllerDecisionsForPresence,
     faceControlsForPresence,

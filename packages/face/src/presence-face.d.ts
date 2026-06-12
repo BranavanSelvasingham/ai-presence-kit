@@ -136,6 +136,50 @@ export interface FaceControllerFrameReport extends FaceControllerDecisionReport 
   frame: FaceControllerFrame;
 }
 
+export interface PresenceFaceSvgOptions extends FaceControlOptions {
+  className?: string;
+  height?: number;
+  title?: string;
+  width?: number;
+}
+
+export interface PresenceFaceSvgChannelEvidence<TFrame> {
+  controller: string;
+  reads: readonly string[];
+  frame: TFrame;
+}
+
+export interface PresenceFaceSvgChannelEvidenceMap {
+  gaze: PresenceFaceSvgChannelEvidence<FaceGazeFrame>;
+  blink: PresenceFaceSvgChannelEvidence<FaceBlinkFrame>;
+  brows: PresenceFaceSvgChannelEvidence<FaceBrowsFrame>;
+  mouth: PresenceFaceSvgChannelEvidence<FaceMouthFrame>;
+  posture: PresenceFaceSvgChannelEvidence<FacePostureFrame>;
+  motion: PresenceFaceSvgChannelEvidence<FaceMotionFrame>;
+}
+
+export interface PresenceFaceSvgAttributes {
+  state: PresenceStateValue;
+  expression: FaceExpressionValue;
+  channels: string;
+  gazeTarget: FaceGazeFrame["target"];
+  blinkOpenness: string;
+  browsPinch: string;
+  mouthShape: FaceMouthFrame["shape"];
+  postureLean: string;
+  motionEnergy: string;
+}
+
+export interface PresenceFaceSvgRenderResult {
+  svg: string;
+  state: PresenceStateValue;
+  expression: FaceExpressionValue;
+  frame: FaceControllerFrame;
+  frameReport: FaceControllerFrameReport;
+  attributes: PresenceFaceSvgAttributes;
+  channelEvidence: PresenceFaceSvgChannelEvidenceMap;
+}
+
 export interface FaceControls {
   expression: FaceExpressionValue;
   gaze: FaceGazeControl;
@@ -204,3 +248,7 @@ export declare function faceExpressionForPresence(
 ): FaceExpressionValue;
 export declare function isFaceExpression(value: unknown): value is FaceExpressionValue;
 export declare function normalizeFaceExpression(value: unknown, fallback?: FaceExpressionValue): FaceExpressionValue;
+export declare function renderPresenceFaceSvg(
+  snapshotOrState: PresenceSnapshot | PresenceStateValue,
+  options?: PresenceFaceSvgOptions,
+): PresenceFaceSvgRenderResult;
