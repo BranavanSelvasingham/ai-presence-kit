@@ -339,6 +339,7 @@ const controllerGalleryStates = Object.freeze([
   PresenceState.INTERRUPTED,
   PresenceState.ERROR,
 ]);
+const CONTROLLER_FRAME_SAMPLE_OFFSETS = Object.freeze([0, 240, 480, 720]);
 
 const presenceProfiles = {
   still: {
@@ -2976,13 +2977,15 @@ function createSvgElement(tagName, attributes = {}) {
   return element;
 }
 
-function createControllerFaceSvg(state, controls) {
+function createControllerFaceSvg(state, controls, options = {}) {
   const expression = expressions[controls.expression] || expressions.idle;
   const profile = currentPresenceProfile();
   const eyes = scaleEyes(expression.eyes, profile.gain);
   const color = expression.color;
   const postureTilt = (controls.posture.turn * 12) - (controls.posture.lean * 4) + (controls.motion.recovery * 1.5);
   const tilt = scaleValue((expressionTilts[controls.expression] || 0) + postureTilt, profile.tilt);
+  const offsetX = Number.isFinite(Number(controls.motion.offsetX)) ? controls.motion.offsetX : 0;
+  const offsetY = Number.isFinite(Number(controls.motion.offsetY)) ? controls.motion.offsetY : 0;
   const lift = scaleValue(-8 * controls.brows.lift + 2.5 * controls.brows.pinch, profile.gain);
   const pinch = scaleValue(4.8 * controls.brows.pinch, profile.gain);
   const asymmetry = scaleValue(5 * controls.brows.asymmetry, profile.gain);
@@ -3009,15 +3012,17 @@ function createControllerFaceSvg(state, controls) {
   );
 
   const svg = createSvgElement("svg", {
-    class: "controller-face",
+    class: options.className ? `controller-face ${options.className}` : "controller-face",
     viewBox: "0 0 420 360",
     role: "img",
-    "aria-label": `${state} reference face controls`,
+    "aria-label": options.label || `${state} reference face controls`,
   });
   svg.dataset.presenceState = state;
   svg.dataset.rendererState = controls.expression;
   svg.style.color = color;
   svg.style.setProperty("--controller-face-tilt", `${tilt.toFixed(2)}deg`);
+  svg.style.setProperty("--controller-face-offset-x", `${(offsetX * 14).toFixed(2)}px`);
+  svg.style.setProperty("--controller-face-offset-y", `${(offsetY * 10).toFixed(2)}px`);
 
   const frame = createSvgElement("path", {
     class: "face-frame controller-face-frame",
@@ -3102,7 +3107,96 @@ function createControllerChannelRow(channel, label, value, meterValue = null, de
   return row;
 }
 
-function createControllerGalleryCard(state, report) {
+function controlsFromFrameReport(report) {
+  if (!report?.frame) return null;
+  return {
+    expression: report.expression,
+    gaze: report.frame.gaze,
+    blink: report.frame.blink,
+    brows: report.frame.brows,
+    mouth: report.frame.mouth,
+    posture: report.frame.posture,
+    motion: report.frame.motion,
+  };
+}
+
+function createControllerFrameSequence(snapshot, history, options = {}) {
+  if (typeof PresenceFace.faceControllerFrameForPresence !== "function") return [];
+  const baseNow = Number.isFinite(Number(options.now)) ? Number(options.now) : snapshot.updatedAt + 120;
+  return CONTROLLER_FRAME_SAMPLE_OFFSETS.map((offsetMs) => {
+    const sampleAt = snapshot.updatedAt + offsetMs;
+    return {
+      offsetMs,
+      report: PresenceFace.faceControllerFrameForPresence(snapshot, {
+        history,
+        now: baseNow,
+        timeMs: sampleAt,
+        profile: faceControlProfile(),
+      }),
+    };
+  });
+}
+
+function frameSequenceSummary(samples) {
+  if (!samples.length) return "none";
+  return samples
+    .map((sample) => `+${sample.offsetMs}ms ${frameSummary(sample.report)}`)
+    .join(" || ");
+}
+
+function frameSampleText(report) {
+  const frame = report?.frame;
+  if (!frame) return "none";
+  return [
+    `gaze ${signedNumber(frame.gaze.driftX)},${signedNumber(frame.gaze.driftY)}`,
+    `blink ${shortPercent(frame.blink.openness)}%`,
+    `brows ${signedNumber(frame.brows.pinch)}`,
+    `mouth ${frame.mouth.shape}/${shortPercent(frame.mouth.beat)}%`,
+    `posture ${signedNumber(frame.posture.lean)}`,
+    `motion ${signedNumber(frame.motion.offsetX)},${signedNumber(frame.motion.offsetY)}`,
+  ].join(" ");
+}
+
+function createControllerFrameStrip(state, samples) {
+  const strip = document.createElement("div");
+  strip.className = "controller-frame-strip";
+  strip.dataset.frameSamples = samples.map((sample) => String(sample.offsetMs)).join(",");
+  strip.dataset.frameChannels = FACE_CONTROL_CHANNELS.join(",");
+  strip.dataset.frameSequence = frameSequenceSummary(samples);
+
+  for (const [index, sample] of samples.entries()) {
+    const controls = controlsFromFrameReport(sample.report);
+    if (!controls) continue;
+
+    const item = document.createElement("div");
+    item.className = "controller-frame-sample";
+    item.dataset.frameIndex = String(index);
+    item.dataset.frameOffsetMs = String(sample.offsetMs);
+    item.dataset.controllerFrame = frameSummary(sample.report);
+    item.dataset.frameChannels = FACE_CONTROL_CHANNELS.join(",");
+
+    const time = document.createElement("span");
+    time.className = "controller-frame-time";
+    time.textContent = `+${sample.offsetMs}ms`;
+
+    const output = document.createElement("output");
+    output.textContent = frameSampleText(sample.report);
+
+    item.append(
+      time,
+      createControllerFaceSvg(state, controls, {
+        className: "controller-face-sample",
+        label: `${state} controller frame at ${sample.offsetMs}ms`,
+      }),
+      output,
+    );
+    strip.append(item);
+  }
+
+  return strip;
+}
+
+function createControllerGalleryCard(state, report, frameSamples = []) {
   const controls = controlsFromDecisionReport(report);
   const card = document.createElement("article");
   card.className = "controller-card";
@@ -3112,6 +3206,12 @@ function createControllerGalleryCard(state, report) {
   card.dataset.faceControls = controlsSummary(controls);
   card.dataset.controllerComposition = controllerCompositionText(report);
   card.dataset.controllerEvidence = controllerEvidenceText(controls, report);
+  card.dataset.frameSamples = frameSamples.map((sample) => String(sample.offsetMs)).join(",");
+  card.dataset.frameChannels = FACE_CONTROL_CHANNELS.join(",");
+  card.dataset.frameSequence = frameSequenceSummary(frameSamples);
+  if (frameSamples[0]?.report) {
+    card.dataset.controllerFrame = frameSummary(frameSamples[0].report);
+  }
 
   const title = document.createElement("h2");
   title.textContent = state;
@@ -3170,7 +3270,7 @@ function createControllerGalleryCard(state, report) {
     ),
   );
 
-  card.append(heading, createControllerFaceSvg(state, controls), channels);
+  card.append(heading, createControllerFaceSvg(state, controls), createControllerFrameStrip(state, frameSamples), channels);
   return card;
 }
 
@@ -3194,7 +3294,10 @@ function renderControllerGallery() {
       now: snapshot.updatedAt + 120,
       profile: faceControlProfile(),
     });
-    controllerGalleryGrid.append(createControllerGalleryCard(state, report));
+    const frameSamples = createControllerFrameSequence(snapshot, history, {
+      now: snapshot.updatedAt + 120,
+    });
+    controllerGalleryGrid.append(createControllerGalleryCard(state, report, frameSamples));
     history.push(snapshot);
   }
 }
