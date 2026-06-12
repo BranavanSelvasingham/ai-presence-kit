@@ -199,9 +199,18 @@ assert.match(reactTypes, /usePresenceControlInputs/);
 assert.match(reactTypes, /PresenceFrameTimeOptions/);
 assert.match(reactTypes, /usePresenceFrameTime/);
 
+const faceTypes = readFileSync(resolve(root, "packages/face/src/presence-face.d.ts"), "utf8");
+assert.match(faceTypes, /motionScale\?: number/);
+assert.match(faceTypes, /motionScale: string/);
+
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
 assert.match(rootReadme, /usePresenceFrameTime/);
 assert.match(rootReadme, /renderPresenceFaceSvg/);
+
+const faceReadme = readFileSync(resolve(root, "packages/face/README.md"), "utf8");
+assert.match(faceReadme, /motionScale/);
+assert.match(faceReadme, /reduced motion/);
+assert.doesNotMatch(faceReadme, /emotion[- ]detection|private emotion/i);
 
 const reactReadme = readFileSync(resolve(root, "packages/react/README.md"), "utf8");
 assert.match(reactReadme, /usePresenceFrameTime/);

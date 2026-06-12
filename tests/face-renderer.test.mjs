@@ -210,6 +210,33 @@ assert.deepEqual(earlyFrame.sharedInputs, laterFrame.sharedInputs);
 assert.notDeepEqual(earlyFrame.frame, laterFrame.frame);
 assert.notEqual(earlyFrame.frame.blink.phase, laterFrame.frame.blink.phase);
 
+const stillEarlyFrame = faceControllerFrameForPresence({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1100,
+  motionScale: 0,
+});
+const stillLaterFrame = faceControllerFrameForPresence({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1900,
+  motionScale: 0,
+});
+assert.deepEqual(stillEarlyFrame.decisions, stillLaterFrame.decisions);
+assert.deepEqual(stillEarlyFrame.sharedInputs, stillLaterFrame.sharedInputs);
+assert.deepEqual(stillEarlyFrame.frame, stillLaterFrame.frame);
+assert.equal(stillEarlyFrame.frame.gaze.driftX, 0);
+assert.equal(stillEarlyFrame.frame.gaze.driftY, 0);
+assert.equal(stillEarlyFrame.frame.mouth.beat, 0);
+assert.equal(stillEarlyFrame.frame.posture.breath, 0);
+assert.equal(stillEarlyFrame.frame.motion.offsetX, 0);
+assert.equal(stillEarlyFrame.frame.motion.offsetY, 0);
+assert.ok(stillEarlyFrame.frame.motion.anticipation > 0);
+
 const earlySvg = renderPresenceFaceSvg({
   state: PresenceState.WAITING,
   updatedAt: 1000,
@@ -234,6 +261,8 @@ assert.match(earlySvg.svg, /data-presence-state="waiting"/);
 assert.match(earlySvg.svg, /data-face-channels="gaze blink brows mouth posture motion"/);
 assert.match(earlySvg.svg, /data-gaze-target="response-origin"/);
 assert.match(earlySvg.svg, /waiting &quot;before-output&quot; face/);
+assert.equal(earlySvg.attributes.motionScale, "1");
+assert.match(earlySvg.svg, /data-motion-scale="1"/);
 assert.deepEqual(Object.keys(earlySvg.channelEvidence), FACE_CONTROL_CHANNELS);
 for (const channel of FACE_CONTROL_CHANNELS) {
   assert.equal(earlySvg.channelEvidence[channel].controller, `${channel}-controller`);
@@ -243,6 +272,29 @@ for (const channel of FACE_CONTROL_CHANNELS) {
 assert.deepEqual(earlySvg.frameReport.decisions, earlyFrame.decisions);
 assert.notEqual(earlySvg.svg, laterSvg.svg);
 assert.notDeepEqual(earlySvg.frame, laterSvg.frame);
+
+const stillEarlySvg = renderPresenceFaceSvg({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1100,
+  motionScale: 0,
+});
+const stillLaterSvg = renderPresenceFaceSvg({
+  state: PresenceState.WAITING,
+  updatedAt: 1000,
+}, {
+  now: 1100,
+  timeMs: 1900,
+  motionScale: 0,
+});
+assert.equal(stillEarlySvg.attributes.motionScale, "0");
+assert.match(stillEarlySvg.svg, /data-motion-scale="0"/);
+assert.match(stillEarlySvg.svg, /data-face-channels="gaze blink brows mouth posture motion"/);
+assert.deepEqual(Object.keys(stillEarlySvg.channelEvidence), FACE_CONTROL_CHANNELS);
+assert.equal(stillEarlySvg.svg, stillLaterSvg.svg);
+assert.deepEqual(stillEarlySvg.frame, stillLaterSvg.frame);
 
 let frameNowCalls = 0;
 const singleNowFrame = faceControllerFrameForPresence({ state: PresenceState.WAITING }, {

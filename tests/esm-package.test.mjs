@@ -31,7 +31,12 @@ assert.equal(face.faceExpressionForPresence(runtime.getSnapshot()), face.FaceExp
 assert.equal(face.faceControlsForPresence(runtime.getSnapshot()).gaze.target, "middle-distance");
 assert.equal(face.faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.gaze.controller, "gaze-controller");
 assert.equal(face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200 }).frame.mouth.shape, "pressed");
+assert.deepEqual(
+  face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200, motionScale: 0 }).frame,
+  face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 2400, motionScale: 0 }).frame,
+);
 assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200 }).svg, /data-presence-state="thinking"/);
+assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200, motionScale: 0 }).svg, /data-motion-scale="0"/);
 assert.deepEqual(face.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
 const adapter = adapters.createRuntimeSignalAdapter(runtime);
@@ -99,7 +104,9 @@ try {
       "if (faceControlsForPresence(runtime.getSnapshot()).mouth.shape !== 'speaking') throw new Error('face controls mismatch');",
       "if (faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision mismatch');",
       "if (faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600 }).frame.mouth.beat <= 0) throw new Error('face frame mismatch');",
+      "if (faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600, motionScale: 0 }).frame.mouth.beat !== 0) throw new Error('face still frame mismatch');",
       "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).svg.includes('data-face-channels=\"gaze blink brows mouth posture motion\"')) throw new Error('face svg mismatch');",
+      "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600, motionScale: 0 }).svg.includes('data-motion-scale=\"0\"')) throw new Error('face still svg mismatch');",
       "if (typeof createPresenceReactBindings !== 'function') throw new Error('react export mismatch');",
       "let contextValue = null;",
       "const React = {",

@@ -804,6 +804,10 @@
     return raw - Math.floor(raw);
   }
 
+  function resolveMotionScale(options = {}) {
+    return finiteClamp(options.motionScale, 0, 1, 1);
+  }
+
   function blinkClosureForPhase(phase, pulse) {
     const closure = phase < 0.08
       ? 1 - Math.abs(phase - 0.04) / 0.04
@@ -815,6 +819,7 @@
 
   function composeFaceControllerFrame(report, context, options = {}) {
     const timeMs = resolveFrameTime(options, context.now);
+    const motionScale = resolveMotionScale(options);
     const ageMs = stateAgeMs(context.snapshot, context.history, timeMs);
     const controls = freezeControlsFromDecisions(report.expression, report.decisions);
     const motion = controls.motion;
@@ -822,23 +827,23 @@
     const mouth = controls.mouth;
     const posture = controls.posture;
     const cadenceMs = finiteClamp(blink.cadenceMs, 300, 20000, context.profile.blinkCadenceMs);
-    const phase = normalizedPhase(timeMs, cadenceMs);
-    const closure = blinkClosureForPhase(phase, blink.pulse);
+    const phase = normalizedPhase(timeMs * motionScale, cadenceMs);
+    const closure = blinkClosureForPhase(phase, blink.pulse) * motionScale;
     const energy = finiteClamp(motion.energy, 0, 1, 0);
     const drift = finiteClamp(motion.drift, 0, 1, context.profile.drift);
     const anticipation = finiteClamp(motion.anticipation, 0, 1, 0);
     const recovery = finiteClamp(motion.recovery, 0, 1, 0);
     const speechActivity = finiteClamp(mouth.activity, 0, 1, 0);
-    const driftWaveX = normalizedWave(timeMs, 2400, 0.13);
-    const driftWaveY = normalizedWave(timeMs, 3100, 0.41);
-    const speechBeat = speechActivity * (0.5 + normalizedWave(timeMs, 260, 0.08) * 0.5);
-    const breath = clamp(0.5 + normalizedWave(timeMs, 3600, 0.32) * 0.5, 0, 1);
+    const driftWaveX = motionScale === 0 ? 0 : normalizedWave(timeMs, 2400, 0.13) * motionScale;
+    const driftWaveY = motionScale === 0 ? 0 : normalizedWave(timeMs, 3100, 0.41) * motionScale;
+    const speechBeat = speechActivity * (0.5 + normalizedWave(timeMs, 260, 0.08) * 0.5) * motionScale;
+    const breath = clamp((0.5 + normalizedWave(timeMs, 3600, 0.32) * 0.5) * motionScale, 0, 1);
     const settle = clamp(ageMs / Math.max(1, finiteNumber(motion.settleMs, context.profile.settleMs)), 0, 1);
     const driftScale = drift * (0.18 + energy * 0.32) * (1 - recovery * 0.35);
     const driftX = driftWaveX * driftScale;
     const driftY = driftWaveY * driftScale * 0.72;
-    const anticipationKick = anticipation * (1 - settle) * 0.08;
-    const recoveryDrop = recovery * (1 - settle * 0.45) * 0.08;
+    const anticipationKick = anticipation * (1 - settle) * 0.08 * motionScale;
+    const recoveryDrop = recovery * (1 - settle * 0.45) * 0.08 * motionScale;
 
     return Object.freeze({
       gaze: Object.freeze({
@@ -968,6 +973,7 @@
       mouthShape: frame.mouth.shape,
       postureLean: formatSvgNumber(frame.posture.lean),
       motionEnergy: formatSvgNumber(frame.motion.energy),
+      motionScale: formatSvgNumber(resolveMotionScale(options), 1),
     });
     const channelEvidence = serializeChannelEvidence(report);
     const rootAttributes = {
@@ -987,6 +993,7 @@
       "data-mouth-shape": attributes.mouthShape,
       "data-posture-lean": attributes.postureLean,
       "data-motion-energy": attributes.motionEnergy,
+      "data-motion-scale": attributes.motionScale,
     };
     const svg = [
       `<svg${svgAttrs(rootAttributes)}>`,
