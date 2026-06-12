@@ -26,6 +26,8 @@ Run the local adapter trace demo with:
 npm run demo:adapters
 ```
 
+The trace demo prints each adapter transition with the shared core control inputs that a renderer can consume, for example `phase=before-output` and `attention=response`.
+
 ## Vercel AI SDK
 
 The current AI SDK `useChat` status values are:
