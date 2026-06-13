@@ -17,6 +17,7 @@
 - Added browser DOM decision-trace evidence via `data-controller-decision-trace*` on the live metrics/controller-gallery proof surfaces.
 - Added comparison-route DOM lead-time evidence for equal first-token timing plus pre-token presence state, frame, and decision-trace timing.
 - Added React browser renderer-slot DOM evidence for complete six-channel face decision traces and `data-face-latency-phase="before-output"` during the simulated pre-output turn.
+- Added React browser renderer-slot transition-context DOM evidence for adapter-driven pre-output `stream-open` cues, including all-six-controller `transitionEvent` and `transitionAgeMs` reads.
 - Added controller-gallery transition-cue DOM evidence for fresh `submit`, `stream-open`, `token`, and `interrupt` cues across all six face controllers.
 - Added adapter demo decision-trace evidence for complete six-channel controller proof across Vercel AI SDK, OpenAI Realtime, and generic chat transitions.
 - Added adapter demo transition-read evidence showing adapter-driven transitions reach all six face controllers through `transitionEvent` and `transitionAgeMs`.
