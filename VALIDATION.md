@@ -25,7 +25,7 @@ npm run validate
 - Adapter mappings: `npm run demo:adapters`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
 - Browser or visual behavior: run the relevant browser route and inspect the output directly.
-- Packaging or release work: `npm run validate`, `git diff --check`, browser smoke, then `npm run release:check-names`.
+- Packaging or release work: `npm run validate`, `git diff --check`, browser smoke, then `npm run release:check-names`. Before publishing from an authenticated npm session, also run `npm run release:check-scope`.
 
 ## Browser Smoke Routes
 
@@ -53,3 +53,11 @@ npm run release:check-names
 ```
 
 An npm `404` only proves a package name is unpublished. It does not prove control of the `@ai-presence` npm scope.
+
+## Release Scope Check
+
+Scope control requires npm authentication and is not part of CI. Run after `npm login` and before publishing:
+
+```bash
+npm run release:check-scope
+```

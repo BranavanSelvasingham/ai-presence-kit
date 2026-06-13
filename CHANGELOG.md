@@ -13,6 +13,7 @@
 - Added `motionScale` to `@ai-presence/face` frame and SVG renderer APIs for reduced-motion/still output without removing controller evidence.
 - Added `usePresenceControlInputs()` and `usePresenceFrameTime()` to the React binding factory.
 - Added browser demo evidence for controller composition, temporal frame sequences, before-first-token presence, and React-to-SVG renderer wiring.
+- Added `release:check-scope` to verify authenticated npm access to the `@ai-presence` scope before publishing.
 - Reframed the main objective around a low-latency facial presence engine driven by parallel micro-decisions.
 
 ### Validation
