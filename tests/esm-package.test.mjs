@@ -27,6 +27,13 @@ runtime.send(core.PresenceEvent.SUBMIT);
 assert.equal(runtime.getSnapshot().state, core.PresenceState.THINKING);
 assert.equal(trace.getEntries().at(-1).state, core.PresenceState.THINKING);
 assert.equal(core.presenceControlInputsForSnapshot(runtime.getSnapshot()).latencyPhase, "before-output");
+const transitionInputs = core.presenceControlInputsForSnapshot(runtime.getSnapshot(), {
+  trace,
+  now: runtime.getSnapshot().updatedAt + 5,
+});
+assert.equal(transitionInputs.previousState, core.PresenceState.IDLE);
+assert.equal(transitionInputs.transitionEvent, core.PresenceEvent.SUBMIT);
+assert.equal(transitionInputs.transitionAgeMs, 5);
 assert.equal(face.faceExpressionForPresence(runtime.getSnapshot()), face.FaceExpression.THINKING);
 assert.equal(face.faceControlsForPresence(runtime.getSnapshot()).gaze.target, "middle-distance");
 assert.equal(face.faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.gaze.controller, "gaze-controller");
@@ -108,6 +115,10 @@ try {
       "if (runtime.getSnapshot().state !== PresenceState.STREAMING) throw new Error('state mismatch');",
       "if (trace.getEntries().at(-1).state !== PresenceState.STREAMING) throw new Error('trace mismatch');",
       "if (presenceControlInputsForSnapshot(runtime.getSnapshot()).speechActivity <= 0) throw new Error('control inputs mismatch');",
+      "const inputs = presenceControlInputsForSnapshot(runtime.getSnapshot(), { trace, now: runtime.getSnapshot().updatedAt + 1 });",
+      "if (inputs.previousState !== PresenceState.THINKING) throw new Error('transition previous mismatch');",
+      "if (inputs.transitionEvent !== PresenceEvent.TOKEN) throw new Error('transition event mismatch');",
+      "if (inputs.transitionAgeMs !== 1) throw new Error('transition age mismatch');",
       "if (faceExpressionForPresence(runtime.getSnapshot()) !== FaceExpression.SPEAKING) throw new Error('face mismatch');",
       "if (faceControlsForPresence(runtime.getSnapshot()).mouth.shape !== 'speaking') throw new Error('face controls mismatch');",
       "if (faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision mismatch');",

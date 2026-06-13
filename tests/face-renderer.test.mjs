@@ -197,6 +197,37 @@ assert.equal(thinkingControls.gaze.target, "middle-distance");
 assert.equal(thinkingControls.mouth.shape, "pressed");
 assert.ok(thinkingControls.brows.pinch > readingControls.brows.pinch);
 
+const freshSubmitSnapshot = {
+  state: PresenceState.THINKING,
+  previousState: PresenceState.READY,
+  event: PresenceEvent.SUBMIT,
+  updatedAt: 1000,
+};
+const freshSubmitReport = faceControllerDecisionsForPresence(freshSubmitSnapshot, {
+  now: 1080,
+});
+assert.equal(freshSubmitReport.sharedInputs.previousState, PresenceState.READY);
+assert.equal(freshSubmitReport.sharedInputs.transitionEvent, PresenceEvent.SUBMIT);
+assert.equal(freshSubmitReport.sharedInputs.transitionAgeMs, 80);
+assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionEvent"));
+assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionAgeMs"));
+assert.equal(freshSubmitReport.decisions.blink.control.pulse, true);
+const freshSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
+  now: 1080,
+  timeMs: 1080,
+});
+assert.equal(freshSubmitFrame.frame.blink.pulse, true);
+assert.ok(freshSubmitFrame.frame.blink.openness < 0.4);
+const staleSubmitControls = faceControlsForPresence(freshSubmitSnapshot, {
+  now: 1300,
+});
+assert.equal(staleSubmitControls.blink.pulse, false);
+const staleSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
+  now: 1300,
+  timeMs: 1300,
+});
+assert.ok(staleSubmitFrame.frame.blink.openness > freshSubmitFrame.frame.blink.openness);
+
 const waitingSnapshot = { state: PresenceState.WAITING };
 const waitingControls = faceControlsForPresence(waitingSnapshot);
 const waitingInputs = presenceControlInputsForSnapshot({ state: PresenceState.WAITING });
