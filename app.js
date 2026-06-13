@@ -353,6 +353,33 @@ const controllerGalleryStates = Object.freeze([
   PresenceState.ERROR,
 ]);
 const CONTROLLER_FRAME_SAMPLE_OFFSETS = Object.freeze([0, 240, 480, 720]);
+const CONTROLLER_TRANSITION_CUE_AGE_MS = 80;
+const controllerGalleryTransitionCues = Object.freeze([
+  Object.freeze({
+    event: PresenceEvent.SUBMIT,
+    state: PresenceState.THINKING,
+    previousState: PresenceState.READY,
+    previousEvent: PresenceEvent.RESPONSE_COMPLETE,
+  }),
+  Object.freeze({
+    event: PresenceEvent.STREAM_OPEN,
+    state: PresenceState.WAITING,
+    previousState: PresenceState.THINKING,
+    previousEvent: PresenceEvent.SUBMIT,
+  }),
+  Object.freeze({
+    event: PresenceEvent.TOKEN,
+    state: PresenceState.STREAMING,
+    previousState: PresenceState.WAITING,
+    previousEvent: PresenceEvent.STREAM_OPEN,
+  }),
+  Object.freeze({
+    event: PresenceEvent.INTERRUPT,
+    state: PresenceState.INTERRUPTED,
+    previousState: PresenceState.STREAMING,
+    previousEvent: PresenceEvent.TOKEN,
+  }),
+]);
 
 const presenceProfiles = {
   still: {
@@ -772,6 +799,97 @@ function applyControllerDecisionTraceDataset(element, report = activeFaceFrameRe
   element.dataset.controllerDecisionTraceRendererSafe = evidence.rendererSafe;
   element.dataset.controllerDecisionTraceSummary = evidence.summary;
   return evidence;
+}
+
+function controllerTraceReads(trace, report, channel) {
+  const traceReads = trace?.decisions?.[channel]?.reads;
+  if (Array.isArray(traceReads)) return traceReads;
+  const decisionReads = report?.decisions?.[channel]?.reads;
+  return Array.isArray(decisionReads) ? decisionReads : [];
+}
+
+function controllerTransitionCueEvidence(report = activeFaceFrameReport()) {
+  const trace = controllerDecisionTraceForFrame(report);
+  const decisionEvidence = controllerDecisionTraceEvidence(report);
+  const context = trace?.transitionContext || {};
+  const ageMs = Number.isFinite(Number(context.transitionAgeMs))
+    ? String(Math.round(Number(context.transitionAgeMs)))
+    : "";
+  const controllerReads = FACE_CONTROL_CHANNELS.filter((channel) => {
+    const reads = controllerTraceReads(trace, report, channel);
+    return reads.includes("transitionEvent") && reads.includes("transitionAgeMs");
+  });
+  const readsEvent = FACE_CONTROL_CHANNELS.every((channel) => (
+    controllerTraceReads(trace, report, channel).includes("transitionEvent")
+  ));
+  const readsAge = FACE_CONTROL_CHANNELS.every((channel) => (
+    controllerTraceReads(trace, report, channel).includes("transitionAgeMs")
+  ));
+
+  return {
+    event: context.transitionEvent || "",
+    previousState: context.previousState || "",
+    ageMs,
+    context: [
+      context.previousState || "none",
+      context.transitionEvent || "none",
+      ageMs || "none",
+    ].join(" "),
+    decisionTrace: decisionEvidence.status,
+    decisionTraceChannels: decisionEvidence.channels,
+    decisionTraceDecisions: decisionEvidence.decisionCount,
+    decisionTraceWarnings: decisionEvidence.warningCount,
+    decisionTraceRendererSafe: decisionEvidence.rendererSafe,
+    controllerReads: controllerReads.join(" "),
+    controllerReadsEvent: String(readsEvent),
+    controllerReadsAge: String(readsAge),
+  };
+}
+
+function applyControllerTransitionCueDataset(element, report = activeFaceFrameReport()) {
+  if (!element) return null;
+  const evidence = controllerTransitionCueEvidence(report);
+  element.dataset.transitionEvent = evidence.event;
+  element.dataset.transitionPreviousState = evidence.previousState;
+  element.dataset.transitionAgeMs = evidence.ageMs;
+  element.dataset.transitionContext = evidence.context;
+  element.dataset.transitionDecisionTrace = evidence.decisionTrace;
+  element.dataset.transitionDecisionTraceChannels = evidence.decisionTraceChannels;
+  element.dataset.transitionDecisionTraceDecisions = evidence.decisionTraceDecisions;
+  element.dataset.transitionDecisionTraceWarnings = evidence.decisionTraceWarnings;
+  element.dataset.transitionDecisionTraceRendererSafe = evidence.decisionTraceRendererSafe;
+  element.dataset.transitionControllerReads = evidence.controllerReads;
+  element.dataset.transitionControllerReadsEvent = evidence.controllerReadsEvent;
+  element.dataset.transitionControllerReadsAge = evidence.controllerReadsAge;
+  return evidence;
+}
+
+function applyControllerGalleryTransitionDataset(element, transitionEvidence = []) {
+  if (!element) return null;
+  const events = transitionEvidence.map((evidence) => evidence.event).filter(Boolean);
+  const allComplete = transitionEvidence.length > 0
+    && transitionEvidence.every((evidence) => evidence.decisionTrace === "complete");
+  const allRendererSafe = transitionEvidence.length > 0
+    && transitionEvidence.every((evidence) => evidence.decisionTraceRendererSafe === "true");
+  const warningCount = transitionEvidence.reduce((total, evidence) => {
+    const count = Number(evidence.decisionTraceWarnings);
+    return total + (Number.isFinite(count) ? count : 0);
+  }, 0);
+  const readsEvent = transitionEvidence.length > 0
+    && transitionEvidence.every((evidence) => evidence.controllerReadsEvent === "true");
+  const readsAge = transitionEvidence.length > 0
+    && transitionEvidence.every((evidence) => evidence.controllerReadsAge === "true");
+
+  element.dataset.transitionCueCount = String(transitionEvidence.length);
+  element.dataset.transitionEvents = events.join(" ");
+  element.dataset.transitionDecisionTrace = allComplete ? "complete" : "incomplete";
+  element.dataset.transitionDecisionTraceChannels = FACE_CONTROL_CHANNELS.join(" ");
+  element.dataset.transitionDecisionTraceWarnings = String(warningCount);
+  element.dataset.transitionDecisionTraceRendererSafe = String(allRendererSafe);
+  element.dataset.transitionControllerReads = FACE_CONTROL_CHANNELS.join(" ");
+  element.dataset.transitionControllerReadsEvent = String(readsEvent);
+  element.dataset.transitionControllerReadsAge = String(readsAge);
+  return element.dataset;
 }
 
 function decisionForChannel(report, channel) {
@@ -3210,11 +3328,14 @@ function createControllerChannelRow(channel, label, value, meterValue = null, de
     row.dataset.reads = controllerReadsText(decision);
   }
   if (decisionTrace) {
+    const traceReads = controllerReadsText(decisionTrace);
     row.dataset.controllerDecisionTrace = decisionTrace.present && decisionTrace.bounded ? "complete" : "incomplete";
     row.dataset.controllerDecisionTraceController = decisionTrace.controller || "none";
-    row.dataset.controllerDecisionTraceReads = controllerReadsText(decisionTrace);
+    row.dataset.controllerDecisionTraceReads = traceReads;
     row.dataset.controllerDecisionTraceWarnings = String(decisionTrace.warningCount || 0);
     row.dataset.controllerDecisionTraceRendererSafe = String(Boolean(decisionTrace.rendererSafe));
+    row.dataset.transitionControllerReadsEvent = String(traceReads.split(",").includes("transitionEvent"));
+    row.dataset.transitionControllerReadsAge = String(traceReads.split(",").includes("transitionAgeMs"));
   }
 
   const name = document.createElement("span");
@@ -3260,6 +3381,32 @@ function createControllerFrameSequence(snapshot, history, options = {}) {
       }),
     };
   });
+}
+
+function controllerTransitionCueSnapshot(cue, index) {
+  const updatedAt = 3200 + index * 220;
+  return {
+    state: cue.state,
+    previousState: cue.previousState,
+    event: cue.event,
+    detail: { source: "controller-gallery", transitionCue: cue.event },
+    changed: true,
+    updatedAt,
+    version: 100 + index,
+  };
+}
+
+function controllerTransitionCueHistory(cue, snapshot) {
+  if (!cue.previousState) return [];
+  return [{
+    state: cue.previousState,
+    previousState: null,
+    event: cue.previousEvent,
+    detail: { source: "controller-gallery", transitionCueHistory: cue.event },
+    changed: true,
+    updatedAt: snapshot.updatedAt - 180,
+    version: snapshot.version - 1,
+  }];
 }
 
 function frameSequenceSummary(samples) {
@@ -3412,6 +3559,35 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
   return card;
 }
 
+function createControllerTransitionCueCard(cue, index) {
+  const snapshot = controllerTransitionCueSnapshot(cue, index);
+  const history = controllerTransitionCueHistory(cue, snapshot);
+  const now = snapshot.updatedAt + CONTROLLER_TRANSITION_CUE_AGE_MS;
+  const report = PresenceFace.faceControllerDecisionsForPresence(snapshot, {
+    history,
+    now,
+    profile: faceControlProfile(),
+  });
+  const frameSamples = createControllerFrameSequence(snapshot, history, { now });
+  const card = createControllerGalleryCard(snapshot.state, report, frameSamples);
+  const frameReport = frameSamples[0]?.report;
+  card.classList.add("controller-transition-card");
+  card.dataset.transitionCue = "true";
+  const title = card.querySelector("h2");
+  if (title) title.textContent = cue.event;
+  const renderer = card.querySelector(".controller-renderer");
+  if (renderer) renderer.textContent = snapshot.state;
+  const evidence = applyControllerTransitionCueDataset(card, frameReport);
+  for (const element of [
+    card.querySelector(".controller-face"),
+    card.querySelector(".controller-frame-strip"),
+    ...card.querySelectorAll(".controller-frame-sample"),
+  ]) {
+    applyControllerTransitionCueDataset(element, frameReport);
+  }
+  return { card, evidence };
+}
+
 function renderControllerGallery() {
   if (!controllerGalleryGrid) return;
 
@@ -3438,6 +3614,15 @@ function renderControllerGallery() {
     controllerGalleryGrid.append(createControllerGalleryCard(state, report, frameSamples));
     history.push(snapshot);
   }
+
+  const transitionEvidence = [];
+  for (const [index, cue] of controllerGalleryTransitionCues.entries()) {
+    const { card, evidence } = createControllerTransitionCueCard(cue, index);
+    transitionEvidence.push(evidence);
+    controllerGalleryGrid.append(card);
+  }
+  applyControllerGalleryTransitionDataset(controllerGallery, transitionEvidence);
+  applyControllerGalleryTransitionDataset(controllerGalleryGrid, transitionEvidence);
 }
 
 function setControllerGalleryMode(enabled, options = {}) {
