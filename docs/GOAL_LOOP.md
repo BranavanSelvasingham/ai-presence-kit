@@ -156,16 +156,17 @@ Validate:
 
 ## Loop 6: Integration Evidence
 
-Status: started.
+Status: in progress.
 
 Build:
 
 - Core transition trace primitive for bounded runtime timelines. Current API: `createPresenceTrace`.
-- Adapter/demo output that exposes event-to-state timing.
-- Documentation that explains trace as integration evidence, not renderer behavior.
+- Renderer-agnostic trace summary helper for before-output and first-output timing evidence. Current API: `summarizePresenceTrace`.
+- Adapter/demo output that exposes event-to-state timing, first-output timing, and presence-before-output lead time.
+- Documentation that explains trace summaries as integration evidence, not renderer behavior.
 
 Validate:
 
 - Deterministic trace tests for elapsed timing, bounded history, detach behavior, and detail capture.
 - Package-surface tests for CommonJS and ESM exports.
-- Adapter demo output that shows pre-token state transitions.
+- Adapter demo output that shows pre-token state transitions and compact summary fields such as `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, and `complete`.
