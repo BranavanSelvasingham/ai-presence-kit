@@ -87,6 +87,8 @@ Then browser-smoke:
 - Mobile comparison route has no horizontal overflow.
 - React browser demo loads with actual React/ReactDOM, runs a simulated AI SDK turn, and returns to `ready`.
 - React browser demo uses `@ai-presence/face` SVG output and proves frame time can advance while the presence state is stable.
+- React browser demo proves the actual renderer slot carries complete six-channel decision-trace evidence through `data-face-decision-trace="complete"`, `data-face-decision-trace-channels="gaze blink brows mouth posture motion"`, `data-face-decision-trace-decisions="6"`, `data-face-decision-trace-warnings="0"`, and `data-face-decision-trace-renderer-safe="true"`.
+- React browser demo confirms the simulated pre-output turn reaches the renderer slot as `state=waiting` with `data-face-latency-phase="before-output"` before response text appears.
 - README media exists for the A/B comparison and React browser demo.
 
 GitHub Actions runs `npm ci` and `npm run validate` on pushes to `main` and pull requests.

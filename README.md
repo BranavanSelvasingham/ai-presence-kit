@@ -72,7 +72,7 @@ The comparison harness runs the same simulated latency on both sides. The generi
 
 ![React browser demo for AI Presence Kit](docs/media/react-browser-demo.jpg)
 
-The React browser demo runs the provider, snapshot hook, renderer slot, adapter path, and face expression mapping with actual React and ReactDOM.
+The React browser demo runs the provider, snapshot hook, renderer slot, adapter path, and face expression mapping with actual React and ReactDOM. The actual renderer slot exposes six-channel trace DOM evidence: `data-face-decision-trace="complete"`, `data-face-decision-trace-channels="gaze blink brows mouth posture motion"`, `data-face-decision-trace-decisions="6"`, `data-face-decision-trace-warnings="0"`, `data-face-decision-trace-renderer-safe="true"`, and `data-face-latency-phase="before-output"` during the pre-output turn.
 
 ## Package Shape
 
@@ -291,7 +291,7 @@ The browser React demo is available at:
 http://127.0.0.1:8058/examples/react-browser.html
 ```
 
-It uses the installed React and ReactDOM UMD builds, then drives `@ai-presence/react`, `@ai-presence/adapters`, and the reference face mapping in a real rendered React tree.
+It uses the installed React and ReactDOM UMD builds, then drives `@ai-presence/react`, `@ai-presence/adapters`, and the reference face mapping in a real rendered React tree. Browser smoke should click Run and confirm the renderer slot reports `state=waiting`, `data-face-latency-phase="before-output"`, complete six-channel decision-trace evidence, 6 decisions, 0 warnings, and `data-face-decision-trace-renderer-safe="true"` before output appears.
 
 Expected `.env` keys:
 
