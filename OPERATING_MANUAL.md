@@ -73,14 +73,15 @@ If a visual, network, registry, or browser check cannot be performed, report it 
 
 Before public npm release:
 
-1. Confirm control of the `@ai-presence` npm scope.
+1. Log in to npm with an account that controls the `@ai-presence` scope.
 2. Re-run `npm run release:check-names`.
-3. Bump root and workspace packages from `0.0.0` to the chosen release version.
-4. Update `CHANGELOG.md`.
-5. Run `npm run validate`.
-6. Run `git diff --check`.
-7. Browser-smoke the reference, metrics, comparison, and React browser routes.
-8. Publish in dependency order: core, face, adapters, react.
+3. Run `npm run release:check-scope`.
+4. Bump root and workspace packages from `0.0.0` to the chosen release version.
+5. Update `CHANGELOG.md`.
+6. Run `npm run validate`.
+7. Run `git diff --check`.
+8. Browser-smoke the reference, metrics, comparison, and React browser routes.
+9. Publish in dependency order: core, face, adapters, react.
 
 See `docs/RELEASE_POLICY.md` for versioning details.
 

@@ -67,6 +67,15 @@ assert.match(releaseReadiness, /before the first visible token/);
 assert.match(releaseReadiness, /2026-06-12/);
 assert.match(releaseReadiness, /npm run release:check-scope/);
 
+const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
+assert.match(operatingManual, /npm run release:check-names/);
+assert.match(operatingManual, /npm run release:check-scope/);
+assert.match(operatingManual, /Browser-smoke the reference, metrics, comparison, and React browser routes/);
+
+const goalLoop = readFileSync(resolve(root, "docs/GOAL_LOOP.md"), "utf8");
+assert.match(goalLoop, /2026-06-12/);
+assert.match(goalLoop, /npm run release:check-scope/);
+
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
 assert.match(changelog, /renderPresenceFaceSvg/);

@@ -152,7 +152,7 @@ Validate:
 - React browser demo smoke test now covers provider, snapshot hook, renderer slot, AI SDK adapter, and face expression mapping with actual React and ReactDOM.
 - CI validation now runs `npm ci` and `npm run validate` through GitHub Actions.
 - README media is generated from the validated browser routes and checked by package-surface tests.
-- Package-name availability was checked on 2026-05-30 with npm registry `E404` results for all four intended names; scope ownership still needs to be controlled before publishing.
+- Package-name availability was rechecked on 2026-06-12 with npm registry `E404` results for all four intended names; scope ownership still needs authenticated verification with `npm run release:check-scope` before publishing.
 
 ## Loop 6: Integration Evidence
 
