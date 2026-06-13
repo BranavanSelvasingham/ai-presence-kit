@@ -68,7 +68,7 @@ See `docs/GOAL_LOOP.md` for the active build loop and next milestones.
 
 ![Spinner versus AI Presence Kit comparison](docs/media/presence-comparison.jpg)
 
-The comparison harness runs the same simulated latency on both sides. The generic UI shows loading until the stream begins; the presence side exposes `reading`, `thinking`, and `waiting` before the first visible token.
+The comparison harness runs the same simulated latency on both sides. The generic UI shows loading until the stream begins; the presence side exposes `reading`, `thinking`, and `waiting` before the first visible token. The route also records DOM timing evidence: `data-generic-first-token-ms="1400"`, `data-presence-first-state-ms="0"`, `data-presence-frame-before-token-ms="0"`, and `data-presence-decision-trace-lead-ms="1400"`.
 
 ![React browser demo for AI Presence Kit](docs/media/react-browser-demo.jpg)
 
@@ -283,7 +283,7 @@ The A/B comparison harness is available at:
 http://127.0.0.1:8058/?compare=1&autorunCompare=1
 ```
 
-It runs the same simulated first-token latency on both sides; the presence side exposes state before the first token while the generic side stays in a loading posture.
+It runs the same simulated first-token latency on both sides; the presence side exposes state, frame, and decision-trace evidence before the first token while the generic side stays in a loading posture. The DOM dataset records the `1400ms` first-token latency and the `0ms` presence-before-output lead edge.
 
 The browser React demo is available at:
 
