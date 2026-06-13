@@ -1,4 +1,10 @@
-import type { PresenceControlInputs, PresenceLatencyPhase, PresenceSnapshot, PresenceStateValue } from "@ai-presence/core";
+import type {
+  PresenceControlInputs,
+  PresenceLatencyPhase,
+  PresenceSnapshot,
+  PresenceStateValue,
+  PresenceTransitionEvent,
+} from "@ai-presence/core";
 
 export declare const FaceExpression: Readonly<{
   IDLE: "idle";
@@ -147,6 +153,12 @@ export interface FaceControllerCoherence {
 
 export type FaceControllerDecisionTraceSummaryValue = string | number | boolean | null;
 
+export interface FaceControllerTransitionContext {
+  previousState: PresenceStateValue | null;
+  transitionEvent: PresenceTransitionEvent | null;
+  transitionAgeMs: number | null;
+}
+
 export interface FaceControllerDecisionTraceChannel {
   channel: FaceControlChannel;
   controller: string | null;
@@ -162,6 +174,7 @@ export interface FaceControllerDecisionTraceChannel {
 
 export interface FaceControllerDecisionTrace {
   channels: readonly FaceControlChannel[];
+  transitionContext: FaceControllerTransitionContext;
   decisionCount: number;
   complete: boolean;
   rendererSafe: boolean;
@@ -237,6 +250,9 @@ export interface PresenceFaceSvgAttributes {
   decisionTraceWarnings: string;
   decisionTraceRendererSafe: "true" | "false";
   latencyPhase?: PresenceLatencyPhase;
+  previousState?: PresenceStateValue;
+  transitionEvent?: PresenceTransitionEvent;
+  transitionAgeMs?: string;
 }
 
 export interface PresenceFaceSvgRenderResult {

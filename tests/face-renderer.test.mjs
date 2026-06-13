@@ -64,14 +64,34 @@ function assertFrameChannel(frame, channel) {
   }
 }
 
+function compactTraceTransitionAgeMs(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.round(Math.max(0, Math.min(20000, numeric)) * 1000) / 1000;
+}
+
+function expectedTraceTransitionContext(frameReport) {
+  return {
+    previousState: typeof frameReport?.sharedInputs?.previousState === "string"
+      ? frameReport.sharedInputs.previousState
+      : null,
+    transitionEvent: typeof frameReport?.sharedInputs?.transitionEvent === "string"
+      ? frameReport.sharedInputs.transitionEvent
+      : null,
+    transitionAgeMs: compactTraceTransitionAgeMs(frameReport?.sharedInputs?.transitionAgeMs),
+  };
+}
+
 function assertControllerDecisionTrace(frameReport) {
   const trace = faceControllerDecisionTraceForFrame(frameReport);
   const repeatedTrace = faceControllerDecisionTraceForFrame(frameReport);
 
   assert.ok(Object.isFrozen(trace), "decision trace is frozen");
+  assert.ok(Object.isFrozen(trace.transitionContext), "decision trace transition context is frozen");
   assert.ok(Object.isFrozen(trace.decisions), "decision trace decisions are frozen");
   assert.deepEqual(trace, repeatedTrace);
   assert.deepEqual(trace.channels, FACE_CONTROL_CHANNELS);
+  assert.deepEqual(trace.transitionContext, expectedTraceTransitionContext(frameReport));
   assert.deepEqual(Object.keys(trace.decisions), FACE_CONTROL_CHANNELS);
   assert.equal(trace.decisionCount, 6);
   assert.equal(trace.complete, true);
@@ -218,6 +238,31 @@ const freshSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
 });
 assert.equal(freshSubmitFrame.frame.blink.pulse, true);
 assert.ok(freshSubmitFrame.frame.blink.openness < 0.4);
+const freshSubmitTrace = assertControllerDecisionTrace(freshSubmitFrame);
+assert.deepEqual(freshSubmitTrace.transitionContext, {
+  previousState: PresenceState.READY,
+  transitionEvent: PresenceEvent.SUBMIT,
+  transitionAgeMs: 80,
+});
+assert.equal(freshSubmitTrace.complete, true);
+assert.equal(freshSubmitTrace.decisionCount, 6);
+assert.equal(freshSubmitTrace.warningCount, 0);
+assert.equal(freshSubmitTrace.rendererSafe, true);
+const freshSubmitSvg = renderPresenceFaceSvg(freshSubmitSnapshot, {
+  now: 1080,
+  timeMs: 1080,
+});
+assert.deepEqual(freshSubmitSvg.decisionTrace.transitionContext, freshSubmitTrace.transitionContext);
+assert.equal(freshSubmitSvg.attributes.previousState, PresenceState.READY);
+assert.equal(freshSubmitSvg.attributes.transitionEvent, PresenceEvent.SUBMIT);
+assert.equal(freshSubmitSvg.attributes.transitionAgeMs, "80");
+assert.equal(freshSubmitSvg.attributes.decisionTrace, "complete");
+assert.equal(freshSubmitSvg.attributes.decisionTraceDecisions, "6");
+assert.equal(freshSubmitSvg.attributes.decisionTraceWarnings, "0");
+assert.equal(freshSubmitSvg.attributes.decisionTraceRendererSafe, "true");
+assert.match(freshSubmitSvg.svg, /data-face-previous-state="ready"/);
+assert.match(freshSubmitSvg.svg, /data-face-transition-event="submit"/);
+assert.match(freshSubmitSvg.svg, /data-face-transition-age-ms="80"/);
 const staleSubmitControls = faceControlsForPresence(freshSubmitSnapshot, {
   now: 1300,
 });
@@ -340,6 +385,11 @@ const invalidTrace = faceControllerDecisionTraceForFrame({
   coherence: invalidCoherence,
 });
 assert.ok(Object.isFrozen(invalidTrace));
+assert.deepEqual(invalidTrace.transitionContext, {
+  previousState: null,
+  transitionEvent: null,
+  transitionAgeMs: null,
+});
 assert.deepEqual(Object.keys(invalidTrace.decisions), FACE_CONTROL_CHANNELS);
 assert.equal(invalidTrace.decisionCount, 5);
 assert.equal(invalidTrace.complete, false);
@@ -361,6 +411,11 @@ assert.ok(invalidTrace.decisions.motion.warnings.includes("motion decision is mi
 
 const missingTrace = faceControllerDecisionTraceForFrame();
 assert.deepEqual(missingTrace.channels, FACE_CONTROL_CHANNELS);
+assert.deepEqual(missingTrace.transitionContext, {
+  previousState: null,
+  transitionEvent: null,
+  transitionAgeMs: null,
+});
 assert.deepEqual(Object.keys(missingTrace.decisions), FACE_CONTROL_CHANNELS);
 assert.equal(missingTrace.decisionCount, 0);
 assert.equal(missingTrace.complete, false);

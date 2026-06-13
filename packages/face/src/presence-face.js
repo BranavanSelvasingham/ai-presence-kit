@@ -55,6 +55,11 @@
     "soft-smile",
     "speaking",
   ]);
+  const PRESENCE_STATE_VALUES = Object.freeze(Object.values(PresenceState));
+  const PRESENCE_TRANSITION_EVENT_VALUES = Object.freeze([
+    ...Object.values(PresenceEvent),
+    "set-state",
+  ]);
 
   const FACE_CONTROLLER_READS = Object.freeze({
     gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "ageMs"]),
@@ -988,6 +993,29 @@
     return typeof value === "string" ? value : null;
   }
 
+  function compactPresenceState(value) {
+    return PRESENCE_STATE_VALUES.includes(value) ? value : null;
+  }
+
+  function compactTransitionEvent(value) {
+    return PRESENCE_TRANSITION_EVENT_VALUES.includes(value) ? value : null;
+  }
+
+  function compactTransitionAgeMs(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric)
+      ? compactNumber(clamp(numeric, 0, 20000))
+      : null;
+  }
+
+  function compactTransitionContext(inputs) {
+    return Object.freeze({
+      previousState: compactPresenceState(inputs?.previousState),
+      transitionEvent: compactTransitionEvent(inputs?.transitionEvent),
+      transitionAgeMs: compactTransitionAgeMs(inputs?.transitionAgeMs),
+    });
+  }
+
   function compactSummaryRecord(summary) {
     const compact = {};
     if (!summary || typeof summary !== "object") return Object.freeze(compact);
@@ -1231,6 +1259,7 @@
 
     return Object.freeze({
       channels: FACE_CONTROL_CHANNELS,
+      transitionContext: compactTransitionContext(report.sharedInputs),
       decisionCount,
       complete,
       rendererSafe: Boolean(complete && coherence.rendererSafe),
@@ -1281,6 +1310,10 @@
     const latencyPhase = typeof report.sharedInputs?.latencyPhase === "string"
       ? report.sharedInputs.latencyPhase
       : null;
+    const transitionContext = decisionTrace.transitionContext || compactTransitionContext(report.sharedInputs);
+    const transitionAgeMs = transitionContext.transitionAgeMs === null
+      ? null
+      : formatSvgNumber(transitionContext.transitionAgeMs);
 
     return Object.freeze({
       decisionTrace: decisionTrace.complete ? "complete" : "incomplete",
@@ -1289,6 +1322,9 @@
       decisionTraceWarnings: String(decisionTrace.warningCount),
       decisionTraceRendererSafe: String(decisionTrace.rendererSafe),
       ...(latencyPhase ? { latencyPhase } : {}),
+      ...(transitionContext.previousState ? { previousState: transitionContext.previousState } : {}),
+      ...(transitionContext.transitionEvent ? { transitionEvent: transitionContext.transitionEvent } : {}),
+      ...(transitionContext.transitionEvent && transitionAgeMs !== null ? { transitionAgeMs } : {}),
     });
   }
 
@@ -1367,6 +1403,9 @@
       "data-face-decision-trace-warnings": attributes.decisionTraceWarnings,
       "data-face-decision-trace-renderer-safe": attributes.decisionTraceRendererSafe,
       "data-face-latency-phase": attributes.latencyPhase,
+      "data-face-previous-state": attributes.previousState,
+      "data-face-transition-event": attributes.transitionEvent,
+      "data-face-transition-age-ms": attributes.transitionAgeMs,
     };
     const svg = [
       `<svg${svgAttrs(rootAttributes)}>`,

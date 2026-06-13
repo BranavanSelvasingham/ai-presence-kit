@@ -239,6 +239,26 @@ assert.match(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).svg,
 assert.match(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).svg, /data-face-decision-trace="complete"/);
 assert.equal(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).attributes.decisionTrace, "complete");
 assert.equal(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).decisionTrace.decisionCount, 6);
+const transitionGlobalSvg = faceGlobal.renderPresenceFaceSvg({
+  state: "thinking",
+  previousState: "ready",
+  event: "submit",
+  updatedAt: 1000,
+}, {
+  now: 1080,
+  timeMs: 1080,
+});
+assert.deepEqual(transitionGlobalSvg.decisionTrace.transitionContext, {
+  previousState: "ready",
+  transitionEvent: "submit",
+  transitionAgeMs: 80,
+});
+assert.equal(transitionGlobalSvg.attributes.previousState, "ready");
+assert.equal(transitionGlobalSvg.attributes.transitionEvent, "submit");
+assert.equal(transitionGlobalSvg.attributes.transitionAgeMs, "80");
+assert.match(transitionGlobalSvg.svg, /data-face-previous-state="ready"/);
+assert.match(transitionGlobalSvg.svg, /data-face-transition-event="submit"/);
+assert.match(transitionGlobalSvg.svg, /data-face-transition-age-ms="80"/);
 assert.equal(faceGlobal.faceControllerFrameForPresence("waiting", { timeMs: 1200 }).coherence.rendererSafe, true);
 assert.equal(faceGlobal.faceControllerDecisionTraceForFrame(
   faceGlobal.faceControllerFrameForPresence("waiting", { timeMs: 1200 }),
@@ -313,10 +333,17 @@ assert.match(reactTypes, /PresenceRendererSlot/);
 const faceTypes = readFileSync(resolve(root, "packages/face/src/presence-face.d.ts"), "utf8");
 assert.match(faceTypes, /motionScale\?: number/);
 assert.match(faceTypes, /motionScale: string/);
+assert.match(faceTypes, /PresenceTransitionEvent/);
+assert.match(faceTypes, /FaceControllerTransitionContext/);
+assert.match(faceTypes, /transitionContext: FaceControllerTransitionContext/);
+assert.match(faceTypes, /transitionAgeMs: number \| null/);
 assert.match(faceTypes, /decisionTrace: "complete" \| "incomplete"/);
 assert.match(faceTypes, /decisionTraceChannels: string/);
 assert.match(faceTypes, /decisionTraceRendererSafe: "true" \| "false"/);
 assert.match(faceTypes, /latencyPhase\?: PresenceLatencyPhase/);
+assert.match(faceTypes, /previousState\?: PresenceStateValue/);
+assert.match(faceTypes, /transitionEvent\?: PresenceTransitionEvent/);
+assert.match(faceTypes, /transitionAgeMs\?: string/);
 assert.match(faceTypes, /decisionTrace: FaceControllerDecisionTrace/);
 assert.match(faceTypes, /FaceControllerCoherence/);
 assert.match(faceTypes, /faceControllerCoherenceForFrame/);
@@ -347,6 +374,8 @@ const faceReadme = readFileSync(resolve(root, "packages/face/README.md"), "utf8"
 assert.match(faceReadme, /motionScale/);
 assert.match(faceReadme, /reduced motion/);
 assert.match(faceReadme, /renderer-owned decision-trace evidence/);
+assert.match(faceReadme, /transitionContext/);
+assert.match(faceReadme, /data-face-transition-event/);
 assert.match(faceReadme, /data-face-decision-trace\*/);
 assert.doesNotMatch(faceReadme, /emotion[- ]detection|private emotion/i);
 
