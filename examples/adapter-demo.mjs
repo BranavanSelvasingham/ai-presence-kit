@@ -11,6 +11,10 @@ const {
   createOpenAIRealtimeAdapter,
   createVercelAISDKAdapter,
 } = require("../packages/adapters/src/runtime-adapter.js");
+const {
+  FACE_CONTROL_CHANNELS,
+  faceControllerFrameForPresence,
+} = require("../packages/face/src/presence-face.js");
 
 function collect(label) {
   let time = 0;
@@ -40,11 +44,20 @@ function renderTrace(collected) {
         trace: collected.trace,
         now: entry.updatedAt,
       });
+      const frameReport = faceControllerFrameForPresence(entry, {
+        trace: collected.trace,
+        now: entry.updatedAt,
+        timeMs: entry.updatedAt,
+      });
 
       return [
         `${collected.label}:${entry.event}->${entry.state}+${entry.elapsedMs}ms`,
         `phase=${inputs.latencyPhase}`,
         `attention=${inputs.attentionTarget}`,
+        `face=${frameReport.expression}`,
+        `channels=${FACE_CONTROL_CHANNELS.join(",")}`,
+        `mouth=${frameReport.frame.mouth.shape}`,
+        `motion=${frameReport.frame.motion.energy.toFixed(2)}`,
       ].join(" ");
     });
 }

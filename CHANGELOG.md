@@ -19,6 +19,7 @@
 ### Validation
 
 - Added package-surface and ESM tests for the core trace export.
+- Added adapter demo coverage for reference face frame evidence produced from adapter-driven transitions.
 - Added controller-gallery, face-renderer, comparison-before-token, React binding, React browser, package-surface, and ESM coverage for the current package surface.
 - Added README media validation for the comparison and React browser demo screenshots.
 - Expanded release readiness docs around browser smoke routes, package dry-runs, and package-name checks.

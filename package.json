@@ -13,7 +13,7 @@
     "pack:dry-run": "node scripts/pack-dry-run.mjs",
     "release:check-names": "node scripts/check-package-names.mjs",
     "release:check-scope": "node scripts/check-npm-scope.mjs",
-    "test": "node tests/presence-core.test.mjs && node tests/face-renderer.test.mjs && node tests/runtime-adapter.test.mjs && node tests/react-bindings.test.mjs && node tests/package-surface.test.mjs && node tests/esm-package.test.mjs && node tests/react-example.test.mjs && node tests/react-browser-example.test.mjs && node tests/controller-gallery.test.mjs && node tests/comparison-before-token.test.mjs",
+    "test": "node tests/presence-core.test.mjs && node tests/face-renderer.test.mjs && node tests/runtime-adapter.test.mjs && node tests/adapter-demo.test.mjs && node tests/react-bindings.test.mjs && node tests/package-surface.test.mjs && node tests/esm-package.test.mjs && node tests/react-example.test.mjs && node tests/react-browser-example.test.mjs && node tests/controller-gallery.test.mjs && node tests/comparison-before-token.test.mjs",
     "validate": "npm run check && npm test && npm run demo:adapters && npm run demo:react && npm run pack:dry-run",
     "start": "node server.mjs"
   },
