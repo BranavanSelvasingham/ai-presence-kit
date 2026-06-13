@@ -82,6 +82,7 @@ Then browser-smoke:
 
 - Reference demo loads with no console warnings or errors.
 - Metrics route exposes canonical `Presence state`, controller composition, controller evidence, live controller frame evidence, coherence evidence, and decision-trace evidence through `data-controller-decision-trace*`.
+- Controller gallery route exposes fresh transition-cue evidence for `submit`, `stream-open`, `token`, and `interrupt` through `data-transition-events="submit stream-open token interrupt"`, `data-transition-decision-trace="complete"`, `data-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-transition-controller-reads-event="true"`, and `data-transition-controller-reads-age="true"`.
 - Comparison route completes with equal first-token timing on both panes through `data-generic-first-token-ms` and `data-presence-first-token-ms`.
 - Comparison route confirms the presence side exposes state, frame channels, and complete decision-trace evidence before the first visible token through `data-presence-first-state-ms`, `data-presence-frame-before-token-ms`, `data-presence-decision-trace-before-token-ms`, and positive `data-presence-decision-trace-lead-ms`.
 - Mobile comparison route has no horizontal overflow.

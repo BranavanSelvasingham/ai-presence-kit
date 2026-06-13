@@ -75,6 +75,11 @@ assert.match(releaseReadiness, /faceControllerCoherenceForFrame|coherence eviden
 assert.match(releaseReadiness, /motionScale/);
 assert.match(releaseReadiness, /renderPresenceFaceSvg/);
 assert.match(releaseReadiness, /data-controller-decision-trace/);
+assert.match(releaseReadiness, /data-transition-events="submit stream-open token interrupt"/);
+assert.match(releaseReadiness, /data-transition-decision-trace="complete"/);
+assert.match(releaseReadiness, /data-transition-controller-reads="gaze blink brows mouth posture motion"/);
+assert.match(releaseReadiness, /data-transition-controller-reads-event="true"/);
+assert.match(releaseReadiness, /data-transition-controller-reads-age="true"/);
 assert.match(releaseReadiness, /data-generic-first-token-ms/);
 assert.match(releaseReadiness, /data-presence-first-token-ms/);
 assert.match(releaseReadiness, /data-presence-first-state-ms/);
@@ -122,6 +127,7 @@ assert.match(changelog, /usePresenceFrameTime/);
 assert.match(changelog, /before-first-token presence/);
 assert.match(changelog, /comparison-route DOM lead-time evidence/);
 assert.match(changelog, /React browser renderer-slot DOM evidence/);
+assert.match(changelog, /controller-gallery transition-cue DOM evidence/);
 assert.match(changelog, /data-face-latency-phase="before-output"/);
 
 const adapterDemo = readFileSync(resolve(root, "examples/adapter-demo.mjs"), "utf8");
@@ -369,6 +375,9 @@ assert.match(rootReadme, /data-face-decision-trace-decisions="6"/);
 assert.match(rootReadme, /data-face-decision-trace-warnings="0"/);
 assert.match(rootReadme, /data-face-decision-trace-renderer-safe="true"/);
 assert.match(rootReadme, /data-face-latency-phase="before-output"/);
+assert.match(rootReadme, /data-transition-events="submit stream-open token interrupt"/);
+assert.match(rootReadme, /data-transition-decision-trace="complete"/);
+assert.match(rootReadme, /data-transition-controller-reads="gaze blink brows mouth posture motion"/);
 
 const faceReadme = readFileSync(resolve(root, "packages/face/README.md"), "utf8");
 assert.match(faceReadme, /motionScale/);

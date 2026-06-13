@@ -74,6 +74,8 @@ The comparison harness runs the same simulated latency on both sides. The generi
 
 The React browser demo runs the provider, snapshot hook, renderer slot, adapter path, and face expression mapping with actual React and ReactDOM. The actual renderer slot exposes six-channel trace DOM evidence: `data-face-decision-trace="complete"`, `data-face-decision-trace-channels="gaze blink brows mouth posture motion"`, `data-face-decision-trace-decisions="6"`, `data-face-decision-trace-warnings="0"`, `data-face-decision-trace-renderer-safe="true"`, and `data-face-latency-phase="before-output"` during the pre-output turn.
 
+The controller gallery route (`?controllerGallery=1`) exposes transition-cue proof for fresh `submit`, `stream-open`, `token`, and `interrupt` events. Its DOM evidence includes `data-transition-events="submit stream-open token interrupt"`, `data-transition-decision-trace="complete"`, and `data-transition-controller-reads="gaze blink brows mouth posture motion"` so all six controller decisions are inspectable against recent transition context.
+
 ## Package Shape
 
 Current prototype packages:
