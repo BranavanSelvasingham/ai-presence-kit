@@ -82,8 +82,8 @@ Then browser-smoke:
 
 - Reference demo loads with no console warnings or errors.
 - Metrics route exposes canonical `Presence state`, controller composition, controller evidence, live controller frame evidence, coherence evidence, and decision-trace evidence through `data-controller-decision-trace*`.
-- Comparison route completes with equal first-token timing on both panes.
-- Comparison route confirms the presence side exposes state and frame channels before the first visible token.
+- Comparison route completes with equal first-token timing on both panes through `data-generic-first-token-ms` and `data-presence-first-token-ms`.
+- Comparison route confirms the presence side exposes state, frame channels, and complete decision-trace evidence before the first visible token through `data-presence-first-state-ms`, `data-presence-frame-before-token-ms`, `data-presence-decision-trace-before-token-ms`, and positive `data-presence-decision-trace-lead-ms`.
 - Mobile comparison route has no horizontal overflow.
 - React browser demo loads with actual React/ReactDOM, runs a simulated AI SDK turn, and returns to `ready`.
 - React browser demo uses `@ai-presence/face` SVG output and proves frame time can advance while the presence state is stable.

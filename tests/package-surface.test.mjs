@@ -75,6 +75,12 @@ assert.match(releaseReadiness, /faceControllerCoherenceForFrame|coherence eviden
 assert.match(releaseReadiness, /motionScale/);
 assert.match(releaseReadiness, /renderPresenceFaceSvg/);
 assert.match(releaseReadiness, /data-controller-decision-trace/);
+assert.match(releaseReadiness, /data-generic-first-token-ms/);
+assert.match(releaseReadiness, /data-presence-first-token-ms/);
+assert.match(releaseReadiness, /data-presence-first-state-ms/);
+assert.match(releaseReadiness, /data-presence-frame-before-token-ms/);
+assert.match(releaseReadiness, /data-presence-decision-trace-before-token-ms/);
+assert.match(releaseReadiness, /data-presence-decision-trace-lead-ms/);
 assert.match(releaseReadiness, /usePresenceFrameTime/);
 assert.match(releaseReadiness, /before the first visible token/);
 assert.match(releaseReadiness, /npm run perf:face/);
@@ -108,6 +114,7 @@ assert.match(changelog, /release:check-scope/);
 assert.match(changelog, /adapter demo coverage/);
 assert.match(changelog, /usePresenceFrameTime/);
 assert.match(changelog, /before-first-token presence/);
+assert.match(changelog, /comparison-route DOM lead-time evidence/);
 
 const adapterDemo = readFileSync(resolve(root, "examples/adapter-demo.mjs"), "utf8");
 assert.match(adapterDemo, /faceControllerFrameForPresence/);
@@ -288,6 +295,10 @@ assert.match(rootReadme, /npm run perf:face/);
 assert.match(rootReadme, /0\.25ms/);
 assert.match(rootReadme, /reference face frame evidence/);
 assert.match(rootReadme, /decision-trace evidence/);
+assert.match(rootReadme, /data-generic-first-token-ms/);
+assert.match(rootReadme, /data-presence-first-state-ms/);
+assert.match(rootReadme, /data-presence-frame-before-token-ms/);
+assert.match(rootReadme, /data-presence-decision-trace-lead-ms/);
 
 const faceReadme = readFileSync(resolve(root, "packages/face/README.md"), "utf8");
 assert.match(faceReadme, /motionScale/);
