@@ -20,6 +20,7 @@ for (const requiredFile of [
   "docs/RELEASE_READINESS.md",
   "OPERATING_MANUAL.md",
   "examples/adapter-demo.mjs",
+  "tests/adapter-demo.test.mjs",
   "examples/react-browser.css",
   "examples/react-browser-demo.js",
   "examples/react-browser.html",
@@ -45,6 +46,7 @@ assert.match(rootManifest.scripts.validate, /npm test/);
 assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
 assert.match(rootManifest.scripts.validate, /npm run demo:react/);
 assert.match(rootManifest.scripts.validate, /npm run pack:dry-run/);
+assert.match(rootManifest.scripts.test, /tests\/adapter-demo\.test\.mjs/);
 
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
@@ -81,8 +83,18 @@ assert.match(changelog, /parallel face controller decisions/);
 assert.match(changelog, /renderPresenceFaceSvg/);
 assert.match(changelog, /motionScale/);
 assert.match(changelog, /release:check-scope/);
+assert.match(changelog, /adapter demo coverage/);
 assert.match(changelog, /usePresenceFrameTime/);
 assert.match(changelog, /before-first-token presence/);
+
+const adapterDemo = readFileSync(resolve(root, "examples/adapter-demo.mjs"), "utf8");
+assert.match(adapterDemo, /faceControllerFrameForPresence/);
+assert.match(adapterDemo, /FACE_CONTROL_CHANNELS/);
+assert.match(adapterDemo, /channels=/);
+
+const adaptersReadme = readFileSync(resolve(root, "packages/adapters/README.md"), "utf8");
+assert.match(adaptersReadme, /reference face frame evidence/);
+assert.match(adaptersReadme, /channels=gaze,blink,brows,mouth,posture,motion/);
 
 for (const mediaFile of [
   "docs/media/presence-comparison.jpg",
