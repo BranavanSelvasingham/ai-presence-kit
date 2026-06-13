@@ -26,22 +26,34 @@ assert.match(html, /id="comparisonDemo"/);
 assert.match(html, /id="compareFace"/);
 assert.match(app, /dataset\.equalLatency/);
 assert.match(app, /dataset\.spinnerFirstTokenMs/);
+assert.match(app, /dataset\.genericFirstTokenMs/);
 assert.match(app, /dataset\.presenceFirstTokenMs/);
+assert.match(app, /dataset\.presenceFirstStateMs/);
 assert.match(app, /dataset\.presenceBeforeToken/);
 assert.match(app, /dataset\.presenceBeforeTokenStates/);
 assert.match(app, /dataset\.presenceRendererBeforeToken/);
 assert.match(app, /dataset\.presenceFrameBeforeToken/);
+assert.match(app, /dataset\.presenceFrameBeforeTokenMs/);
 assert.match(app, /dataset\.presenceFrameBeforeTokenChannels/);
 assert.match(app, /dataset\.presenceFrameBeforeTokenSummary/);
 assert.match(app, /dataset\.presenceDecisionTraceBeforeToken/);
+assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenMs/);
 assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenChannels/);
 assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenDecisions/);
 assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenWarnings/);
 assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenRendererSafe/);
+assert.match(app, /dataset\.presenceDecisionTraceLeadMs/);
 assert.match(app, /dataset\.genericBeforeToken/);
 assert.match(app, /dataset\.genericBeforeTokenState/);
 assert.match(app, /dataset\.genericBeforeTokenLoading/);
-assert.match(app, /recordComparisonBeforeTokenEvidence\(\);/);
+assert.match(app, /beforeTokenFirstStateMs: null/);
+assert.match(app, /beforeTokenFrameMs: null/);
+assert.match(app, /beforeTokenDecisionTraceMs: null/);
+assert.match(app, /comparisonTiming\.firstToken - value/);
+assert.match(app, /recordComparisonBeforeTokenEvidence\(0\);/);
+assert.match(app, /recordComparisonBeforeTokenEvidence\(comparisonTiming\.pause\);/);
+assert.match(app, /recordComparisonBeforeTokenEvidence\(comparisonTiming\.streamOpen\);/);
+assert.match(app, /recordComparisonBeforeTokenEvidence\(comparisonTiming\.firstToken\);/);
 assert.match(app, /compareSpinnerResponse\.textContent/);
 assert.match(app, /comparisonTiming\.firstToken/);
 assert.match(app, /beforeTokenDecisionTraceStatus: "incomplete"/);
@@ -95,6 +107,52 @@ assert.deepEqual(beforeTokenStates.map((state) => faceExpressionForPresence(stat
   "thinking",
   "listening",
 ]);
+
+const firstTokenMs = 1400;
+const preTokenEvidencePoints = [
+  { ms: 0, snapshot: reading, history: history.slice(0, 2) },
+  { ms: 360, snapshot: thinking, history: history.slice(0, 3) },
+  { ms: 900, snapshot: waiting, history: history.slice(0, 4) },
+];
+let firstPresenceStateMs = null;
+let firstCompleteFrameMs = null;
+let firstCompleteDecisionTraceMs = null;
+for (const point of preTokenEvidencePoints) {
+  if (
+    firstPresenceStateMs === null
+    && [
+      PresenceState.READING,
+      PresenceState.THINKING,
+      PresenceState.WAITING,
+    ].includes(point.snapshot.state)
+  ) {
+    firstPresenceStateMs = point.ms;
+  }
+
+  const pointFrameReport = faceControllerFrameForPresence(point.snapshot, {
+    history: point.history,
+    now: point.ms,
+    timeMs: point.ms,
+  });
+  const pointFrameChannels = Object.keys(pointFrameReport.frame || {});
+  const completeFrame = FACE_CONTROL_CHANNELS.every((channel) => pointFrameChannels.includes(channel));
+  if (firstCompleteFrameMs === null && completeFrame) {
+    firstCompleteFrameMs = point.ms;
+  }
+
+  const pointDecisionTrace = faceControllerDecisionTraceForFrame(pointFrameReport);
+  const completeTrace = pointDecisionTrace.complete
+    && pointDecisionTrace.rendererSafe
+    && pointDecisionTrace.warningCount === 0;
+  if (firstCompleteDecisionTraceMs === null && completeTrace) {
+    firstCompleteDecisionTraceMs = point.ms;
+  }
+}
+
+assert.equal(firstPresenceStateMs, 0);
+assert.equal(firstCompleteFrameMs, 0);
+assert.equal(firstCompleteDecisionTraceMs, 0);
+assert.equal(firstTokenMs - firstCompleteDecisionTraceMs, 1400);
 
 const frameReport = faceControllerFrameForPresence(waiting, {
   history,
