@@ -26,7 +26,7 @@ Run the local adapter trace demo with:
 npm run demo:adapters
 ```
 
-The trace demo prints each adapter transition with the shared core control inputs and reference face frame evidence that a renderer can consume, for example `phase=before-output`, `attention=response`, `face=thinking`, and `channels=gaze,blink,brows,mouth,posture,motion`.
+The trace demo prints each adapter transition with the shared core control inputs, reference face frame evidence, and bounded six-channel decision-trace evidence that a renderer can consume, for example `phase=before-output`, `attention=response`, `face=thinking`, `channels=gaze,blink,brows,mouth,posture,motion`, `trace=complete`, `decisions=6`, `safe=true`, `warnings=0`, and `reads=state`.
 
 ## Vercel AI SDK
 

@@ -15,13 +15,14 @@
 - Added `usePresenceControlInputs()` and `usePresenceFrameTime()` to the React binding factory.
 - Added browser demo evidence for controller composition, temporal frame sequences, decision traces, before-first-token presence, and React-to-SVG renderer wiring.
 - Added browser DOM decision-trace evidence via `data-controller-decision-trace*` on the live metrics/controller-gallery proof surfaces.
+- Added adapter demo decision-trace evidence for complete six-channel controller proof across Vercel AI SDK, OpenAI Realtime, and generic chat transitions.
 - Added `release:check-scope` to verify authenticated npm access to the `@ai-presence` scope before publishing.
 - Reframed the main objective around a low-latency facial presence engine driven by parallel micro-decisions.
 
 ### Validation
 
 - Added package-surface and ESM tests for the core trace export.
-- Added adapter demo coverage for reference face frame evidence produced from adapter-driven transitions.
+- Added adapter demo coverage for reference face frame evidence and complete six-channel decision-trace evidence produced from adapter-driven transitions.
 - Added controller-gallery, face-renderer, comparison-before-token, React binding, React browser, package-surface, and ESM coverage for the current package surface.
 - Added package-surface release-doc checks for the decision-trace API and browser DOM evidence.
 - Added README media validation for the comparison and React browser demo screenshots.

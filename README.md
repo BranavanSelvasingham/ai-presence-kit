@@ -258,6 +258,8 @@ npm run demo:react
 npm run pack:dry-run
 ```
 
+`npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`.
+
 Adapter source assumptions are tracked in `packages/adapters/README.md`.
 Release-readiness gates are tracked in `docs/RELEASE_READINESS.md`.
 Versioning, changelog, and npm package-name policy are tracked in `docs/RELEASE_POLICY.md`.
@@ -429,7 +431,7 @@ Validation notes:
 - Framework-facing starter adapters now cover Vercel AI SDK statuses, OpenAI Realtime server events, and generic chat lifecycle events.
 - Core runtime subscriptions and the first React binding factory now support provider, snapshot hook, state hook, and renderer-slot patterns without adding a build step.
 - Each package now has npm-style manifests and TypeScript declaration files.
-- `npm run demo:adapters` prints adapter-to-presence traces and reference face frame evidence for the three starter adapter paths.
+- `npm run demo:adapters` prints adapter-to-presence traces, reference face frame evidence, and six-channel decision-trace evidence for the three starter adapter paths.
 - `npm pack --dry-run` passes for `@ai-presence/core`, `@ai-presence/face`, `@ai-presence/adapters`, and `@ai-presence/react` when using a writable npm cache.
 - React usage is covered by `examples/react-presence-demo.js`, `examples/react-browser.html`, `npm run demo:react`, `tests/react-example.test.mjs`, and `tests/react-browser-example.test.mjs`.
 - ESM import entrypoints now sit beside the CommonJS/browser-global source files for all four packages.

@@ -13,6 +13,7 @@ const {
 } = require("../packages/adapters/src/runtime-adapter.js");
 const {
   FACE_CONTROL_CHANNELS,
+  faceControllerDecisionTraceForFrame,
   faceControllerFrameForPresence,
 } = require("../packages/face/src/presence-face.js");
 
@@ -49,6 +50,9 @@ function renderTrace(collected) {
         now: entry.updatedAt,
         timeMs: entry.updatedAt,
       });
+      const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
+      const allChannelsReadState = FACE_CONTROL_CHANNELS.every((channel) =>
+        decisionTrace.decisions[channel].reads.includes("state"));
 
       return [
         `${collected.label}:${entry.event}->${entry.state}+${entry.elapsedMs}ms`,
@@ -56,6 +60,11 @@ function renderTrace(collected) {
         `attention=${inputs.attentionTarget}`,
         `face=${frameReport.expression}`,
         `channels=${FACE_CONTROL_CHANNELS.join(",")}`,
+        `trace=${decisionTrace.complete ? "complete" : "incomplete"}`,
+        `decisions=${decisionTrace.decisionCount}`,
+        `safe=${decisionTrace.rendererSafe}`,
+        `warnings=${decisionTrace.warningCount}`,
+        `reads=${allChannelsReadState ? "state" : "partial"}`,
         `mouth=${frameReport.frame.mouth.shape}`,
         `motion=${frameReport.frame.motion.energy.toFixed(2)}`,
       ].join(" ");

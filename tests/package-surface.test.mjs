@@ -92,6 +92,7 @@ assert.match(changelog, /faceControllerDecisionTraceForFrame/);
 assert.match(changelog, /renderPresenceFaceSvg/);
 assert.match(changelog, /motionScale/);
 assert.match(changelog, /data-controller-decision-trace/);
+assert.match(changelog, /adapter demo decision-trace evidence/);
 assert.match(changelog, /release:check-scope/);
 assert.match(changelog, /adapter demo coverage/);
 assert.match(changelog, /usePresenceFrameTime/);
@@ -99,12 +100,19 @@ assert.match(changelog, /before-first-token presence/);
 
 const adapterDemo = readFileSync(resolve(root, "examples/adapter-demo.mjs"), "utf8");
 assert.match(adapterDemo, /faceControllerFrameForPresence/);
+assert.match(adapterDemo, /faceControllerDecisionTraceForFrame/);
 assert.match(adapterDemo, /FACE_CONTROL_CHANNELS/);
 assert.match(adapterDemo, /channels=/);
+assert.match(adapterDemo, /trace=/);
+assert.match(adapterDemo, /decisions=/);
+assert.match(adapterDemo, /safe=/);
+assert.match(adapterDemo, /warnings=/);
 
 const adaptersReadme = readFileSync(resolve(root, "packages/adapters/README.md"), "utf8");
 assert.match(adaptersReadme, /reference face frame evidence/);
+assert.match(adaptersReadme, /decision-trace evidence/);
 assert.match(adaptersReadme, /channels=gaze,blink,brows,mouth,posture,motion/);
+assert.match(adaptersReadme, /trace=complete/);
 
 for (const mediaFile of [
   "docs/media/presence-comparison.jpg",
@@ -266,6 +274,7 @@ assert.match(rootReadme, /usePresenceFrameTime/);
 assert.match(rootReadme, /renderPresenceFaceSvg/);
 assert.match(rootReadme, /npm run demo:adapters/);
 assert.match(rootReadme, /reference face frame evidence/);
+assert.match(rootReadme, /decision-trace evidence/);
 
 const faceReadme = readFileSync(resolve(root, "packages/face/README.md"), "utf8");
 assert.match(faceReadme, /motionScale/);
