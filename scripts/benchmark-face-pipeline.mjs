@@ -10,10 +10,12 @@ const {
   FACE_CONTROL_CHANNELS,
   faceControllerDecisionTraceForFrame,
   faceControllerFrameForPresence,
+  renderPresenceFaceSvg,
 } = require("../packages/face");
 
 const ITERATIONS = 10_000;
 const BUDGET_MS = 0.25;
+const SVG_BUDGET_MS = 0.75;
 const BASE_TIME_MS = 1_200;
 
 const expectedChannels = ["gaze", "blink", "brows", "mouth", "posture", "motion"];
@@ -126,11 +128,47 @@ function validateFrameTrace(state, frameReport, trace) {
   }
 }
 
+function validateRenderedSvg(state, rendered) {
+  if (!rendered || typeof rendered !== "object") {
+    fail(`state=${state} svg=missing`);
+  }
+  if (rendered.state !== state) {
+    fail(`state=${state} svgState=${rendered.state}`);
+  }
+
+  validateFrameTrace(state, rendered.frameReport, rendered.decisionTrace);
+
+  const attributes = rendered.attributes || {};
+  const expectedAttributes = {
+    decisionTrace: "complete",
+    decisionTraceDecisions: String(expectedChannels.length),
+    decisionTraceWarnings: "0",
+    decisionTraceRendererSafe: "true",
+  };
+  for (const [name, expected] of Object.entries(expectedAttributes)) {
+    if (attributes[name] !== expected) {
+      fail(`state=${state} attribute=${name} actual=${attributes[name]} expected=${expected}`);
+    }
+  }
+  if (typeof rendered.svg !== "string" || rendered.svg.length === 0) {
+    fail(`state=${state} svgString=missing`);
+  }
+  for (const expectedSnippet of [
+    'data-face-decision-trace="complete"',
+    `data-face-decision-trace-decisions="${expectedChannels.length}"`,
+  ]) {
+    if (!rendered.svg.includes(expectedSnippet)) {
+      fail(`state=${state} svgMissing=${expectedSnippet}`);
+    }
+  }
+}
+
 validateSetup(PRESENCE_STATES);
 
 const snapshots = createBenchmarkSnapshots(PRESENCE_STATES);
 const histories = createHistories(snapshots);
 let warningCount = 0;
+let svgWarningCount = 0;
 
 for (let stateIndex = 0; stateIndex < snapshots.length; stateIndex += 1) {
   const timeMs = BASE_TIME_MS + stateIndex * 80 + 40;
@@ -141,6 +179,13 @@ for (let stateIndex = 0; stateIndex < snapshots.length; stateIndex += 1) {
   });
   const trace = faceControllerDecisionTraceForFrame(frameReport);
   validateFrameTrace(snapshots[stateIndex].state, frameReport, trace);
+
+  const rendered = renderPresenceFaceSvg(snapshots[stateIndex], {
+    history: histories[stateIndex],
+    now: timeMs,
+    timeMs,
+  });
+  validateRenderedSvg(snapshots[stateIndex].state, rendered);
 }
 
 const start = performance.now();
@@ -165,7 +210,28 @@ for (let iteration = 0; iteration < ITERATIONS; iteration += 1) {
 const elapsedMs = performance.now() - start;
 const framePasses = ITERATIONS * snapshots.length;
 const avgMs = elapsedMs / framePasses;
-const result = avgMs <= BUDGET_MS ? "pass" : "fail";
+
+const svgStart = performance.now();
+
+for (let iteration = 0; iteration < ITERATIONS; iteration += 1) {
+  const iterationOffsetMs = iteration % 997;
+  for (let stateIndex = 0; stateIndex < snapshots.length; stateIndex += 1) {
+    const snapshot = snapshots[stateIndex];
+    const timeMs = BASE_TIME_MS + stateIndex * 80 + iterationOffsetMs;
+    const rendered = renderPresenceFaceSvg(snapshot, {
+      history: histories[stateIndex],
+      now: timeMs,
+      timeMs,
+    });
+
+    validateRenderedSvg(snapshot.state, rendered);
+    svgWarningCount += rendered.decisionTrace.warningCount;
+  }
+}
+
+const svgElapsedMs = performance.now() - svgStart;
+const svgAvgMs = svgElapsedMs / framePasses;
+const result = avgMs <= BUDGET_MS && svgAvgMs <= SVG_BUDGET_MS ? "pass" : "fail";
 const summary = [
   "face-pipeline",
   `iterations=${ITERATIONS}`,
@@ -176,6 +242,11 @@ const summary = [
   `warnings=${warningCount}`,
   `avgMs=${avgMs.toFixed(4)}`,
   `budgetMs=${BUDGET_MS}`,
+  `svgAvgMs=${svgAvgMs.toFixed(4)}`,
+  `svgBudgetMs=${SVG_BUDGET_MS}`,
+  "svgTrace=complete",
+  "svgSafe=true",
+  `svgWarnings=${svgWarningCount}`,
   `result=${result}`,
 ].join(" ");
 
