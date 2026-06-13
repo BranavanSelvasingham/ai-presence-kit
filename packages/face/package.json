@@ -1,7 +1,7 @@
 {
   "name": "@ai-presence/face",
   "version": "0.0.0",
-  "description": "Reference face renderer mapping for AI Presence Kit.",
+  "description": "SVG reference face renderer with parallel presence controllers.",
   "type": "commonjs",
   "main": "./src/presence-face.js",
   "module": "./dist/index.mjs",

@@ -1,7 +1,7 @@
 {
   "name": "@ai-presence/adapters",
   "version": "0.0.0",
-  "description": "Runtime adapters for AI Presence Kit.",
+  "description": "Runtime signal adapters for AI Presence Kit.",
   "type": "commonjs",
   "main": "./src/runtime-adapter.js",
   "module": "./dist/index.mjs",

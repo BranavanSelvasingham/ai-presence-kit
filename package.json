@@ -2,7 +2,7 @@
   "name": "ai-presence-kit",
   "version": "0.0.0",
   "private": true,
-  "description": "Presence state layer for AI interfaces.",
+  "description": "Low-latency facial presence engine for AI interfaces.",
   "workspaces": [
     "packages/*"
   ],

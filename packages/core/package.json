@@ -1,7 +1,7 @@
 {
   "name": "@ai-presence/core",
   "version": "0.0.0",
-  "description": "Canonical presence state runtime for AI interfaces.",
+  "description": "Renderer-agnostic presence state runtime for AI interfaces.",
   "type": "commonjs",
   "main": "./src/presence-core.js",
   "module": "./dist/index.mjs",
