@@ -233,6 +233,8 @@ assert.ok(freshSubmitReport.decisions.gaze.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.gaze.reads.includes("transitionAgeMs"));
 assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionAgeMs"));
+assert.ok(freshSubmitReport.decisions.brows.reads.includes("transitionEvent"));
+assert.ok(freshSubmitReport.decisions.brows.reads.includes("transitionAgeMs"));
 assert.ok(freshSubmitReport.decisions.mouth.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.mouth.reads.includes("transitionAgeMs"));
 assert.ok(freshSubmitReport.decisions.posture.reads.includes("transitionEvent"));
@@ -242,6 +244,8 @@ assert.ok(freshSubmitReport.decisions.motion.reads.includes("transitionAgeMs"));
 assert.ok(freshSubmitReport.decisions.gaze.control.x < thinkingControls.gaze.x);
 assert.ok(freshSubmitReport.decisions.gaze.control.y < thinkingControls.gaze.y);
 assert.ok(freshSubmitReport.decisions.gaze.control.focus > thinkingControls.gaze.focus);
+assert.ok(freshSubmitReport.decisions.brows.control.lift > thinkingControls.brows.lift);
+assert.ok(freshSubmitReport.decisions.brows.control.pinch > thinkingControls.brows.pinch);
 assert.equal(freshSubmitReport.decisions.blink.control.pulse, true);
 const freshSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
   now: 1080,
@@ -260,6 +264,8 @@ assert.equal(freshSubmitTrace.complete, true);
 assert.equal(freshSubmitTrace.decisionCount, 6);
 assert.equal(freshSubmitTrace.warningCount, 0);
 assert.equal(freshSubmitTrace.rendererSafe, true);
+assert.ok(freshSubmitTrace.decisions.brows.reads.includes("transitionEvent"));
+assert.ok(freshSubmitTrace.decisions.brows.reads.includes("transitionAgeMs"));
 const freshSubmitSvg = renderPresenceFaceSvg(freshSubmitSnapshot, {
   now: 1080,
   timeMs: 1080,
@@ -272,6 +278,7 @@ assert.equal(freshSubmitSvg.attributes.decisionTrace, "complete");
 assert.equal(freshSubmitSvg.attributes.decisionTraceDecisions, "6");
 assert.equal(freshSubmitSvg.attributes.decisionTraceWarnings, "0");
 assert.equal(freshSubmitSvg.attributes.decisionTraceRendererSafe, "true");
+assert.ok(freshSubmitSvg.channelEvidence.brows.reads.includes("transitionEvent"));
 assert.ok(freshSubmitSvg.channelEvidence.mouth.reads.includes("transitionEvent"));
 assert.ok(freshSubmitSvg.channelEvidence.motion.reads.includes("transitionEvent"));
 assert.equal(freshSubmitSvg.frame.motion.offsetY, freshSubmitFrame.frame.motion.offsetY);
@@ -282,10 +289,13 @@ const staleSubmitControls = faceControlsForPresence(freshSubmitSnapshot, {
   now: 1300,
 });
 assert.equal(staleSubmitControls.blink.pulse, false);
+assert.deepEqual(staleSubmitControls.brows, thinkingControls.brows);
 assert.equal(freshSubmitReport.decisions.mouth.control.shape, staleSubmitControls.mouth.shape);
 assert.ok(freshSubmitReport.decisions.gaze.control.x < staleSubmitControls.gaze.x);
 assert.ok(freshSubmitReport.decisions.gaze.control.y < staleSubmitControls.gaze.y);
 assert.ok(freshSubmitReport.decisions.gaze.control.focus > staleSubmitControls.gaze.focus);
+assert.ok(freshSubmitReport.decisions.brows.control.lift > staleSubmitControls.brows.lift);
+assert.ok(freshSubmitReport.decisions.brows.control.pinch > staleSubmitControls.brows.pinch);
 assert.ok(freshSubmitReport.decisions.mouth.control.openness > staleSubmitControls.mouth.openness);
 assert.ok(freshSubmitReport.decisions.mouth.control.activity > staleSubmitControls.mouth.activity);
 assert.ok(freshSubmitReport.decisions.mouth.control.tension > staleSubmitControls.mouth.tension);
@@ -312,6 +322,7 @@ const freshSubmitStillLaterFrame = faceControllerFrameForPresence(freshSubmitSna
 assert.deepEqual(freshSubmitStillFrame.frame.mouth, freshSubmitStillLaterFrame.frame.mouth);
 assert.deepEqual(freshSubmitStillFrame.frame.posture, freshSubmitStillLaterFrame.frame.posture);
 assert.deepEqual(freshSubmitStillFrame.frame.gaze, freshSubmitStillLaterFrame.frame.gaze);
+assert.deepEqual(freshSubmitStillFrame.frame.brows, freshSubmitStillLaterFrame.frame.brows);
 assert.equal(freshSubmitStillFrame.frame.motion.offsetX, 0);
 assert.equal(freshSubmitStillFrame.frame.motion.offsetY, 0);
 
@@ -342,6 +353,9 @@ const freshStreamOpenWaitingReport = faceControllerDecisionsForPresence({
 assert.ok(freshStreamOpenWaitingReport.decisions.gaze.control.x < waitingControls.gaze.x);
 assert.ok(freshStreamOpenWaitingReport.decisions.gaze.control.y < waitingControls.gaze.y);
 assert.ok(freshStreamOpenWaitingReport.decisions.gaze.control.focus > waitingControls.gaze.focus);
+assert.ok(freshStreamOpenWaitingReport.decisions.brows.control.lift > waitingControls.brows.lift);
+assert.ok(freshStreamOpenWaitingReport.decisions.brows.control.pinch < waitingControls.brows.pinch);
+assert.ok(freshStreamOpenWaitingReport.decisions.brows.control.asymmetry < waitingControls.brows.asymmetry);
 
 const streamingSnapshot = { state: PresenceState.STREAMING };
 const streamingControls = faceControlsForPresence(streamingSnapshot);
@@ -373,6 +387,8 @@ assert.ok(freshTokenStreamingReport.decisions.posture.control.energy > streaming
 assert.ok(freshTokenStreamingReport.decisions.gaze.control.x > streamingControls.gaze.x);
 assert.ok(freshTokenStreamingReport.decisions.gaze.control.y > streamingControls.gaze.y);
 assert.ok(freshTokenStreamingReport.decisions.gaze.control.focus > streamingControls.gaze.focus);
+assert.ok(freshTokenStreamingReport.decisions.brows.control.lift > streamingControls.brows.lift);
+assert.ok(freshTokenStreamingReport.decisions.brows.control.pinch < streamingControls.brows.pinch);
 
 const speakingSnapshot = { state: PresenceState.SPEAKING };
 const speakingControls = faceControlsForPresence(speakingSnapshot);
@@ -405,6 +421,9 @@ const freshInterruptReport = faceControllerDecisionsForPresence({
 assert.ok(freshInterruptReport.decisions.gaze.control.x < interruptedControls.gaze.x);
 assert.ok(freshInterruptReport.decisions.gaze.control.y < interruptedControls.gaze.y);
 assert.ok(freshInterruptReport.decisions.gaze.control.focus > interruptedControls.gaze.focus);
+assert.ok(freshInterruptReport.decisions.brows.control.lift < interruptedControls.brows.lift);
+assert.ok(freshInterruptReport.decisions.brows.control.pinch > interruptedControls.brows.pinch);
+assert.ok(freshInterruptReport.decisions.brows.control.asymmetry > interruptedControls.brows.asymmetry);
 
 const readySnapshot = {
   state: PresenceState.READY,
