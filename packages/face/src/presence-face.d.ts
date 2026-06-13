@@ -1,4 +1,4 @@
-import type { PresenceControlInputs, PresenceSnapshot, PresenceStateValue } from "@ai-presence/core";
+import type { PresenceControlInputs, PresenceLatencyPhase, PresenceSnapshot, PresenceStateValue } from "@ai-presence/core";
 
 export declare const FaceExpression: Readonly<{
   IDLE: "idle";
@@ -231,6 +231,12 @@ export interface PresenceFaceSvgAttributes {
   postureLean: string;
   motionEnergy: string;
   motionScale: string;
+  decisionTrace: "complete" | "incomplete";
+  decisionTraceChannels: string;
+  decisionTraceDecisions: string;
+  decisionTraceWarnings: string;
+  decisionTraceRendererSafe: "true" | "false";
+  latencyPhase?: PresenceLatencyPhase;
 }
 
 export interface PresenceFaceSvgRenderResult {
@@ -241,6 +247,7 @@ export interface PresenceFaceSvgRenderResult {
   frameReport: FaceControllerFrameReport;
   attributes: PresenceFaceSvgAttributes;
   channelEvidence: PresenceFaceSvgChannelEvidenceMap;
+  decisionTrace: FaceControllerDecisionTrace;
 }
 
 export interface FaceControls {

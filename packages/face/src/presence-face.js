@@ -1235,6 +1235,21 @@
     return Object.freeze(evidence);
   }
 
+  function serializeDecisionTraceAttributes(report, decisionTrace) {
+    const latencyPhase = typeof report.sharedInputs?.latencyPhase === "string"
+      ? report.sharedInputs.latencyPhase
+      : null;
+
+    return Object.freeze({
+      decisionTrace: decisionTrace.complete ? "complete" : "incomplete",
+      decisionTraceChannels: decisionTrace.channels.join(" "),
+      decisionTraceDecisions: String(decisionTrace.decisionCount),
+      decisionTraceWarnings: String(decisionTrace.warningCount),
+      decisionTraceRendererSafe: String(decisionTrace.rendererSafe),
+      ...(latencyPhase ? { latencyPhase } : {}),
+    });
+  }
+
   function mouthPathForFrame(mouth) {
     const centerY = 126 + mouth.tension * 6 - mouth.openness * 8 - mouth.beat * 4;
     const open = mouth.openness * 18 + mouth.beat * 10;
@@ -1270,6 +1285,8 @@
     const browPinch = frame.brows.pinch * 8;
     const browAsymmetry = frame.brows.asymmetry * 6;
     const mouthPath = mouthPathForFrame(frame.mouth);
+    const decisionTrace = faceControllerDecisionTraceForFrame(report);
+    const traceAttributes = serializeDecisionTraceAttributes(report, decisionTrace);
     const attributes = Object.freeze({
       state: report.state,
       expression: report.expression,
@@ -1281,6 +1298,7 @@
       postureLean: formatSvgNumber(frame.posture.lean),
       motionEnergy: formatSvgNumber(frame.motion.energy),
       motionScale: formatSvgNumber(resolveMotionScale(options), 1),
+      ...traceAttributes,
     });
     const channelEvidence = serializeChannelEvidence(report);
     const rootAttributes = {
@@ -1301,6 +1319,12 @@
       "data-posture-lean": attributes.postureLean,
       "data-motion-energy": attributes.motionEnergy,
       "data-motion-scale": attributes.motionScale,
+      "data-face-decision-trace": attributes.decisionTrace,
+      "data-face-decision-trace-channels": attributes.decisionTraceChannels,
+      "data-face-decision-trace-decisions": attributes.decisionTraceDecisions,
+      "data-face-decision-trace-warnings": attributes.decisionTraceWarnings,
+      "data-face-decision-trace-renderer-safe": attributes.decisionTraceRendererSafe,
+      "data-face-latency-phase": attributes.latencyPhase,
     };
     const svg = [
       `<svg${svgAttrs(rootAttributes)}>`,
@@ -1326,6 +1350,7 @@
       frameReport: report,
       attributes,
       channelEvidence,
+      decisionTrace,
     });
   }
 

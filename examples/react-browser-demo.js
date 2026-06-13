@@ -15,8 +15,6 @@
   const { PresenceEvent, createPresenceRuntime } = PresenceCore;
   const { createVercelAISDKAdapter } = PresenceAdapters;
   const {
-    faceControllerDecisionTraceForFrame,
-    faceControllerFrameForPresence,
     faceExpressionForPresence,
     renderPresenceFaceSvg,
   } = PresenceFace;
@@ -153,8 +151,6 @@
       now: frameTimeMs,
       timeMs: frameTimeMs,
     };
-    const frameReport = faceControllerFrameForPresence(snapshot, frameOptions);
-    const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
     const renderedFace = renderPresenceFaceSvg(snapshot, {
       className: "react-face",
       ...frameOptions,
@@ -170,12 +166,12 @@
         "data-face-svg-channels": renderedFace.attributes.channels,
         "data-face-svg-frame-time": String(frameTimeMs),
         "data-face-svg-motion-energy": renderedFace.attributes.motionEnergy,
-        "data-face-decision-trace": decisionTrace.complete ? "complete" : "incomplete",
-        "data-face-decision-trace-channels": decisionTrace.channels.join(" "),
-        "data-face-decision-trace-decisions": String(decisionTrace.decisionCount),
-        "data-face-decision-trace-warnings": String(decisionTrace.warningCount),
-        "data-face-decision-trace-renderer-safe": String(decisionTrace.rendererSafe),
-        "data-face-latency-phase": frameReport.sharedInputs?.latencyPhase || "unknown",
+        "data-face-decision-trace": renderedFace.attributes.decisionTrace,
+        "data-face-decision-trace-channels": renderedFace.attributes.decisionTraceChannels,
+        "data-face-decision-trace-decisions": renderedFace.attributes.decisionTraceDecisions,
+        "data-face-decision-trace-warnings": renderedFace.attributes.decisionTraceWarnings,
+        "data-face-decision-trace-renderer-safe": renderedFace.attributes.decisionTraceRendererSafe,
+        "data-face-latency-phase": renderedFace.attributes.latencyPhase || "unknown",
         "data-renderer-slot-face": "",
         dangerouslySetInnerHTML: { __html: renderedFace.svg },
       },

@@ -116,6 +116,8 @@ presence.send(PresenceEvent.SUBMIT);
 
 const expression = faceExpressionForPresence(presence.getSnapshot());
 const renderedFace = renderPresenceFaceSvg(presence.getSnapshot(), { timeMs: Date.now() });
+console.log(renderedFace.decisionTrace.decisionCount); // 6
+console.log(renderedFace.attributes.decisionTrace); // "complete"
 ```
 
 Trace usage:

@@ -418,13 +418,31 @@ const laterSvg = renderPresenceFaceSvg({
 assert.equal(earlySvg.state, PresenceState.WAITING);
 assert.equal(earlySvg.expression, FaceExpression.LISTENING);
 assert.equal(earlySvg.attributes.channels, FACE_CONTROL_CHANNELS.join(" "));
+assert.equal(earlySvg.attributes.decisionTrace, "complete");
+assert.equal(earlySvg.attributes.decisionTraceChannels, FACE_CONTROL_CHANNELS.join(" "));
+assert.equal(earlySvg.attributes.decisionTraceDecisions, "6");
+assert.equal(earlySvg.attributes.decisionTraceWarnings, "0");
+assert.equal(earlySvg.attributes.decisionTraceRendererSafe, "true");
+assert.equal(earlySvg.attributes.latencyPhase, "before-output");
 assert.match(earlySvg.svg, /^<svg/);
 assert.match(earlySvg.svg, /data-presence-state="waiting"/);
 assert.match(earlySvg.svg, /data-face-channels="gaze blink brows mouth posture motion"/);
 assert.match(earlySvg.svg, /data-gaze-target="response-origin"/);
+assert.match(earlySvg.svg, /data-face-decision-trace="complete"/);
+assert.match(earlySvg.svg, /data-face-decision-trace-channels="gaze blink brows mouth posture motion"/);
+assert.match(earlySvg.svg, /data-face-decision-trace-decisions="6"/);
+assert.match(earlySvg.svg, /data-face-decision-trace-warnings="0"/);
+assert.match(earlySvg.svg, /data-face-decision-trace-renderer-safe="true"/);
+assert.match(earlySvg.svg, /data-face-latency-phase="before-output"/);
 assert.match(earlySvg.svg, /waiting &quot;before-output&quot; face/);
 assert.equal(earlySvg.attributes.motionScale, "1");
 assert.match(earlySvg.svg, /data-motion-scale="1"/);
+assert.ok(Object.isFrozen(earlySvg.decisionTrace), "rendered SVG decision trace is frozen");
+assert.deepEqual(earlySvg.decisionTrace, faceControllerDecisionTraceForFrame(earlySvg.frameReport));
+assert.equal(earlySvg.decisionTrace.complete, true);
+assert.equal(earlySvg.decisionTrace.decisionCount, 6);
+assert.equal(earlySvg.decisionTrace.warningCount, 0);
+assert.equal(earlySvg.decisionTrace.rendererSafe, true);
 assert.deepEqual(Object.keys(earlySvg.channelEvidence), FACE_CONTROL_CHANNELS);
 for (const channel of FACE_CONTROL_CHANNELS) {
   assert.equal(earlySvg.channelEvidence[channel].controller, `${channel}-controller`);
@@ -453,8 +471,11 @@ const stillLaterSvg = renderPresenceFaceSvg({
 });
 assert.equal(stillEarlySvg.attributes.motionScale, "0");
 assert.match(stillEarlySvg.svg, /data-motion-scale="0"/);
+assert.equal(stillEarlySvg.attributes.decisionTrace, "complete");
+assert.match(stillEarlySvg.svg, /data-face-decision-trace="complete"/);
 assert.match(stillEarlySvg.svg, /data-face-channels="gaze blink brows mouth posture motion"/);
 assert.deepEqual(Object.keys(stillEarlySvg.channelEvidence), FACE_CONTROL_CHANNELS);
+assert.deepEqual(stillEarlySvg.decisionTrace, faceControllerDecisionTraceForFrame(stillEarlySvg.frameReport));
 assert.equal(stillEarlySvg.svg, stillLaterSvg.svg);
 assert.deepEqual(stillEarlySvg.frame, stillLaterSvg.frame);
 

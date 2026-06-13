@@ -39,6 +39,10 @@ assert.deepEqual(
   face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 2400, motionScale: 0 }).frame,
 );
 assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200 }).svg, /data-presence-state="thinking"/);
+assert.equal(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200 }).decisionTrace.decisionCount, 6);
+assert.equal(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200 }).attributes.decisionTrace, "complete");
+assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200 }).svg, /data-face-decision-trace="complete"/);
+assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200 }).svg, /data-face-latency-phase="before-output"/);
 assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1200, motionScale: 0 }).svg, /data-motion-scale="0"/);
 assert.deepEqual(face.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
@@ -112,6 +116,9 @@ try {
       "if (faceControllerDecisionTraceForFrame(faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600 })).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision trace mismatch');",
       "if (faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600, motionScale: 0 }).frame.mouth.beat !== 0) throw new Error('face still frame mismatch');",
       "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).svg.includes('data-face-channels=\"gaze blink brows mouth posture motion\"')) throw new Error('face svg mismatch');",
+      "if (renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).decisionTrace.decisionCount !== 6) throw new Error('face svg trace result mismatch');",
+      "if (renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).attributes.decisionTrace !== 'complete') throw new Error('face svg trace attribute mismatch');",
+      "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).svg.includes('data-face-decision-trace=\"complete\"')) throw new Error('face svg trace data mismatch');",
       "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600, motionScale: 0 }).svg.includes('data-motion-scale=\"0\"')) throw new Error('face still svg mismatch');",
       "if (typeof createPresenceReactBindings !== 'function') throw new Error('react export mismatch');",
       "let contextValue = null;",

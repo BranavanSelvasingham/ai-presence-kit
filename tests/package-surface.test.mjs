@@ -230,6 +230,9 @@ assert.equal(typeof faceGlobal.createFaceControllerFrameRuntime, "function");
 assert.equal(typeof faceGlobal.renderPresenceFaceSvg, "function");
 assert.deepEqual(faceGlobal.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 assert.match(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).svg, /data-presence-state="thinking"/);
+assert.match(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).svg, /data-face-decision-trace="complete"/);
+assert.equal(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).attributes.decisionTrace, "complete");
+assert.equal(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).decisionTrace.decisionCount, 6);
 assert.equal(faceGlobal.faceControllerFrameForPresence("waiting", { timeMs: 1200 }).coherence.rendererSafe, true);
 assert.equal(faceGlobal.faceControllerDecisionTraceForFrame(
   faceGlobal.faceControllerFrameForPresence("waiting", { timeMs: 1200 }),
@@ -290,6 +293,11 @@ assert.match(reactTypes, /usePresenceFrameTime/);
 const faceTypes = readFileSync(resolve(root, "packages/face/src/presence-face.d.ts"), "utf8");
 assert.match(faceTypes, /motionScale\?: number/);
 assert.match(faceTypes, /motionScale: string/);
+assert.match(faceTypes, /decisionTrace: "complete" \| "incomplete"/);
+assert.match(faceTypes, /decisionTraceChannels: string/);
+assert.match(faceTypes, /decisionTraceRendererSafe: "true" \| "false"/);
+assert.match(faceTypes, /latencyPhase\?: PresenceLatencyPhase/);
+assert.match(faceTypes, /decisionTrace: FaceControllerDecisionTrace/);
 assert.match(faceTypes, /FaceControllerCoherence/);
 assert.match(faceTypes, /faceControllerCoherenceForFrame/);
 assert.match(faceTypes, /FaceControllerDecisionTrace/);
@@ -317,6 +325,8 @@ assert.match(rootReadme, /data-face-latency-phase="before-output"/);
 const faceReadme = readFileSync(resolve(root, "packages/face/README.md"), "utf8");
 assert.match(faceReadme, /motionScale/);
 assert.match(faceReadme, /reduced motion/);
+assert.match(faceReadme, /renderer-owned decision-trace evidence/);
+assert.match(faceReadme, /data-face-decision-trace\*/);
 assert.doesNotMatch(faceReadme, /emotion[- ]detection|private emotion/i);
 
 const reactReadme = readFileSync(resolve(root, "packages/react/README.md"), "utf8");
