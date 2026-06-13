@@ -35,6 +35,7 @@ for (const requiredFile of [
 }
 
 const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+assert.equal(rootManifest.description, "Low-latency facial presence engine for AI interfaces.");
 assert.match(rootManifest.scripts.check, /scripts\/pack-dry-run\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-package-names\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-npm-scope\.mjs/);
@@ -114,6 +115,7 @@ const packages = [
   {
     dir: "packages/core",
     name: "@ai-presence/core",
+    description: "Renderer-agnostic presence state runtime for AI interfaces.",
     types: "src/presence-core.d.ts",
     exports: [
       "createPresenceControlInputRuntime",
@@ -127,6 +129,7 @@ const packages = [
   {
     dir: "packages/face",
     name: "@ai-presence/face",
+    description: "SVG reference face renderer with parallel presence controllers.",
     types: "src/presence-face.d.ts",
     exports: [
       "FACE_CONTROL_CHANNELS",
@@ -144,12 +147,14 @@ const packages = [
   {
     dir: "packages/adapters",
     name: "@ai-presence/adapters",
+    description: "Runtime signal adapters for AI Presence Kit.",
     types: "src/runtime-adapter.d.ts",
     exports: ["createVercelAISDKAdapter", "createOpenAIRealtimeAdapter", "createChatEventAdapter"],
   },
   {
     dir: "packages/react",
     name: "@ai-presence/react",
+    description: "React bindings for AI Presence Kit presence runtimes.",
     types: "src/presence-react.d.ts",
     exports: ["createPresenceReactBindings"],
   },
@@ -159,6 +164,7 @@ for (const packageInfo of packages) {
   const packagePath = resolve(root, packageInfo.dir);
   const manifest = JSON.parse(readFileSync(resolve(packagePath, "package.json"), "utf8"));
   assert.equal(manifest.name, packageInfo.name);
+  assert.equal(manifest.description, packageInfo.description);
   assert.equal(manifest.types, `./${packageInfo.types}`);
   assert.equal(manifest.module, "./dist/index.mjs");
   assert.equal(manifest.exports["."].import, "./dist/index.mjs");

@@ -1,7 +1,7 @@
 {
   "name": "@ai-presence/react",
   "version": "0.0.0",
-  "description": "React bindings for AI Presence Kit.",
+  "description": "React bindings for AI Presence Kit presence runtimes.",
   "type": "commonjs",
   "main": "./src/presence-react.js",
   "module": "./dist/index.mjs",
