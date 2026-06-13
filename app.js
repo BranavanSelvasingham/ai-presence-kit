@@ -327,6 +327,11 @@ const comparisonState = {
   beforeTokenRenderers: [],
   beforeTokenFrameSummary: "none",
   beforeTokenFrameChannels: "",
+  beforeTokenDecisionTraceStatus: "incomplete",
+  beforeTokenDecisionTraceChannels: "",
+  beforeTokenDecisionTraceDecisions: "0",
+  beforeTokenDecisionTraceWarnings: "0",
+  beforeTokenDecisionTraceRendererSafe: "false",
   genericBeforeTokenState: "idle",
 };
 
@@ -3540,11 +3545,25 @@ function uniqueComparisonValues(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function applyComparisonDecisionTraceBeforeTokenDataset(element) {
+  if (!element) return;
+  element.dataset.presenceDecisionTraceBeforeToken = comparisonState.beforeTokenDecisionTraceStatus;
+  element.dataset.presenceDecisionTraceBeforeTokenChannels = comparisonState.beforeTokenDecisionTraceChannels;
+  element.dataset.presenceDecisionTraceBeforeTokenDecisions = comparisonState.beforeTokenDecisionTraceDecisions;
+  element.dataset.presenceDecisionTraceBeforeTokenWarnings = comparisonState.beforeTokenDecisionTraceWarnings;
+  element.dataset.presenceDecisionTraceBeforeTokenRendererSafe = comparisonState.beforeTokenDecisionTraceRendererSafe;
+}
+
 function resetComparisonEvidence() {
   comparisonState.beforeTokenStates = [];
   comparisonState.beforeTokenRenderers = [];
   comparisonState.beforeTokenFrameSummary = "none";
   comparisonState.beforeTokenFrameChannels = "";
+  comparisonState.beforeTokenDecisionTraceStatus = "incomplete";
+  comparisonState.beforeTokenDecisionTraceChannels = "";
+  comparisonState.beforeTokenDecisionTraceDecisions = "0";
+  comparisonState.beforeTokenDecisionTraceWarnings = "0";
+  comparisonState.beforeTokenDecisionTraceRendererSafe = "false";
   comparisonState.genericBeforeTokenState = "idle";
   if (!comparisonDemo) return;
 
@@ -3561,10 +3580,12 @@ function resetComparisonEvidence() {
   comparisonDemo.dataset.presenceFrameBeforeToken = "false";
   comparisonDemo.dataset.presenceFrameBeforeTokenChannels = "";
   comparisonDemo.dataset.presenceFrameBeforeTokenSummary = "none";
+  applyComparisonDecisionTraceBeforeTokenDataset(comparisonDemo);
   if (compareFace) {
     compareFace.dataset.presenceBeforeTokenStates = "";
     compareFace.dataset.controllerFrameBeforeToken = "none";
     compareFace.dataset.controllerFrameBeforeTokenChannels = "";
+    applyComparisonDecisionTraceBeforeTokenDataset(compareFace);
   }
 }
 
@@ -3597,6 +3618,12 @@ function recordComparisonBeforeTokenEvidence() {
   if (frameChannels.length) {
     comparisonState.beforeTokenFrameSummary = frameSummary(frameReport);
     comparisonState.beforeTokenFrameChannels = frameChannels.join(" ");
+    const decisionTrace = controllerDecisionTraceEvidence(frameReport);
+    comparisonState.beforeTokenDecisionTraceStatus = decisionTrace.status;
+    comparisonState.beforeTokenDecisionTraceChannels = decisionTrace.channels;
+    comparisonState.beforeTokenDecisionTraceDecisions = decisionTrace.decisionCount;
+    comparisonState.beforeTokenDecisionTraceWarnings = decisionTrace.warningCount;
+    comparisonState.beforeTokenDecisionTraceRendererSafe = decisionTrace.rendererSafe;
   }
 
   const genericState = compareSpinnerState.textContent || "idle";
@@ -3611,10 +3638,12 @@ function recordComparisonBeforeTokenEvidence() {
   comparisonDemo.dataset.presenceFrameBeforeToken = String(frameChannels.length > 0);
   comparisonDemo.dataset.presenceFrameBeforeTokenChannels = comparisonState.beforeTokenFrameChannels;
   comparisonDemo.dataset.presenceFrameBeforeTokenSummary = comparisonState.beforeTokenFrameSummary;
+  applyComparisonDecisionTraceBeforeTokenDataset(comparisonDemo);
   if (compareFace) {
     compareFace.dataset.presenceBeforeTokenStates = comparisonState.beforeTokenStates.join(" ");
     compareFace.dataset.controllerFrameBeforeToken = comparisonState.beforeTokenFrameSummary;
     compareFace.dataset.controllerFrameBeforeTokenChannels = comparisonState.beforeTokenFrameChannels;
+    applyComparisonDecisionTraceBeforeTokenDataset(compareFace);
   }
 }
 

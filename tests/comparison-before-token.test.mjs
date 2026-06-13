@@ -17,6 +17,7 @@ const {
 } = require("../packages/adapters/src/runtime-adapter.js");
 const {
   FACE_CONTROL_CHANNELS,
+  faceControllerDecisionTraceForFrame,
   faceControllerFrameForPresence,
   faceExpressionForPresence,
 } = require("../packages/face/src/presence-face.js");
@@ -32,12 +33,18 @@ assert.match(app, /dataset\.presenceRendererBeforeToken/);
 assert.match(app, /dataset\.presenceFrameBeforeToken/);
 assert.match(app, /dataset\.presenceFrameBeforeTokenChannels/);
 assert.match(app, /dataset\.presenceFrameBeforeTokenSummary/);
+assert.match(app, /dataset\.presenceDecisionTraceBeforeToken/);
+assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenChannels/);
+assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenDecisions/);
+assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenWarnings/);
+assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenRendererSafe/);
 assert.match(app, /dataset\.genericBeforeToken/);
 assert.match(app, /dataset\.genericBeforeTokenState/);
 assert.match(app, /dataset\.genericBeforeTokenLoading/);
 assert.match(app, /recordComparisonBeforeTokenEvidence\(\);/);
 assert.match(app, /compareSpinnerResponse\.textContent/);
 assert.match(app, /comparisonTiming\.firstToken/);
+assert.match(app, /beforeTokenDecisionTraceStatus: "incomplete"/);
 
 let now = 0;
 const runtime = createPresenceRuntime({
@@ -99,6 +106,19 @@ assert.deepEqual(Object.keys(frameReport.frame), FACE_CONTROL_CHANNELS);
 for (const channel of FACE_CONTROL_CHANNELS) {
   assert.ok(frameReport.frame[channel], `pre-token frame has ${channel}`);
 }
+
+const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
+assert.deepEqual(decisionTrace.channels, FACE_CONTROL_CHANNELS);
+assert.equal(decisionTrace.complete, true);
+assert.equal(decisionTrace.decisionCount, FACE_CONTROL_CHANNELS.length);
+assert.equal(decisionTrace.warningCount, 0);
+assert.deepEqual(decisionTrace.warnings, []);
+assert.equal(decisionTrace.rendererSafe, true);
+assert.equal(decisionTrace.complete ? "complete" : "incomplete", "complete");
+assert.equal(decisionTrace.channels.join(" "), "gaze blink brows mouth posture motion");
+assert.equal(String(decisionTrace.decisionCount), "6");
+assert.equal(String(decisionTrace.warningCount), "0");
+assert.equal(String(decisionTrace.rendererSafe), "true");
 
 const token = sendAt(1400, {
   type: RuntimeSignal.TOKEN,
