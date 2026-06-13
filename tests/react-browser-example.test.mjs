@@ -41,12 +41,26 @@ assert.match(script, /data-face-decision-trace-decisions/);
 assert.match(script, /data-face-decision-trace-warnings/);
 assert.match(script, /data-face-decision-trace-renderer-safe/);
 assert.match(script, /data-face-latency-phase/);
+assert.match(script, /data-face-previous-state/);
+assert.match(script, /data-face-transition-event/);
+assert.match(script, /data-face-transition-age-ms/);
+assert.match(script, /data-face-transition-context/);
+assert.match(script, /data-face-transition-controller-reads/);
+assert.match(script, /data-face-transition-controller-reads-event/);
+assert.match(script, /data-face-transition-controller-reads-age/);
 assert.match(script, /renderedFace\.attributes\.decisionTrace/);
 assert.match(script, /renderedFace\.attributes\.decisionTraceChannels/);
 assert.match(script, /renderedFace\.attributes\.decisionTraceDecisions/);
 assert.match(script, /renderedFace\.attributes\.decisionTraceWarnings/);
 assert.match(script, /renderedFace\.attributes\.decisionTraceRendererSafe/);
 assert.match(script, /renderedFace\.attributes\.latencyPhase/);
+assert.match(script, /renderedFace\.attributes\.previousState/);
+assert.match(script, /renderedFace\.attributes\.transitionEvent/);
+assert.match(script, /renderedFace\.attributes\.transitionAgeMs/);
+assert.match(script, /transitionEvidenceForRenderedFace\(renderedFace\)/);
+assert.match(script, /controllerReadChannels\(renderedFace\.decisionTrace, "transitionEvent"\)/);
+assert.match(script, /controllerReadChannels\(renderedFace\.decisionTrace, "transitionAgeMs"\)/);
+assert.match(script, /decisionTrace\.decisions\[channel\]\?\.reads/);
 assert.match(script, /data-renderer-slot-face/);
 assert.match(script, /@ai-presence\/face/);
 assert.doesNotMatch(script, /emotion/i);
@@ -66,6 +80,31 @@ assert.equal(thinkingFace.attributes.decisionTraceRendererSafe, "true");
 assert.equal(thinkingFace.attributes.latencyPhase, "before-output");
 assert.match(thinkingFace.svg, /data-face-decision-trace="complete"/);
 assert.match(thinkingFace.svg, /data-face-latency-phase="before-output"/);
+
+const freshTransitionFace = renderPresenceFaceSvg({
+  state: "waiting",
+  previousState: "thinking",
+  event: "stream-open",
+  updatedAt: 1000,
+}, {
+  now: 1000,
+  timeMs: 1000,
+});
+const freshTransitionReadChannels = freshTransitionFace.decisionTrace.channels.filter((channel) => {
+  const reads = freshTransitionFace.decisionTrace.decisions[channel].reads;
+  return reads.includes("transitionEvent") && reads.includes("transitionAgeMs");
+});
+assert.equal(freshTransitionFace.attributes.previousState, "thinking");
+assert.equal(freshTransitionFace.attributes.transitionEvent, "stream-open");
+assert.equal(freshTransitionFace.attributes.transitionAgeMs, "0");
+assert.deepEqual(freshTransitionFace.decisionTrace.transitionContext, {
+  previousState: "thinking",
+  transitionEvent: "stream-open",
+  transitionAgeMs: 0,
+});
+assert.deepEqual(freshTransitionReadChannels, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
+assert.match(freshTransitionFace.svg, /data-face-transition-event="stream-open"/);
+assert.match(freshTransitionFace.svg, /data-face-transition-age-ms="0"/);
 
 const renderedFace = renderPresenceFaceSvg("ready", { timeMs: 1000 });
 assert.match(renderedFace.svg, /data-face-channels="gaze blink brows mouth posture motion"/);
