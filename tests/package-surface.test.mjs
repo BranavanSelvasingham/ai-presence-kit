@@ -138,6 +138,7 @@ const packages = [
       "createFaceControllerRuntime",
       "createFaceRenderer",
       "faceControllerCoherenceForFrame",
+      "faceControllerDecisionTraceForFrame",
       "faceControllerFrameForPresence",
       "faceControllerDecisionsForPresence",
       "faceControlsForPresence",
@@ -184,12 +185,16 @@ for (const packageInfo of packages) {
 const faceGlobal = globalThis.AIPresenceFace;
 assert.equal(typeof faceGlobal.faceControllerDecisionsForPresence, "function");
 assert.equal(typeof faceGlobal.faceControllerCoherenceForFrame, "function");
+assert.equal(typeof faceGlobal.faceControllerDecisionTraceForFrame, "function");
 assert.equal(typeof faceGlobal.faceControllerFrameForPresence, "function");
 assert.equal(typeof faceGlobal.createFaceControllerFrameRuntime, "function");
 assert.equal(typeof faceGlobal.renderPresenceFaceSvg, "function");
 assert.deepEqual(faceGlobal.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 assert.match(faceGlobal.renderPresenceFaceSvg("thinking", { timeMs: 1200 }).svg, /data-presence-state="thinking"/);
 assert.equal(faceGlobal.faceControllerFrameForPresence("waiting", { timeMs: 1200 }).coherence.rendererSafe, true);
+assert.equal(faceGlobal.faceControllerDecisionTraceForFrame(
+  faceGlobal.faceControllerFrameForPresence("waiting", { timeMs: 1200 }),
+).decisionCount, 6);
 
 const coreApi = require(resolve(root, "packages/core"));
 let contextValue = null;
@@ -248,6 +253,8 @@ assert.match(faceTypes, /motionScale\?: number/);
 assert.match(faceTypes, /motionScale: string/);
 assert.match(faceTypes, /FaceControllerCoherence/);
 assert.match(faceTypes, /faceControllerCoherenceForFrame/);
+assert.match(faceTypes, /FaceControllerDecisionTrace/);
+assert.match(faceTypes, /faceControllerDecisionTraceForFrame/);
 
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
 assert.match(rootReadme, /usePresenceFrameTime/);
