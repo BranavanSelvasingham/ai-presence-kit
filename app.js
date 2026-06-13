@@ -721,6 +721,51 @@ function applyControllerCoherenceDataset(element, report = activeFaceFrameReport
   return evidence;
 }
 
+function controllerDecisionTraceForFrame(report = activeFaceFrameReport()) {
+  if (!report || typeof PresenceFace.faceControllerDecisionTraceForFrame !== "function") return null;
+  return PresenceFace.faceControllerDecisionTraceForFrame(report);
+}
+
+function controllerDecisionTraceEvidence(report = activeFaceFrameReport()) {
+  const trace = controllerDecisionTraceForFrame(report);
+  const channels = Array.isArray(trace?.channels) && trace.channels.length
+    ? trace.channels
+    : FACE_CONTROL_CHANNELS;
+  const channelText = channels.join(" ");
+  const decisionCount = Number.isFinite(Number(trace?.decisionCount)) ? Number(trace.decisionCount) : 0;
+  const warningCount = Number.isFinite(Number(trace?.warningCount))
+    ? Number(trace.warningCount)
+    : Array.isArray(trace?.warnings)
+      ? trace.warnings.length
+      : 0;
+  const rendererSafe = Boolean(trace?.rendererSafe);
+  const hasAllChannels = FACE_CONTROL_CHANNELS.every((channel) => channels.includes(channel));
+  const complete = Boolean(trace?.complete && hasAllChannels);
+
+  return {
+    status: complete ? "complete" : "incomplete",
+    channels: channelText,
+    decisionCount: String(decisionCount),
+    warningCount: String(warningCount),
+    rendererSafe: String(rendererSafe),
+    summary: trace
+      ? `rendererSafe:${rendererSafe ? "yes" : "no"} warnings:${warningCount} decisions:${decisionCount}/${FACE_CONTROL_CHANNELS.length} channels:${channels.length}/${FACE_CONTROL_CHANNELS.length}`
+      : "none",
+  };
+}
+
+function applyControllerDecisionTraceDataset(element, report = activeFaceFrameReport()) {
+  if (!element) return null;
+  const evidence = controllerDecisionTraceEvidence(report);
+  element.dataset.controllerDecisionTrace = evidence.status;
+  element.dataset.controllerDecisionTraceChannels = evidence.channels;
+  element.dataset.controllerDecisionTraceDecisions = evidence.decisionCount;
+  element.dataset.controllerDecisionTraceWarnings = evidence.warningCount;
+  element.dataset.controllerDecisionTraceRendererSafe = evidence.rendererSafe;
+  element.dataset.controllerDecisionTraceSummary = evidence.summary;
+  return evidence;
+}
+
 function decisionForChannel(report, channel) {
   return report?.decisions?.[channel] || null;
 }
@@ -780,6 +825,8 @@ function syncPresenceSnapshot(snapshot) {
   faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
   faceShell.dataset.controllerFrame = frameSummary();
   applyControllerCoherenceDataset(faceShell);
+  applyControllerDecisionTraceDataset(faceShell);
+  applyControllerDecisionTraceDataset(faceSvg);
   if (controls?.expression && controls.expression !== runtime.state) {
     setExpression(controls.expression, null, "face-controller", {
       immediate: snapshot.changed || controls.motion.settleMs <= 140,
@@ -844,6 +891,8 @@ function setPresence(level) {
       faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
       faceShell.dataset.controllerFrame = frameSummary();
       applyControllerCoherenceDataset(faceShell);
+      applyControllerDecisionTraceDataset(faceShell);
+      applyControllerDecisionTraceDataset(faceSvg);
     }
   }
   setExpression(runtime.state, null, runtime.expressionSource, { immediate: true });
@@ -909,6 +958,8 @@ function applyExpression(name, eventStartedAt = null, source = runtime.expressio
   faceShell.dataset.presence = runtime.presence;
   faceShell.dataset.controllerFrame = frameSummary();
   applyControllerCoherenceDataset(faceShell);
+  applyControllerDecisionTraceDataset(faceShell);
+  applyControllerDecisionTraceDataset(faceSvg);
   faceShell.style.setProperty("--face-tilt", `${tilt.toFixed(2)}deg`);
   faceShell.style.setProperty("--face-offset-x", `${frameOffsetX.toFixed(2)}px`);
   faceShell.style.setProperty("--face-offset-y", `${frameOffsetY.toFixed(2)}px`);
@@ -1661,6 +1712,9 @@ function renderFaceFrameMotion() {
   );
 
   faceShell.dataset.controllerFrame = frameSummary();
+  applyControllerCoherenceDataset(faceShell);
+  applyControllerDecisionTraceDataset(faceShell);
+  applyControllerDecisionTraceDataset(faceSvg);
   faceShell.style.setProperty("--face-tilt", `${tilt.toFixed(2)}deg`);
   faceShell.style.setProperty("--face-offset-x", `${frameOffsetX.toFixed(2)}px`);
   faceShell.style.setProperty("--face-offset-y", `${frameOffsetY.toFixed(2)}px`);
@@ -3139,13 +3193,20 @@ function createControllerFaceSvg(state, controls, options = {}) {
   return svg;
 }
 
-function createControllerChannelRow(channel, label, value, meterValue = null, decision = null) {
+function createControllerChannelRow(channel, label, value, meterValue = null, decision = null, decisionTrace = null) {
   const row = document.createElement("div");
   row.className = "controller-channel";
   row.dataset.channel = channel;
   if (decision) {
     row.dataset.controller = decision.controller;
     row.dataset.reads = controllerReadsText(decision);
+  }
+  if (decisionTrace) {
+    row.dataset.controllerDecisionTrace = decisionTrace.present && decisionTrace.bounded ? "complete" : "incomplete";
+    row.dataset.controllerDecisionTraceController = decisionTrace.controller || "none";
+    row.dataset.controllerDecisionTraceReads = controllerReadsText(decisionTrace);
+    row.dataset.controllerDecisionTraceWarnings = String(decisionTrace.warningCount || 0);
+    row.dataset.controllerDecisionTraceRendererSafe = String(Boolean(decisionTrace.rendererSafe));
   }
 
   const name = document.createElement("span");
@@ -3220,6 +3281,7 @@ function createControllerFrameStrip(state, samples) {
   strip.dataset.frameChannels = FACE_CONTROL_CHANNELS.join(",");
   strip.dataset.frameSequence = frameSequenceSummary(samples);
   applyControllerCoherenceDataset(strip, samples[0]?.report);
+  applyControllerDecisionTraceDataset(strip, samples[0]?.report);
 
   for (const [index, sample] of samples.entries()) {
     const controls = controlsFromFrameReport(sample.report);
@@ -3232,6 +3294,7 @@ function createControllerFrameStrip(state, samples) {
     item.dataset.controllerFrame = frameSummary(sample.report);
     item.dataset.frameChannels = FACE_CONTROL_CHANNELS.join(",");
     applyControllerCoherenceDataset(item, sample.report);
+    applyControllerDecisionTraceDataset(item, sample.report);
 
     const time = document.createElement("span");
     time.className = "controller-frame-time";
@@ -3256,6 +3319,7 @@ function createControllerFrameStrip(state, samples) {
 
 function createControllerGalleryCard(state, report, frameSamples = []) {
   const controls = controlsFromDecisionReport(report);
+  const decisionTrace = controllerDecisionTraceForFrame(frameSamples[0]?.report);
   const card = document.createElement("article");
   card.className = "controller-card";
   card.dataset.presenceState = state;
@@ -3270,6 +3334,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
   if (frameSamples[0]?.report) {
     card.dataset.controllerFrame = frameSummary(frameSamples[0].report);
     applyControllerCoherenceDataset(card, frameSamples[0].report);
+    applyControllerDecisionTraceDataset(card, frameSamples[0].report);
   }
 
   const title = document.createElement("h2");
@@ -3291,6 +3356,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
       `${controls.gaze.target} x ${signedNumber(controls.gaze.x)} y ${signedNumber(controls.gaze.y)} focus ${shortPercent(controls.gaze.focus)}%`,
       controls.gaze.focus,
       decisionForChannel(report, "gaze"),
+      decisionTrace?.decisions?.gaze,
     ),
     createControllerChannelRow(
       "blink",
@@ -3298,6 +3364,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
       `open ${shortPercent(controls.blink.openness)}% cadence ${Math.round(controls.blink.cadenceMs)}ms pulse ${controls.blink.pulse ? "yes" : "no"}`,
       controls.blink.openness,
       decisionForChannel(report, "blink"),
+      decisionTrace?.decisions?.blink,
     ),
     createControllerChannelRow(
       "brows",
@@ -3305,6 +3372,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
       `lift ${signedNumber(controls.brows.lift)} pinch ${signedNumber(controls.brows.pinch)} asym ${signedNumber(controls.brows.asymmetry)}`,
       clamp((controls.brows.pinch + 0.1) / 0.7, 0, 1),
       decisionForChannel(report, "brows"),
+      decisionTrace?.decisions?.brows,
     ),
     createControllerChannelRow(
       "mouth",
@@ -3312,6 +3380,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
       `${controls.mouth.shape} open ${shortPercent(controls.mouth.openness)}% activity ${shortPercent(controls.mouth.activity)}% tension ${shortPercent(controls.mouth.tension)}%`,
       controls.mouth.activity || controls.mouth.openness,
       decisionForChannel(report, "mouth"),
+      decisionTrace?.decisions?.mouth,
     ),
     createControllerChannelRow(
       "posture",
@@ -3319,6 +3388,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
       `lean ${signedNumber(controls.posture.lean)} turn ${signedNumber(controls.posture.turn)} recovery ${shortPercent(controls.posture.recovery)}%`,
       Math.abs(controls.posture.lean),
       decisionForChannel(report, "posture"),
+      decisionTrace?.decisions?.posture,
     ),
     createControllerChannelRow(
       "motion",
@@ -3326,6 +3396,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
       `energy ${shortPercent(controls.motion.energy)}% anticipation ${shortPercent(controls.motion.anticipation)}% recovery ${shortPercent(controls.motion.recovery)}%`,
       controls.motion.energy,
       decisionForChannel(report, "motion"),
+      decisionTrace?.decisions?.motion,
     ),
   );
 
@@ -5482,6 +5553,7 @@ function installRuntimeTestHarness() {
       controls: controlsSummary(),
       controllerComposition: controllerCompositionText(),
       controllerCoherence: controllerCoherenceEvidence(),
+      controllerDecisionTrace: controllerDecisionTraceEvidence(),
       faceControls: runtime.faceControls,
       faceDecisionReport: runtime.faceDecisionReport,
       faceFrameReport: runtime.faceFrameReport,
@@ -5615,6 +5687,7 @@ function renderMetrics() {
   metricControls.dataset.controllerEvidence = controllerEvidenceText(activeFaceControls(), activeFaceDecisionReport());
   metricControls.dataset.controllerFrame = frameSummary();
   applyControllerCoherenceDataset(metricControls);
+  applyControllerDecisionTraceDataset(metricControls);
   metricTrace.textContent = runtime.trace.length ? runtime.trace.join(" -> ") : "--";
   metricBenchmark.textContent = runtime.benchmark.summary;
 }
