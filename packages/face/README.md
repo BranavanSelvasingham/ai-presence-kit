@@ -43,6 +43,8 @@ renderer.setPosture(frameReport.frame.posture);
 console.log(frameReport.coherence.rendererSafe); // true
 console.log(faceControllerCoherenceForFrame(frameReport).channels); // ["gaze", "blink", "brows", "mouth", "posture", "motion"]
 console.log(decisionTrace.decisions.gaze.control.target); // "response-origin"
+console.log(decisionTrace.transitionContext);
+// { previousState: "ready", transitionEvent: "submit", transitionAgeMs: 80 }
 ```
 
 ```js
@@ -92,6 +94,11 @@ The controller does not claim hidden internal state. It stays grounded in observ
 ```js
 {
   channels: ["gaze", "blink", "brows", "mouth", "posture", "motion"],
+  transitionContext: {
+    previousState: "ready",
+    transitionEvent: "submit",
+    transitionAgeMs: 80
+  },
   decisionCount: 6,
   complete: true,
   rendererSafe: true,
@@ -113,7 +120,7 @@ The controller does not claim hidden internal state. It stays grounded in observ
 }
 ```
 
-Use the decision trace for debug UIs, tests, logs, and adapter smoke output that need to show which controller read which runtime fields without parsing full internal control objects. It is evidence for observable interaction posture, not a claim about hidden user or model state.
+Use the decision trace for debug UIs, tests, logs, and adapter smoke output that need to show which controller read which runtime fields without parsing full internal control objects or core trace history. `transitionContext` is renderer-owned evidence that a fresh `submit`, `stream-open`, `token`, or `interrupt` cue was available to micro-controllers such as blink. It is evidence for observable interaction posture, not a claim about hidden user or model state.
 
 The coherence audit proves the six independently decided channels compose into one renderer-consumable frame:
 
@@ -152,4 +159,4 @@ Use `faceControllerCoherenceForFrame(frameReport)` when auditing a saved or exte
 
 Pass `motionScale` when a downstream renderer needs reduced motion. `motionScale: 1` is the default live temporal behavior, `motionScale: 0` produces deterministic still frames across different `timeMs` values for the same snapshot/options, and values between `0` and `1` reduce temporal blink closure, drift, mouth beat, breath, anticipation/recovery kicks, and motion offsets. The option does not remove the six controller channels or their evidence; gaze target, blink baseline, brows, mouth shape, posture, and motion decisions remain available for custom renderers.
 
-`renderPresenceFaceSvg` is the no-DOM reference SVG surface. It calls `faceControllerFrameForPresence`, derives `faceControllerDecisionTraceForFrame` from that same frame report, returns a compact SVG string, and includes state, expression, frame data, six-channel evidence, and renderer-owned decision-trace evidence so downstream AI interfaces can inspect what drove the rendered posture without copying the browser demo internals. The SVG root mirrors the compact proof as `data-face-decision-trace*` attributes and includes `data-face-latency-phase` when shared control inputs provide it.
+`renderPresenceFaceSvg` is the no-DOM reference SVG surface. It calls `faceControllerFrameForPresence`, derives `faceControllerDecisionTraceForFrame` from that same frame report, returns a compact SVG string, and includes state, expression, frame data, six-channel evidence, and renderer-owned decision-trace evidence so downstream AI interfaces can inspect what drove the rendered posture without copying the browser demo internals. The SVG root mirrors the compact proof as `data-face-decision-trace*` attributes, includes `data-face-latency-phase` when shared control inputs provide it, and mirrors fresh transition evidence through `data-face-previous-state`, `data-face-transition-event`, and `data-face-transition-age-ms`.

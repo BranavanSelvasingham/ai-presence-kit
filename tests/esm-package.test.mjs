@@ -34,6 +34,25 @@ const transitionInputs = core.presenceControlInputsForSnapshot(runtime.getSnapsh
 assert.equal(transitionInputs.previousState, core.PresenceState.IDLE);
 assert.equal(transitionInputs.transitionEvent, core.PresenceEvent.SUBMIT);
 assert.equal(transitionInputs.transitionAgeMs, 5);
+const transitionFrame = face.faceControllerFrameForPresence(runtime.getSnapshot(), {
+  trace,
+  now: runtime.getSnapshot().updatedAt + 5,
+  timeMs: 1200,
+});
+assert.deepEqual(face.faceControllerDecisionTraceForFrame(transitionFrame).transitionContext, {
+  previousState: core.PresenceState.IDLE,
+  transitionEvent: core.PresenceEvent.SUBMIT,
+  transitionAgeMs: 5,
+});
+const transitionSvg = face.renderPresenceFaceSvg(runtime.getSnapshot(), {
+  trace,
+  now: runtime.getSnapshot().updatedAt + 5,
+  timeMs: 1200,
+});
+assert.equal(transitionSvg.attributes.previousState, core.PresenceState.IDLE);
+assert.equal(transitionSvg.attributes.transitionEvent, core.PresenceEvent.SUBMIT);
+assert.equal(transitionSvg.attributes.transitionAgeMs, "5");
+assert.match(transitionSvg.svg, /data-face-transition-event="submit"/);
 assert.equal(face.faceExpressionForPresence(runtime.getSnapshot()), face.FaceExpression.THINKING);
 assert.equal(face.faceControlsForPresence(runtime.getSnapshot()).gaze.target, "middle-distance");
 assert.equal(face.faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.gaze.controller, "gaze-controller");
@@ -119,6 +138,9 @@ try {
       "if (inputs.previousState !== PresenceState.THINKING) throw new Error('transition previous mismatch');",
       "if (inputs.transitionEvent !== PresenceEvent.TOKEN) throw new Error('transition event mismatch');",
       "if (inputs.transitionAgeMs !== 1) throw new Error('transition age mismatch');",
+      "const faceTrace = faceControllerDecisionTraceForFrame(faceControllerFrameForPresence(runtime.getSnapshot(), { trace, now: runtime.getSnapshot().updatedAt + 1, timeMs: 1600 }));",
+      "if (faceTrace.transitionContext.transitionEvent !== PresenceEvent.TOKEN) throw new Error('face trace transition event mismatch');",
+      "if (faceTrace.transitionContext.transitionAgeMs !== 1) throw new Error('face trace transition age mismatch');",
       "if (faceExpressionForPresence(runtime.getSnapshot()) !== FaceExpression.SPEAKING) throw new Error('face mismatch');",
       "if (faceControlsForPresence(runtime.getSnapshot()).mouth.shape !== 'speaking') throw new Error('face controls mismatch');",
       "if (faceControllerDecisionsForPresence(runtime.getSnapshot()).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision mismatch');",
@@ -131,6 +153,7 @@ try {
       "if (renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).decisionTrace.decisionCount !== 6) throw new Error('face svg trace result mismatch');",
       "if (renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).attributes.decisionTrace !== 'complete') throw new Error('face svg trace attribute mismatch');",
       "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).svg.includes('data-face-decision-trace=\"complete\"')) throw new Error('face svg trace data mismatch');",
+      "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { trace, now: runtime.getSnapshot().updatedAt + 1, timeMs: 1600 }).svg.includes('data-face-transition-event=\"token\"')) throw new Error('face svg transition data mismatch');",
       "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600, motionScale: 0 }).svg.includes('data-motion-scale=\"0\"')) throw new Error('face still svg mismatch');",
       "if (typeof createPresenceReactBindings !== 'function') throw new Error('react export mismatch');",
       "let contextValue = null;",
