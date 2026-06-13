@@ -145,6 +145,31 @@ export interface FaceControllerCoherence {
   warnings: readonly string[];
 }
 
+export type FaceControllerDecisionTraceSummaryValue = string | number | boolean | null;
+
+export interface FaceControllerDecisionTraceChannel {
+  channel: FaceControlChannel;
+  controller: string | null;
+  reads: readonly string[];
+  control: Readonly<Record<string, FaceControllerDecisionTraceSummaryValue>>;
+  frame: Readonly<Record<string, FaceControllerDecisionTraceSummaryValue>>;
+  present: boolean;
+  bounded: boolean;
+  rendererSafe: boolean;
+  warningCount: number;
+  warnings: readonly string[];
+}
+
+export interface FaceControllerDecisionTrace {
+  channels: readonly FaceControlChannel[];
+  decisionCount: number;
+  complete: boolean;
+  rendererSafe: boolean;
+  warningCount: number;
+  warnings: readonly string[];
+  decisions: Readonly<Record<FaceControlChannel, FaceControllerDecisionTraceChannel>>;
+}
+
 export interface FaceControllerDecision<TControl> {
   channel: FaceControlChannel;
   controller: string;
@@ -275,6 +300,9 @@ export declare function faceControllerDecisionsForPresence(
 export declare function faceControllerCoherenceForFrame(
   frameReport?: Partial<FaceControllerFrameReport> & Record<string, unknown>,
 ): FaceControllerCoherence;
+export declare function faceControllerDecisionTraceForFrame(
+  frameReport?: Partial<FaceControllerFrameReport> & Record<string, unknown>,
+): FaceControllerDecisionTrace;
 export declare function faceControllerFrameForPresence(
   snapshotOrState: PresenceSnapshot | PresenceStateValue,
   options?: FaceControlOptions,

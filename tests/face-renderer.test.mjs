@@ -16,6 +16,7 @@ const {
   createFaceControllerRuntime,
   createFaceRenderer,
   faceControllerCoherenceForFrame,
+  faceControllerDecisionTraceForFrame,
   faceControllerDecisionsForPresence,
   faceControllerFrameForPresence,
   faceControlsForPresence,
@@ -63,6 +64,55 @@ function assertFrameChannel(frame, channel) {
   }
 }
 
+function assertControllerDecisionTrace(frameReport) {
+  const trace = faceControllerDecisionTraceForFrame(frameReport);
+  const repeatedTrace = faceControllerDecisionTraceForFrame(frameReport);
+
+  assert.ok(Object.isFrozen(trace), "decision trace is frozen");
+  assert.ok(Object.isFrozen(trace.decisions), "decision trace decisions are frozen");
+  assert.deepEqual(trace, repeatedTrace);
+  assert.deepEqual(trace.channels, FACE_CONTROL_CHANNELS);
+  assert.deepEqual(Object.keys(trace.decisions), FACE_CONTROL_CHANNELS);
+  assert.equal(trace.decisionCount, 6);
+  assert.equal(trace.complete, true);
+  assert.equal(trace.rendererSafe, true);
+  assert.equal(trace.warningCount, 0);
+  assert.deepEqual(trace.warnings, []);
+
+  for (const channel of FACE_CONTROL_CHANNELS) {
+    const decisionTrace = trace.decisions[channel];
+    assert.ok(Object.isFrozen(decisionTrace), `${channel} decision trace is frozen`);
+    assert.ok(Object.isFrozen(decisionTrace.control), `${channel} control summary is frozen`);
+    assert.ok(Object.isFrozen(decisionTrace.frame), `${channel} frame summary is frozen`);
+    assert.equal(decisionTrace.channel, channel);
+    assert.equal(decisionTrace.controller, `${channel}-controller`);
+    assert.deepEqual(decisionTrace.reads, frameReport.decisions[channel].reads);
+    assert.ok(decisionTrace.reads.includes("state"), `${channel} trace reads shared state`);
+    assert.deepEqual(decisionTrace.frame, frameReport.coherence.channelReports[channel].summary);
+    assert.equal(decisionTrace.present, true);
+    assert.equal(decisionTrace.bounded, true);
+    assert.equal(decisionTrace.rendererSafe, true);
+    assert.equal(decisionTrace.warningCount, 0);
+    assert.deepEqual(decisionTrace.warnings, []);
+  }
+
+  assert.deepEqual(trace.decisions.gaze.control, {
+    target: frameReport.decisions.gaze.control.target,
+    x: Math.round(frameReport.decisions.gaze.control.x * 1000) / 1000,
+    y: Math.round(frameReport.decisions.gaze.control.y * 1000) / 1000,
+    focus: Math.round(frameReport.decisions.gaze.control.focus * 1000) / 1000,
+  });
+  assert.deepEqual(trace.decisions.motion.control, {
+    energy: Math.round(frameReport.decisions.motion.control.energy * 1000) / 1000,
+    drift: Math.round(frameReport.decisions.motion.control.drift * 1000) / 1000,
+    anticipation: Math.round(frameReport.decisions.motion.control.anticipation * 1000) / 1000,
+    recovery: Math.round(frameReport.decisions.motion.control.recovery * 1000) / 1000,
+    settleMs: Math.round(frameReport.decisions.motion.control.settleMs * 1000) / 1000,
+  });
+
+  return trace;
+}
+
 function assertControllerFrame(snapshot, options = {}) {
   const frameReport = faceControllerFrameForPresence(snapshot, options);
   const decisionReport = faceControllerDecisionsForPresence(snapshot, options);
@@ -104,6 +154,7 @@ function assertControllerFrame(snapshot, options = {}) {
   assert.ok(frameReport.frame.posture.breath >= 0 && frameReport.frame.posture.breath <= 1);
   assert.ok(frameReport.frame.motion.offsetX >= -1 && frameReport.frame.motion.offsetX <= 1);
   assert.ok(frameReport.frame.motion.offsetY >= -1 && frameReport.frame.motion.offsetY <= 1);
+  assertControllerDecisionTrace(frameReport);
 
   return frameReport;
 }
@@ -222,7 +273,7 @@ assert.equal(errorFrame.frame.mouth.shape, "downturned");
 assert.equal(errorFrame.coherence.summary.mouthShape, "downturned");
 assert.equal(errorFrame.coherence.rendererSafe, true);
 
-const invalidCoherence = faceControllerCoherenceForFrame({
+const invalidFrameReport = {
   decisions: {
     gaze: { channel: "gaze", controller: "gaze-controller", reads: ["state"] },
     blink: { channel: "blink", controller: "blink-controller", reads: ["state"] },
@@ -237,7 +288,8 @@ const invalidCoherence = faceControllerCoherenceForFrame({
     mouth: { shape: "speaking", openness: 0.4, activity: 0.8, tension: 0.1, beat: 0.2 },
     posture: { lean: 0, turn: 0, energy: 0.4, recovery: 0, breath: 0.5 },
   },
-});
+};
+const invalidCoherence = faceControllerCoherenceForFrame(invalidFrameReport);
 assert.ok(Object.isFrozen(invalidCoherence));
 assert.equal(invalidCoherence.complete, false);
 assert.equal(invalidCoherence.bounded, false);
@@ -251,6 +303,47 @@ assert.ok(invalidCoherence.warnings.includes("motion frame is missing"));
 assert.ok(invalidCoherence.warnings.includes("motion decision is missing"));
 assert.ok(invalidCoherence.warnings.includes("gaze.x must be finite -1..1"));
 assert.ok(invalidCoherence.warnings.includes("blink.cadenceMs must be finite 300..20000"));
+
+const invalidTrace = faceControllerDecisionTraceForFrame({
+  ...invalidFrameReport,
+  coherence: invalidCoherence,
+});
+assert.ok(Object.isFrozen(invalidTrace));
+assert.deepEqual(Object.keys(invalidTrace.decisions), FACE_CONTROL_CHANNELS);
+assert.equal(invalidTrace.decisionCount, 5);
+assert.equal(invalidTrace.complete, false);
+assert.equal(invalidTrace.rendererSafe, false);
+assert.equal(invalidTrace.warningCount, invalidCoherence.warnings.length);
+assert.deepEqual(invalidTrace.warnings, invalidCoherence.warnings);
+assert.equal(invalidTrace.decisions.gaze.present, true);
+assert.equal(invalidTrace.decisions.gaze.bounded, false);
+assert.equal(invalidTrace.decisions.gaze.rendererSafe, false);
+assert.equal(invalidTrace.decisions.gaze.control.x, null);
+assert.equal(invalidTrace.decisions.gaze.frame.x, null);
+assert.ok(invalidTrace.decisions.gaze.warnings.includes("gaze.x must be finite -1..1"));
+assert.equal(invalidTrace.decisions.motion.controller, null);
+assert.deepEqual(invalidTrace.decisions.motion.reads, []);
+assert.equal(invalidTrace.decisions.motion.present, false);
+assert.equal(invalidTrace.decisions.motion.rendererSafe, false);
+assert.ok(invalidTrace.decisions.motion.warnings.includes("motion frame is missing"));
+assert.ok(invalidTrace.decisions.motion.warnings.includes("motion decision is missing"));
+
+const missingTrace = faceControllerDecisionTraceForFrame();
+assert.deepEqual(missingTrace.channels, FACE_CONTROL_CHANNELS);
+assert.deepEqual(Object.keys(missingTrace.decisions), FACE_CONTROL_CHANNELS);
+assert.equal(missingTrace.decisionCount, 0);
+assert.equal(missingTrace.complete, false);
+assert.equal(missingTrace.rendererSafe, false);
+assert.ok(missingTrace.warningCount > 0);
+assert.equal(missingTrace.decisions.gaze.controller, null);
+assert.deepEqual(missingTrace.decisions.gaze.reads, []);
+assert.deepEqual(missingTrace.decisions.gaze.control, {
+  target: null,
+  x: null,
+  y: null,
+  focus: null,
+});
+assert.equal(missingTrace.decisions.gaze.present, false);
 
 const earlyFrame = faceControllerFrameForPresence({
   state: PresenceState.WAITING,
@@ -270,6 +363,10 @@ assert.deepEqual(earlyFrame.decisions, laterFrame.decisions);
 assert.deepEqual(earlyFrame.sharedInputs, laterFrame.sharedInputs);
 assert.notDeepEqual(earlyFrame.frame, laterFrame.frame);
 assert.notEqual(earlyFrame.frame.blink.phase, laterFrame.frame.blink.phase);
+assert.notDeepEqual(
+  faceControllerDecisionTraceForFrame(earlyFrame).decisions.blink.frame,
+  faceControllerDecisionTraceForFrame(laterFrame).decisions.blink.frame,
+);
 
 const stillEarlyFrame = faceControllerFrameForPresence({
   state: PresenceState.WAITING,
@@ -290,6 +387,10 @@ const stillLaterFrame = faceControllerFrameForPresence({
 assert.deepEqual(stillEarlyFrame.decisions, stillLaterFrame.decisions);
 assert.deepEqual(stillEarlyFrame.sharedInputs, stillLaterFrame.sharedInputs);
 assert.deepEqual(stillEarlyFrame.frame, stillLaterFrame.frame);
+assert.deepEqual(
+  faceControllerDecisionTraceForFrame(stillEarlyFrame),
+  faceControllerDecisionTraceForFrame(stillLaterFrame),
+);
 assert.equal(stillEarlyFrame.frame.gaze.driftX, 0);
 assert.equal(stillEarlyFrame.frame.gaze.driftY, 0);
 assert.equal(stillEarlyFrame.frame.mouth.beat, 0);

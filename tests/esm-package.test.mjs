@@ -33,6 +33,7 @@ assert.equal(face.faceControllerDecisionsForPresence(runtime.getSnapshot()).deci
 assert.equal(face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200 }).frame.mouth.shape, "pressed");
 assert.equal(face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200 }).coherence.rendererSafe, true);
 assert.equal(face.faceControllerCoherenceForFrame(face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200 })).complete, true);
+assert.equal(face.faceControllerDecisionTraceForFrame(face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200 })).decisionCount, 6);
 assert.deepEqual(
   face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1200, motionScale: 0 }).frame,
   face.faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 2400, motionScale: 0 }).frame,
@@ -92,7 +93,7 @@ try {
       'import { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";',
       'import { presenceControlInputsForSnapshot } from "@ai-presence/core";',
       'import { RuntimeSignal, createRuntimeSignalAdapter } from "@ai-presence/adapters";',
-      'import { FaceExpression, faceControllerCoherenceForFrame, faceControllerDecisionsForPresence, faceControllerFrameForPresence, faceControlsForPresence, faceExpressionForPresence, renderPresenceFaceSvg } from "@ai-presence/face";',
+      'import { FaceExpression, faceControllerCoherenceForFrame, faceControllerDecisionTraceForFrame, faceControllerDecisionsForPresence, faceControllerFrameForPresence, faceControlsForPresence, faceExpressionForPresence, renderPresenceFaceSvg } from "@ai-presence/face";',
       'import { createPresenceReactBindings } from "@ai-presence/react";',
       "const runtime = createPresenceRuntime();",
       "const trace = createPresenceTrace({ limit: 4 });",
@@ -108,6 +109,7 @@ try {
       "if (faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600 }).frame.mouth.beat <= 0) throw new Error('face frame mismatch');",
       "if (!faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600 }).coherence.rendererSafe) throw new Error('face coherence mismatch');",
       "if (!faceControllerCoherenceForFrame(faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600 })).complete) throw new Error('face coherence helper mismatch');",
+      "if (faceControllerDecisionTraceForFrame(faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600 })).decisions.mouth.controller !== 'mouth-controller') throw new Error('face decision trace mismatch');",
       "if (faceControllerFrameForPresence(runtime.getSnapshot(), { timeMs: 1600, motionScale: 0 }).frame.mouth.beat !== 0) throw new Error('face still frame mismatch');",
       "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600 }).svg.includes('data-face-channels=\"gaze blink brows mouth posture motion\"')) throw new Error('face svg mismatch');",
       "if (!renderPresenceFaceSvg(runtime.getSnapshot(), { timeMs: 1600, motionScale: 0 }).svg.includes('data-motion-scale=\"0\"')) throw new Error('face still svg mismatch');",

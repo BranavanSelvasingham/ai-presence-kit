@@ -23,13 +23,18 @@ console.log(report.decisions.gaze.controller); // "gaze-controller"
 ```
 
 ```js
-import { faceControllerCoherenceForFrame, faceControllerFrameForPresence } from "@ai-presence/face";
+import {
+  faceControllerCoherenceForFrame,
+  faceControllerDecisionTraceForFrame,
+  faceControllerFrameForPresence,
+} from "@ai-presence/face";
 
 const frameReport = faceControllerFrameForPresence(snapshot, {
   trace,
   timeMs: performance.now(),
   motionScale: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1,
 });
+const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
 
 renderer.setGaze(frameReport.frame.gaze);
 renderer.setBlink(frameReport.frame.blink);
@@ -37,6 +42,7 @@ renderer.setPosture(frameReport.frame.posture);
 
 console.log(frameReport.coherence.rendererSafe); // true
 console.log(faceControllerCoherenceForFrame(frameReport).channels); // ["gaze", "blink", "brows", "mouth", "posture", "motion"]
+console.log(decisionTrace.decisions.gaze.control.target); // "response-origin"
 ```
 
 ```js
@@ -78,6 +84,34 @@ The controller does not claim hidden internal state. It stays grounded in observ
 ```
 
 `faceControllerFrameForPresence` returns the same report fields plus a frozen `frame` object and frozen `coherence` audit. The frame keeps controller decisions stable and adds bounded temporal values such as blink `phase`, mouth `beat`, posture `breath`, and motion offsets so renderers can animate interaction posture without adding their own timing policy.
+
+`faceControllerDecisionTraceForFrame(frameReport)` turns a frame report into bounded per-channel controller evidence. It keeps all six channels inspectable as local decisions before the composed frame is consumed by a renderer:
+
+```js
+{
+  channels: ["gaze", "blink", "brows", "mouth", "posture", "motion"],
+  decisionCount: 6,
+  complete: true,
+  rendererSafe: true,
+  warningCount: 0,
+  decisions: {
+    gaze: {
+      channel: "gaze",
+      controller: "gaze-controller",
+      reads: ["state", "detail.question", "attentionTarget", "..."],
+      control: { target: "response-origin", x: -0.08, y: -0.04, focus: 0.66 },
+      frame: { target: "response-origin", x: -0.079, y: -0.044, focus: 0.66, driftX: 0.007, driftY: -0.032 },
+      present: true,
+      bounded: true,
+      rendererSafe: true,
+      warningCount: 0,
+      warnings: []
+    }
+  }
+}
+```
+
+Use the decision trace for debug UIs, tests, logs, and adapter smoke output that need to show which controller read which runtime fields without parsing full internal control objects. It is evidence for observable interaction posture, not a claim about hidden user or model state.
 
 The coherence audit proves the six independently decided channels compose into one renderer-consumable frame:
 

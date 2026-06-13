@@ -938,12 +938,123 @@
       : null;
   }
 
+  function compactBoolean(value) {
+    return typeof value === "boolean" ? value : null;
+  }
+
+  function compactString(value) {
+    return typeof value === "string" ? value : null;
+  }
+
+  function compactSummaryRecord(summary) {
+    const compact = {};
+    if (!summary || typeof summary !== "object") return Object.freeze(compact);
+
+    for (const [key, value] of Object.entries(summary)) {
+      if (value === null || typeof value === "string" || typeof value === "boolean") {
+        compact[key] = value;
+      } else {
+        compact[key] = compactNumber(value);
+      }
+    }
+
+    return Object.freeze(compact);
+  }
+
+  function compactControlSummary(channel, control = {}) {
+    if (channel === "gaze") {
+      return Object.freeze({
+        target: compactString(control.target),
+        x: compactNumber(control.x),
+        y: compactNumber(control.y),
+        focus: compactNumber(control.focus),
+      });
+    }
+    if (channel === "blink") {
+      return Object.freeze({
+        openness: compactNumber(control.openness),
+        cadenceMs: compactNumber(control.cadenceMs),
+        pulse: compactBoolean(control.pulse),
+      });
+    }
+    if (channel === "brows") {
+      return Object.freeze({
+        lift: compactNumber(control.lift),
+        pinch: compactNumber(control.pinch),
+        asymmetry: compactNumber(control.asymmetry),
+      });
+    }
+    if (channel === "mouth") {
+      return Object.freeze({
+        shape: compactString(control.shape),
+        openness: compactNumber(control.openness),
+        activity: compactNumber(control.activity),
+        tension: compactNumber(control.tension),
+      });
+    }
+    if (channel === "posture") {
+      return Object.freeze({
+        lean: compactNumber(control.lean),
+        turn: compactNumber(control.turn),
+        energy: compactNumber(control.energy),
+        recovery: compactNumber(control.recovery),
+      });
+    }
+    return Object.freeze({
+      energy: compactNumber(control.energy),
+      drift: compactNumber(control.drift),
+      anticipation: compactNumber(control.anticipation),
+      recovery: compactNumber(control.recovery),
+      settleMs: compactNumber(control.settleMs),
+    });
+  }
+
   function freezeChannelCoherence(channel, present, bounded, summary, warnings) {
     return Object.freeze({
       channel,
       present,
       bounded,
       summary: Object.freeze(summary),
+      warnings: Object.freeze(warnings),
+    });
+  }
+
+  function hasCompleteChannelCoherenceReports(coherence) {
+    if (!coherence || typeof coherence !== "object") return false;
+    if (!coherence.channelReports || typeof coherence.channelReports !== "object") return false;
+    return FACE_CONTROL_CHANNELS.every((channel) => {
+      const report = coherence.channelReports[channel];
+      return report && typeof report === "object" && report.channel === channel;
+    });
+  }
+
+  function coherenceForDecisionTrace(frameReport) {
+    const existingCoherence = frameReport?.coherence;
+    return hasCompleteChannelCoherenceReports(existingCoherence)
+      ? existingCoherence
+      : faceControllerCoherenceForFrame(frameReport);
+  }
+
+  function freezeDecisionTraceChannel(channel, decision, channelCoherence) {
+    const warnings = Array.isArray(channelCoherence?.warnings)
+      ? [...channelCoherence.warnings]
+      : [];
+    const reads = Array.isArray(decision?.reads)
+      ? decision.reads.filter((read) => typeof read === "string")
+      : [];
+    const present = Boolean(channelCoherence?.present);
+    const bounded = Boolean(channelCoherence?.bounded);
+
+    return Object.freeze({
+      channel,
+      controller: typeof decision?.controller === "string" ? decision.controller : null,
+      reads: Object.freeze(reads),
+      control: compactControlSummary(channel, decision?.control),
+      frame: compactSummaryRecord(channelCoherence?.summary),
+      present,
+      bounded,
+      rendererSafe: present && bounded,
+      warningCount: warnings.length,
       warnings: Object.freeze(warnings),
     });
   }
@@ -1051,6 +1162,39 @@
       }),
       channelReports: Object.freeze(channelReports),
       warnings: Object.freeze(warnings),
+    });
+  }
+
+  function faceControllerDecisionTraceForFrame(frameReport = {}) {
+    const report = frameReport && typeof frameReport === "object" ? frameReport : {};
+    const decisions = report.decisions && typeof report.decisions === "object"
+      ? report.decisions
+      : {};
+    const coherence = coherenceForDecisionTrace(report);
+    const channelTraces = {};
+    let decisionCount = 0;
+
+    for (const channel of FACE_CONTROL_CHANNELS) {
+      const decision = decisions[channel];
+      if (decision && typeof decision === "object") decisionCount += 1;
+      channelTraces[channel] = freezeDecisionTraceChannel(
+        channel,
+        decision,
+        coherence.channelReports[channel],
+      );
+    }
+
+    const warnings = Array.isArray(coherence.warnings) ? [...coherence.warnings] : [];
+    const complete = Boolean(coherence.complete && decisionCount === FACE_CONTROL_CHANNELS.length);
+
+    return Object.freeze({
+      channels: FACE_CONTROL_CHANNELS,
+      decisionCount,
+      complete,
+      rendererSafe: Boolean(complete && coherence.rendererSafe),
+      warningCount: warnings.length,
+      warnings: Object.freeze(warnings),
+      decisions: Object.freeze(channelTraces),
     });
   }
 
@@ -1286,6 +1430,7 @@
     createFaceRenderer,
     renderPresenceFaceSvg,
     faceControllerCoherenceForFrame,
+    faceControllerDecisionTraceForFrame,
     faceControllerFrameForPresence,
     faceControllerDecisionsForPresence,
     faceControlsForPresence,
