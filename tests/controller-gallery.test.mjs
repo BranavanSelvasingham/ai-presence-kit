@@ -8,7 +8,7 @@ const root = resolve(new URL("..", import.meta.url).pathname);
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 const app = readFileSync(resolve(root, "app.js"), "utf8");
 const css = readFileSync(resolve(root, "styles.css"), "utf8");
-const { PresenceState } = require("../packages/core/src/presence-core.js");
+const { PresenceEvent, PresenceState } = require("../packages/core/src/presence-core.js");
 const {
   FACE_CONTROL_CHANNELS,
   faceControllerDecisionTraceForFrame,
@@ -36,6 +36,12 @@ assert.match(app, /controllerDecisionTraceForFrame/);
 assert.match(app, /controllerDecisionTraceEvidence/);
 assert.match(app, /applyControllerDecisionTraceDataset/);
 assert.match(app, /faceControllerDecisionTraceForFrame/);
+assert.match(app, /controllerGalleryTransitionCues/);
+assert.match(app, /CONTROLLER_TRANSITION_CUE_AGE_MS/);
+assert.match(app, /controllerTransitionCueEvidence/);
+assert.match(app, /applyControllerTransitionCueDataset/);
+assert.match(app, /applyControllerGalleryTransitionDataset/);
+assert.match(app, /createControllerTransitionCueCard/);
 assert.match(app, /dataset\.controller/);
 assert.match(app, /dataset\.reads/);
 assert.match(app, /dataset\.controllerComposition/);
@@ -53,6 +59,18 @@ assert.match(app, /dataset\.controllerDecisionTraceWarnings/);
 assert.match(app, /dataset\.controllerDecisionTraceRendererSafe/);
 assert.match(app, /dataset\.controllerDecisionTraceController/);
 assert.match(app, /dataset\.controllerDecisionTraceReads/);
+assert.match(app, /dataset\.transitionEvent/);
+assert.match(app, /dataset\.transitionAgeMs/);
+assert.match(app, /dataset\.transitionContext/);
+assert.match(app, /dataset\.transitionDecisionTrace/);
+assert.match(app, /dataset\.transitionDecisionTraceChannels/);
+assert.match(app, /dataset\.transitionDecisionTraceDecisions/);
+assert.match(app, /dataset\.transitionDecisionTraceWarnings/);
+assert.match(app, /dataset\.transitionDecisionTraceRendererSafe/);
+assert.match(app, /dataset\.transitionControllerReads/);
+assert.match(app, /dataset\.transitionControllerReadsEvent/);
+assert.match(app, /dataset\.transitionControllerReadsAge/);
+assert.match(app, /dataset\.transitionEvents/);
 assert.match(app, /CONTROLLER_FRAME_SAMPLE_OFFSETS/);
 assert.match(app, /createControllerFrameSequence/);
 assert.match(app, /createControllerFrameStrip/);
@@ -72,6 +90,9 @@ assert.match(app, /applyControllerDecisionTraceDataset\(faceSvg/);
 assert.match(app, /applyControllerDecisionTraceDataset\(metricControls/);
 assert.match(app, /applyControllerDecisionTraceDataset\(card/);
 assert.match(app, /applyControllerDecisionTraceDataset\(item/);
+assert.match(app, /applyControllerTransitionCueDataset\(card/);
+assert.match(app, /applyControllerGalleryTransitionDataset\(controllerGallery/);
+assert.match(app, /applyControllerGalleryTransitionDataset\(controllerGalleryGrid/);
 assert.match(css, /body\.controller-gallery-mode/);
 assert.match(css, /--face-offset-x/);
 assert.match(css, /--face-offset-y/);
@@ -98,6 +119,93 @@ assert.deepEqual(FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth", "pos
 for (const channel of FACE_CONTROL_CHANNELS) {
   assert.match(app, new RegExp(`"${channel}"`), `${channel} channel missing from gallery renderer`);
   assert.match(app, new RegExp(`${channel}:`), `${channel} channel missing from frame evidence`);
+}
+
+const transitionCueCases = [
+  {
+    event: PresenceEvent.SUBMIT,
+    state: PresenceState.THINKING,
+    previousState: PresenceState.READY,
+    previousEvent: PresenceEvent.RESPONSE_COMPLETE,
+  },
+  {
+    event: PresenceEvent.STREAM_OPEN,
+    state: PresenceState.WAITING,
+    previousState: PresenceState.THINKING,
+    previousEvent: PresenceEvent.SUBMIT,
+  },
+  {
+    event: PresenceEvent.TOKEN,
+    state: PresenceState.STREAMING,
+    previousState: PresenceState.WAITING,
+    previousEvent: PresenceEvent.STREAM_OPEN,
+  },
+  {
+    event: PresenceEvent.INTERRUPT,
+    state: PresenceState.INTERRUPTED,
+    previousState: PresenceState.STREAMING,
+    previousEvent: PresenceEvent.TOKEN,
+  },
+];
+
+for (const [index, cue] of transitionCueCases.entries()) {
+  const updatedAt = 3200 + index * 220;
+  const now = updatedAt + 80;
+  const snapshot = {
+    state: cue.state,
+    previousState: cue.previousState,
+    event: cue.event,
+    detail: { source: "controller-gallery", transitionCue: cue.event },
+    changed: true,
+    updatedAt,
+    version: 100 + index,
+  };
+  const cueHistory = [{
+    state: cue.previousState,
+    previousState: null,
+    event: cue.previousEvent,
+    detail: { source: "controller-gallery", transitionCueHistory: cue.event },
+    changed: true,
+    updatedAt: updatedAt - 180,
+    version: 99 + index,
+  }];
+  const report = faceControllerDecisionsForPresence(snapshot, { history: cueHistory, now });
+  const frameReport = faceControllerFrameForPresence(snapshot, {
+    history: cueHistory,
+    now,
+    timeMs: updatedAt,
+  });
+  const trace = faceControllerDecisionTraceForFrame(frameReport);
+
+  assert.equal(report.state, cue.state, `${cue.event} decision report state`);
+  assert.deepEqual(frameReport.decisions, report.decisions, `${cue.event} frame decisions match decision report`);
+  assert.deepEqual(trace.transitionContext, {
+    previousState: cue.previousState,
+    transitionEvent: cue.event,
+    transitionAgeMs: 80,
+  }, `${cue.event} transition context`);
+  assert.equal(trace.complete, true, `${cue.event} decision trace complete`);
+  assert.equal(trace.rendererSafe, true, `${cue.event} decision trace renderer safe`);
+  assert.equal(trace.warningCount, 0, `${cue.event} decision trace warning count`);
+  assert.deepEqual(trace.channels, FACE_CONTROL_CHANNELS, `${cue.event} decision trace channel order`);
+  assert.equal(trace.decisionCount, FACE_CONTROL_CHANNELS.length, `${cue.event} decision trace count`);
+  assert.equal(trace.complete ? "complete" : "incomplete", "complete", `${cue.event} DOM transition decision trace`);
+  assert.equal(trace.channels.join(" "), "gaze blink brows mouth posture motion", `${cue.event} DOM transition channels`);
+  assert.equal(String(trace.decisionCount), "6", `${cue.event} DOM transition decisions`);
+  assert.equal(String(trace.warningCount), "0", `${cue.event} DOM transition warnings`);
+  assert.equal(String(trace.rendererSafe), "true", `${cue.event} DOM transition renderer safe`);
+  assert.equal(`${cue.previousState} ${cue.event} ${trace.transitionContext.transitionAgeMs}`, `${cue.previousState} ${cue.event} 80`, `${cue.event} DOM transition context`);
+
+  for (const channel of FACE_CONTROL_CHANNELS) {
+    const decision = report.decisions[channel];
+    const channelTrace = trace.decisions[channel];
+    assert.ok(decision.reads.includes("transitionEvent"), `${cue.event} ${channel} decision reads transitionEvent`);
+    assert.ok(decision.reads.includes("transitionAgeMs"), `${cue.event} ${channel} decision reads transitionAgeMs`);
+    assert.ok(channelTrace.reads.includes("transitionEvent"), `${cue.event} ${channel} trace reads transitionEvent`);
+    assert.ok(channelTrace.reads.includes("transitionAgeMs"), `${cue.event} ${channel} trace reads transitionAgeMs`);
+    assert.equal(channelTrace.rendererSafe, true, `${cue.event} ${channel} trace renderer safe`);
+    assert.equal(channelTrace.warningCount, 0, `${cue.event} ${channel} trace warning count`);
+  }
 }
 
 const history = [];
