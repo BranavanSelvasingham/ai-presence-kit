@@ -126,7 +126,12 @@ console.log(renderedFace.attributes.decisionTrace); // "complete"
 Trace usage:
 
 ```js
-import { PresenceEvent, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";
+import {
+  PresenceEvent,
+  createPresenceRuntime,
+  createPresenceTrace,
+  summarizePresenceTrace,
+} from "@ai-presence/core";
 
 const trace = createPresenceTrace({ limit: 32 });
 const presence = createPresenceRuntime();
@@ -137,6 +142,7 @@ presence.send(PresenceEvent.STREAM_OPEN);
 presence.send(PresenceEvent.TOKEN);
 
 console.log(trace.getEntries().map((entry) => entry.state));
+console.log(summarizePresenceTrace(trace).firstOutputMs);
 ```
 
 Intended public packages:

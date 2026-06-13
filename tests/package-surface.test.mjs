@@ -69,6 +69,7 @@ assert.match(releasePolicy, /2026-06-12/);
 assert.match(releasePolicy, /scope/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
+assert.match(releaseReadiness, /summarizePresenceTrace/);
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
 assert.match(releaseReadiness, /faceControllerDecisionTraceForFrame/);
 assert.match(releaseReadiness, /faceControllerCoherenceForFrame|coherence evidence/);
@@ -115,6 +116,9 @@ assert.match(operatingManual, /Browser-smoke the reference, metrics, comparison,
 const goalLoop = readFileSync(resolve(root, "docs/GOAL_LOOP.md"), "utf8");
 assert.match(goalLoop, /2026-06-12/);
 assert.match(goalLoop, /npm run release:check-scope/);
+assert.match(goalLoop, /summarizePresenceTrace/);
+assert.match(goalLoop, /firstOutputMs/);
+assert.match(goalLoop, /leadMs/);
 
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
@@ -388,6 +392,8 @@ assert.match(faceTypes, /FaceControllerDecisionTrace/);
 assert.match(faceTypes, /faceControllerDecisionTraceForFrame/);
 
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
+assert.match(rootReadme, /summarizePresenceTrace/);
+assert.match(rootReadme, /firstOutputMs/);
 assert.match(rootReadme, /PresenceRendererSlot/);
 assert.match(rootReadme, /usePresenceFrameTime/);
 assert.match(rootReadme, /renderPresenceFaceSvg/);
