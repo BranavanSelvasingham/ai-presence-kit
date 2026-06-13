@@ -53,6 +53,20 @@ function renderTrace(collected) {
       const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
       const allChannelsReadState = FACE_CONTROL_CHANNELS.every((channel) =>
         decisionTrace.decisions[channel].reads.includes("state"));
+      const transitionReadCount = FACE_CONTROL_CHANNELS.filter((channel) => {
+        const reads = decisionTrace.decisions[channel].reads;
+        return reads.includes("transitionEvent") && reads.includes("transitionAgeMs");
+      }).length;
+      const allChannelsReadTransition = transitionReadCount === FACE_CONTROL_CHANNELS.length;
+      const context = decisionTrace.transitionContext || {};
+      const transitionAgeMs = Number.isFinite(Number(context.transitionAgeMs))
+        ? Math.round(Number(context.transitionAgeMs))
+        : "none";
+      const reads = [
+        allChannelsReadState ? "state" : "partial",
+        allChannelsReadTransition ? "transitionEvent" : "transitionEvent:partial",
+        allChannelsReadTransition ? "transitionAgeMs" : "transitionAgeMs:partial",
+      ].join(",");
 
       return [
         `${collected.label}:${entry.event}->${entry.state}+${entry.elapsedMs}ms`,
@@ -64,7 +78,9 @@ function renderTrace(collected) {
         `decisions=${decisionTrace.decisionCount}`,
         `safe=${decisionTrace.rendererSafe}`,
         `warnings=${decisionTrace.warningCount}`,
-        `reads=${allChannelsReadState ? "state" : "partial"}`,
+        `transition=${context.previousState || "none"}:${context.transitionEvent || "none"}+${transitionAgeMs}ms`,
+        `transitionReads=${transitionReadCount}/${FACE_CONTROL_CHANNELS.length}`,
+        `reads=${reads}`,
         `mouth=${frameReport.frame.mouth.shape}`,
         `motion=${frameReport.frame.motion.energy.toFixed(2)}`,
       ].join(" ");

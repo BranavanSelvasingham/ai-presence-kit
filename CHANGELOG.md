@@ -19,6 +19,7 @@
 - Added React browser renderer-slot DOM evidence for complete six-channel face decision traces and `data-face-latency-phase="before-output"` during the simulated pre-output turn.
 - Added controller-gallery transition-cue DOM evidence for fresh `submit`, `stream-open`, `token`, and `interrupt` cues across all six face controllers.
 - Added adapter demo decision-trace evidence for complete six-channel controller proof across Vercel AI SDK, OpenAI Realtime, and generic chat transitions.
+- Added adapter demo transition-read evidence showing adapter-driven transitions reach all six face controllers through `transitionEvent` and `transitionAgeMs`.
 - Added `npm run perf:face` for local package-level face-pipeline performance smoke evidence across all canonical presence states, including the full SVG reference renderer path.
 - Added `release:check-scope` to verify authenticated npm access to the `@ai-presence` scope before publishing.
 - Reframed the main objective around a low-latency facial presence engine driven by parallel micro-decisions.
