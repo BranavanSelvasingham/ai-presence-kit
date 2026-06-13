@@ -57,6 +57,8 @@ const result = renderPresenceFaceSvg(snapshot, {
 container.innerHTML = result.svg;
 console.log(result.channelEvidence.mouth.frame.shape);
 console.log(result.attributes.motionScale); // "0"
+console.log(result.decisionTrace.decisionCount); // 6
+console.log(result.attributes.decisionTrace); // "complete"
 ```
 
 The controller does not claim hidden internal state. It stays grounded in observable states such as `reading`, `thinking`, `waiting`, `streaming`, `speaking`, `interrupted`, and `ready`, then lets each facial subsystem make a small local decision from the shared snapshot and optional trace/history.
@@ -150,4 +152,4 @@ Use `faceControllerCoherenceForFrame(frameReport)` when auditing a saved or exte
 
 Pass `motionScale` when a downstream renderer needs reduced motion. `motionScale: 1` is the default live temporal behavior, `motionScale: 0` produces deterministic still frames across different `timeMs` values for the same snapshot/options, and values between `0` and `1` reduce temporal blink closure, drift, mouth beat, breath, anticipation/recovery kicks, and motion offsets. The option does not remove the six controller channels or their evidence; gaze target, blink baseline, brows, mouth shape, posture, and motion decisions remain available for custom renderers.
 
-`renderPresenceFaceSvg` is the no-DOM reference SVG surface. It calls `faceControllerFrameForPresence`, returns a compact SVG string, and includes state, expression, frame data, and six-channel evidence so downstream AI interfaces can inspect what drove the rendered posture without copying the browser demo internals.
+`renderPresenceFaceSvg` is the no-DOM reference SVG surface. It calls `faceControllerFrameForPresence`, derives `faceControllerDecisionTraceForFrame` from that same frame report, returns a compact SVG string, and includes state, expression, frame data, six-channel evidence, and renderer-owned decision-trace evidence so downstream AI interfaces can inspect what drove the rendered posture without copying the browser demo internals. The SVG root mirrors the compact proof as `data-face-decision-trace*` attributes and includes `data-face-latency-phase` when shared control inputs provide it.
