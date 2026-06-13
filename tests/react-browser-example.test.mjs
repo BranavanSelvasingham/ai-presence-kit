@@ -8,7 +8,11 @@ const root = resolve(new URL("..", import.meta.url).pathname);
 const html = readFileSync(resolve(root, "examples/react-browser.html"), "utf8");
 const script = readFileSync(resolve(root, "examples/react-browser-demo.js"), "utf8");
 const css = readFileSync(resolve(root, "examples/react-browser.css"), "utf8");
-const { renderPresenceFaceSvg } = require(resolve(root, "packages/face/src/presence-face.js"));
+const {
+  faceControllerDecisionTraceForFrame,
+  faceControllerFrameForPresence,
+  renderPresenceFaceSvg,
+} = require(resolve(root, "packages/face/src/presence-face.js"));
 
 assert.match(html, /node_modules\/react\/umd\/react\.production\.min\.js/);
 assert.match(html, /node_modules\/react-dom\/umd\/react-dom\.production\.min\.js/);
@@ -25,6 +29,8 @@ assert.match(script, /data-presence-phase/);
 assert.match(script, /data-presence-attention/);
 assert.match(script, /faceExpressionForPresence\(snapshot\)/);
 assert.match(script, /usePresenceFrameTime\(\)/);
+assert.match(script, /faceControllerFrameForPresence\(snapshot, frameOptions\)/);
+assert.match(script, /faceControllerDecisionTraceForFrame\(frameReport\)/);
 assert.match(script, /renderPresenceFaceSvg\(snapshot, \{/);
 assert.match(script, /now: frameTimeMs/);
 assert.match(script, /timeMs: frameTimeMs/);
@@ -34,9 +40,24 @@ assert.match(script, /data-face-svg-state/);
 assert.match(script, /data-face-svg-channels/);
 assert.match(script, /data-face-svg-frame-time/);
 assert.match(script, /data-face-svg-motion-energy/);
+assert.match(script, /data-face-decision-trace/);
+assert.match(script, /data-face-decision-trace-channels/);
+assert.match(script, /data-face-decision-trace-decisions/);
+assert.match(script, /data-face-decision-trace-warnings/);
+assert.match(script, /data-face-decision-trace-renderer-safe/);
+assert.match(script, /data-face-latency-phase/);
 assert.match(script, /data-renderer-slot-face/);
 assert.match(script, /@ai-presence\/face/);
 assert.doesNotMatch(script, /emotion/i);
+
+const frameReport = faceControllerFrameForPresence("thinking", { now: 1000, timeMs: 1000 });
+const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
+assert.equal(frameReport.sharedInputs.latencyPhase, "before-output");
+assert.equal(decisionTrace.complete, true);
+assert.deepEqual(decisionTrace.channels, ["gaze", "blink", "brows", "mouth", "posture", "motion"]);
+assert.equal(decisionTrace.decisionCount, 6);
+assert.equal(decisionTrace.warningCount, 0);
+assert.equal(decisionTrace.rendererSafe, true);
 
 const renderedFace = renderPresenceFaceSvg("ready", { timeMs: 1000 });
 assert.match(renderedFace.svg, /data-face-channels="gaze blink brows mouth posture motion"/);
