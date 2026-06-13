@@ -275,12 +275,23 @@ const reactApi = require(resolve(root, "packages/react"));
 const reactBindings = reactApi.createPresenceReactBindings(fakeReact);
 assert.equal(typeof reactBindings.usePresenceControlInputs, "function");
 assert.equal(typeof reactBindings.usePresenceFrameTime, "function");
+assert.equal(typeof reactBindings.PresenceRendererSlot, "function");
 reactBindings.defaultRuntime.send(coreApi.PresenceEvent.SUBMIT);
 assert.equal(reactBindings.usePresenceControlInputs().latencyPhase, "before-output");
+const reactSlot = reactBindings.PresenceRendererSlot({
+  frameOptions: { now: () => 1200 },
+  children: (slot) => slot,
+});
+assert.equal(reactSlot.snapshot.state, coreApi.PresenceState.THINKING);
+assert.equal(reactSlot.controlInputs.latencyPhase, "before-output");
+assert.equal(reactSlot.controlInputs.attentionTarget, "response");
+assert.equal(reactSlot.frameTimeMs, 1200);
+assert.equal(reactSlot.runtime, reactBindings.defaultRuntime);
 
 const reactEsmApi = await import(pathToFileURL(resolve(root, "packages/react/dist/index.mjs")).href);
 const reactEsmBindings = reactEsmApi.createPresenceReactBindings(fakeReact);
 assert.equal(typeof reactEsmBindings.usePresenceFrameTime, "function");
+assert.equal(typeof reactEsmBindings.PresenceRendererSlot, "function");
 assert.equal(reactEsmBindings.usePresenceFrameTime({ now: () => 1200 }), 1200);
 
 const reactTypes = readFileSync(resolve(root, "packages/react/src/presence-react.d.ts"), "utf8");
@@ -289,6 +300,9 @@ assert.match(reactTypes, /PresenceControlInputs/);
 assert.match(reactTypes, /usePresenceControlInputs/);
 assert.match(reactTypes, /PresenceFrameTimeOptions/);
 assert.match(reactTypes, /usePresenceFrameTime/);
+assert.match(reactTypes, /PresenceRendererSlotValue/);
+assert.match(reactTypes, /PresenceRendererSlotProps/);
+assert.match(reactTypes, /PresenceRendererSlot/);
 
 const faceTypes = readFileSync(resolve(root, "packages/face/src/presence-face.d.ts"), "utf8");
 assert.match(faceTypes, /motionScale\?: number/);
@@ -304,6 +318,7 @@ assert.match(faceTypes, /FaceControllerDecisionTrace/);
 assert.match(faceTypes, /faceControllerDecisionTraceForFrame/);
 
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
+assert.match(rootReadme, /PresenceRendererSlot/);
 assert.match(rootReadme, /usePresenceFrameTime/);
 assert.match(rootReadme, /renderPresenceFaceSvg/);
 assert.match(rootReadme, /npm run demo:adapters/);
@@ -330,6 +345,8 @@ assert.match(faceReadme, /data-face-decision-trace\*/);
 assert.doesNotMatch(faceReadme, /emotion[- ]detection|private emotion/i);
 
 const reactReadme = readFileSync(resolve(root, "packages/react/README.md"), "utf8");
+assert.match(reactReadme, /PresenceRendererSlot/);
+assert.match(reactReadme, /controlInputs/);
 assert.match(reactReadme, /usePresenceFrameTime/);
 assert.match(reactReadme, /Date\.now/);
 assert.doesNotMatch(reactReadme, /emotion[- ]detection|private emotion/i);

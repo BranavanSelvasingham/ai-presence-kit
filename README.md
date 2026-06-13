@@ -198,10 +198,13 @@ React binding usage:
 const {
   PresenceProvider,
   PresenceRenderer,
+  PresenceRendererSlot,
   usePresenceFrameTime,
   usePresenceSnapshot,
 } = AIPresenceReact.createPresenceReactBindings(React);
 ```
+
+`PresenceRendererSlot` gives custom React renderers the snapshot, shared control inputs, live frame time, and runtime in one render-prop payload while keeping the face renderer outside `@ai-presence/react`.
 
 `usePresenceFrameTime()` gives React renderers a small live millisecond clock. It is renderer-agnostic: a face, badge, waveform, or other surface can use it to advance temporal frames between presence state transitions.
 

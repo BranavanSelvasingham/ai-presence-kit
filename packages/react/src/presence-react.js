@@ -121,10 +121,44 @@
       return typeof children === "function" ? children(snapshot) : null;
     }
 
+    function presenceRendererSlotControlOptions(controlOptions, frameTimeMs) {
+      const slotControlOptions = controlOptions && typeof controlOptions === "object"
+        ? { ...controlOptions }
+        : {};
+      if (!Object.prototype.hasOwnProperty.call(slotControlOptions, "now")) {
+        slotControlOptions.now = frameTimeMs;
+      }
+      return slotControlOptions;
+    }
+
+    function PresenceRendererSlot({
+      runtime = null,
+      controlOptions = {},
+      frameOptions = {},
+      children,
+    }) {
+      const activeRuntime = runtime || usePresenceRuntime();
+      const snapshot = usePresenceSnapshot(activeRuntime);
+      const frameTimeMs = usePresenceFrameTime(frameOptions);
+      const controlInputs = usePresenceControlInputs(
+        activeRuntime,
+        presenceRendererSlotControlOptions(controlOptions, frameTimeMs),
+      );
+      const slot = Object.freeze({
+        snapshot,
+        controlInputs,
+        frameTimeMs,
+        runtime: activeRuntime,
+      });
+
+      return typeof children === "function" ? children(slot) : null;
+    }
+
     return Object.freeze({
       PresenceContext,
       PresenceProvider,
       PresenceRenderer,
+      PresenceRendererSlot,
       defaultRuntime,
       usePresenceControlInputs,
       usePresenceFrameTime,

@@ -118,35 +118,34 @@
   }
 
   function PresencePanel() {
-    const snapshot = bindings.usePresenceSnapshot();
-    const controlInputs = bindings.usePresenceControlInputs(null, { now: snapshot.updatedAt });
-    const expression = faceExpressionForPresence(snapshot);
-
     return React.createElement(
-      "article",
-      { className: "presence-panel", "data-rendered-state": snapshot.state },
-      React.createElement("p", { className: "eyebrow" }, "AI Presence Kit"),
-      React.createElement("h1", null, "React runtime"),
-      React.createElement(
-        bindings.PresenceRenderer,
-        null,
-        (renderSnapshot) => React.createElement(FaceRendererSlot, { snapshot: renderSnapshot }),
-      ),
-      React.createElement(
-        "dl",
-        { className: "presence-readout" },
-        React.createElement("div", null, React.createElement("dt", null, "State"), React.createElement("dd", { "data-presence-state": "" }, snapshot.state)),
-        React.createElement("div", null, React.createElement("dt", null, "Phase"), React.createElement("dd", { "data-presence-phase": "" }, controlInputs.latencyPhase)),
-        React.createElement("div", null, React.createElement("dt", null, "Attention"), React.createElement("dd", { "data-presence-attention": "" }, controlInputs.attentionTarget)),
-        React.createElement("div", null, React.createElement("dt", null, "Renderer"), React.createElement("dd", { "data-presence-expression": "" }, expression)),
-        React.createElement("div", null, React.createElement("dt", null, "Event"), React.createElement("dd", { "data-presence-event": "" }, snapshot.event)),
-      ),
-      React.createElement("output", { className: "renderer-slot", "data-renderer-slot": "" }, `slot:${snapshot.state}`),
+      bindings.PresenceRendererSlot,
+      null,
+      ({ snapshot, controlInputs, frameTimeMs }) => {
+        const expression = faceExpressionForPresence(snapshot);
+
+        return React.createElement(
+          "article",
+          { className: "presence-panel", "data-rendered-state": snapshot.state },
+          React.createElement("p", { className: "eyebrow" }, "AI Presence Kit"),
+          React.createElement("h1", null, "React runtime"),
+          React.createElement(FaceRendererSlot, { snapshot, frameTimeMs }),
+          React.createElement(
+            "dl",
+            { className: "presence-readout" },
+            React.createElement("div", null, React.createElement("dt", null, "State"), React.createElement("dd", { "data-presence-state": "" }, snapshot.state)),
+            React.createElement("div", null, React.createElement("dt", null, "Phase"), React.createElement("dd", { "data-presence-phase": "" }, controlInputs.latencyPhase)),
+            React.createElement("div", null, React.createElement("dt", null, "Attention"), React.createElement("dd", { "data-presence-attention": "" }, controlInputs.attentionTarget)),
+            React.createElement("div", null, React.createElement("dt", null, "Renderer"), React.createElement("dd", { "data-presence-expression": "" }, expression)),
+            React.createElement("div", null, React.createElement("dt", null, "Event"), React.createElement("dd", { "data-presence-event": "" }, snapshot.event)),
+          ),
+          React.createElement("output", { className: "renderer-slot", "data-renderer-slot": "" }, `slot:${snapshot.state}`),
+        );
+      },
     );
   }
 
-  function FaceRendererSlot({ snapshot }) {
-    const frameTimeMs = bindings.usePresenceFrameTime();
+  function FaceRendererSlot({ snapshot, frameTimeMs }) {
     const frameOptions = {
       now: frameTimeMs,
       timeMs: frameTimeMs,
