@@ -34,10 +34,25 @@ export interface PresenceFrameTimeOptions {
   now?: () => number;
 }
 
+export interface PresenceRendererSlotValue {
+  snapshot: PresenceSnapshot;
+  controlInputs: PresenceControlInputs;
+  frameTimeMs: number;
+  runtime: PresenceRuntime;
+}
+
+export interface PresenceRendererSlotProps {
+  runtime?: PresenceRuntime;
+  controlOptions?: PresenceControlInputOptions;
+  frameOptions?: PresenceFrameTimeOptions;
+  children?: (slot: PresenceRendererSlotValue) => unknown;
+}
+
 export interface PresenceReactBindings {
   PresenceContext: unknown;
   PresenceProvider(props: PresenceProviderProps): unknown;
   PresenceRenderer(props: PresenceRendererProps): unknown;
+  PresenceRendererSlot(props: PresenceRendererSlotProps): unknown;
   defaultRuntime: PresenceRuntime;
   usePresenceControlInputs(
     runtime?: PresenceRuntime | null,

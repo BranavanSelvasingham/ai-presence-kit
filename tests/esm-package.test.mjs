@@ -77,6 +77,7 @@ const fakeReact = {
 };
 const reactBindings = react.createPresenceReactBindings(fakeReact);
 assert.equal(typeof reactBindings.usePresenceControlInputs, "function");
+assert.equal(typeof reactBindings.PresenceRendererSlot, "function");
 reactBindings.defaultRuntime.send(core.PresenceEvent.SUBMIT);
 assert.equal(reactBindings.usePresenceControlInputs().attentionTarget, "response");
 
@@ -130,6 +131,7 @@ try {
       "};",
       "const bindings = createPresenceReactBindings(React, { runtime });",
       "if (bindings.usePresenceControlInputs().latencyPhase !== 'output') throw new Error('react hook mismatch');",
+      "if (typeof bindings.PresenceRendererSlot !== 'function') throw new Error('react slot mismatch');",
       "console.log('specifier import ok');",
       "",
     ].join("\n"),
