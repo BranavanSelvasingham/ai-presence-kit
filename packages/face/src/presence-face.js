@@ -65,7 +65,7 @@
     gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "ageMs"]),
     blink: Object.freeze(["state", "profile.blinkCadenceMs", "transitionEvent", "transitionAgeMs"]),
     brows: Object.freeze(["state", "detail.question", "detail.revision"]),
-    mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery"]),
+    mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery", "transitionEvent", "transitionAgeMs"]),
     posture: Object.freeze(["state", "energy", "recovery", "interruption", "latencyPhase"]),
     motion: Object.freeze(["state", "profile.drift", "profile.settleMs", "energy", "anticipation", "recovery", "speechActivity", "latencyPhase", "transitionEvent", "transitionAgeMs", "ageMs"]),
   });
@@ -83,6 +83,13 @@
     [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ x: -0.032, y: 0.012 }),
   });
   const MOTION_TRANSITION_RESPONSE_WINDOW_MS = 240;
+  const MOUTH_TRANSITION_RESPONSES = Object.freeze({
+    [PresenceEvent.SUBMIT || "submit"]: Object.freeze({ openness: 0.018, activity: 0.035, tension: 0.035 }),
+    [PresenceEvent.STREAM_OPEN || "stream-open"]: Object.freeze({ openness: 0.028, activity: 0.05, tension: -0.035 }),
+    [PresenceEvent.TOKEN || "token"]: Object.freeze({ openness: 0.035, activity: 0.06, tension: -0.025 }),
+    [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ openness: -0.018, activity: -0.035, tension: 0.08 }),
+  });
+  const MOUTH_TRANSITION_RESPONSE_WINDOW_MS = 220;
 
   function resolveCore(scope) {
     if (scope?.AIPresenceCore) return scope.AIPresenceCore;
@@ -247,6 +254,22 @@
       && Number.isFinite(ageMs)
       && ageMs >= 0
       && ageMs <= windowMs;
+  }
+
+  function transitionMouthResponse(inputs) {
+    const response = MOUTH_TRANSITION_RESPONSES[inputs?.transitionEvent];
+    const ageMs = Number(inputs?.transitionAgeMs);
+    if (!response || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > MOUTH_TRANSITION_RESPONSE_WINDOW_MS) {
+      return null;
+    }
+
+    const progress = clamp(ageMs / MOUTH_TRANSITION_RESPONSE_WINDOW_MS, 0, 1);
+    const envelope = (1 - progress) * (1 - progress);
+    return Object.freeze({
+      openness: response.openness * envelope,
+      activity: response.activity * envelope,
+      tension: response.tension * envelope,
+    });
   }
 
   function faceAttentionTarget(stateName, detail, inputs, fallback) {
@@ -602,6 +625,13 @@
     } else if (isReadyState(stateName) && recentlySpoke) {
       control.shape = "release";
       control.activity = 0.18;
+    }
+
+    const transitionMouth = transitionMouthResponse(inputs);
+    if (transitionMouth) {
+      control.openness = clamp(control.openness + transitionMouth.openness, 0, 1);
+      control.activity = clamp(control.activity + transitionMouth.activity, 0, 1);
+      control.tension = clamp(control.tension + transitionMouth.tension, 0, 1);
     }
 
     return control;

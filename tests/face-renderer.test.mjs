@@ -231,6 +231,8 @@ assert.equal(freshSubmitReport.sharedInputs.transitionEvent, PresenceEvent.SUBMI
 assert.equal(freshSubmitReport.sharedInputs.transitionAgeMs, 80);
 assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionAgeMs"));
+assert.ok(freshSubmitReport.decisions.mouth.reads.includes("transitionEvent"));
+assert.ok(freshSubmitReport.decisions.mouth.reads.includes("transitionAgeMs"));
 assert.ok(freshSubmitReport.decisions.motion.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.motion.reads.includes("transitionAgeMs"));
 assert.equal(freshSubmitReport.decisions.blink.control.pulse, true);
@@ -263,6 +265,7 @@ assert.equal(freshSubmitSvg.attributes.decisionTrace, "complete");
 assert.equal(freshSubmitSvg.attributes.decisionTraceDecisions, "6");
 assert.equal(freshSubmitSvg.attributes.decisionTraceWarnings, "0");
 assert.equal(freshSubmitSvg.attributes.decisionTraceRendererSafe, "true");
+assert.ok(freshSubmitSvg.channelEvidence.mouth.reads.includes("transitionEvent"));
 assert.ok(freshSubmitSvg.channelEvidence.motion.reads.includes("transitionEvent"));
 assert.equal(freshSubmitSvg.frame.motion.offsetY, freshSubmitFrame.frame.motion.offsetY);
 assert.match(freshSubmitSvg.svg, /data-face-previous-state="ready"/);
@@ -272,6 +275,10 @@ const staleSubmitControls = faceControlsForPresence(freshSubmitSnapshot, {
   now: 1300,
 });
 assert.equal(staleSubmitControls.blink.pulse, false);
+assert.equal(freshSubmitReport.decisions.mouth.control.shape, staleSubmitControls.mouth.shape);
+assert.ok(freshSubmitReport.decisions.mouth.control.openness > staleSubmitControls.mouth.openness);
+assert.ok(freshSubmitReport.decisions.mouth.control.activity > staleSubmitControls.mouth.activity);
+assert.ok(freshSubmitReport.decisions.mouth.control.tension > staleSubmitControls.mouth.tension);
 const staleSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
   now: 1300,
   timeMs: 1080,
@@ -283,6 +290,12 @@ const freshSubmitStillFrame = faceControllerFrameForPresence(freshSubmitSnapshot
   timeMs: 1080,
   motionScale: 0,
 });
+const freshSubmitStillLaterFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
+  now: 1080,
+  timeMs: 1900,
+  motionScale: 0,
+});
+assert.deepEqual(freshSubmitStillFrame.frame.mouth, freshSubmitStillLaterFrame.frame.mouth);
 assert.equal(freshSubmitStillFrame.frame.motion.offsetX, 0);
 assert.equal(freshSubmitStillFrame.frame.motion.offsetY, 0);
 
@@ -316,6 +329,18 @@ assert.ok(streamingFrame.coherence.summary.mouthActivity > waitingFrame.coherenc
 assert.equal(streamingControls.mouth.activity, streamingInputs.speechActivity);
 assert.ok(streamingControls.mouth.activity > waitingControls.mouth.activity);
 assert.ok(streamingControls.motion.energy > waitingControls.motion.energy);
+const freshTokenStreamingReport = faceControllerDecisionsForPresence({
+  state: PresenceState.STREAMING,
+  previousState: PresenceState.WAITING,
+  event: PresenceEvent.TOKEN,
+  updatedAt: 2000,
+}, {
+  now: 2040,
+});
+assert.equal(freshTokenStreamingReport.decisions.mouth.control.shape, "speaking");
+assert.ok(freshTokenStreamingReport.decisions.mouth.control.openness > streamingControls.mouth.openness);
+assert.ok(freshTokenStreamingReport.decisions.mouth.control.activity > streamingControls.mouth.activity);
+assert.ok(freshTokenStreamingReport.decisions.mouth.control.tension < streamingControls.mouth.tension);
 
 const speakingSnapshot = { state: PresenceState.SPEAKING };
 const speakingControls = faceControlsForPresence(speakingSnapshot);
