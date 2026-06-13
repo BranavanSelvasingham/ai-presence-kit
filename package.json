@@ -7,10 +7,11 @@
     "packages/*"
   ],
   "scripts": {
-    "check": "node --check app.js && node --check server.mjs && node --check scripts/pack-dry-run.mjs && node --check scripts/check-package-names.mjs && node --check scripts/check-npm-scope.mjs && node --check packages/core/src/presence-core.js && node --check packages/core/dist/index.mjs && node --check packages/face/src/presence-face.js && node --check packages/face/dist/index.mjs && node --check packages/adapters/src/runtime-adapter.js && node --check packages/adapters/dist/index.mjs && node --check packages/react/src/presence-react.js && node --check packages/react/dist/index.mjs && node --check examples/react-presence-demo.js && node --check examples/react-browser-demo.js",
+    "check": "node --check app.js && node --check server.mjs && node --check scripts/pack-dry-run.mjs && node --check scripts/check-package-names.mjs && node --check scripts/check-npm-scope.mjs && node --check scripts/benchmark-face-pipeline.mjs && node --check packages/core/src/presence-core.js && node --check packages/core/dist/index.mjs && node --check packages/face/src/presence-face.js && node --check packages/face/dist/index.mjs && node --check packages/adapters/src/runtime-adapter.js && node --check packages/adapters/dist/index.mjs && node --check packages/react/src/presence-react.js && node --check packages/react/dist/index.mjs && node --check examples/react-presence-demo.js && node --check examples/react-browser-demo.js",
     "demo:adapters": "node examples/adapter-demo.mjs",
     "demo:react": "node examples/react-presence-demo.js",
     "pack:dry-run": "node scripts/pack-dry-run.mjs",
+    "perf:face": "node scripts/benchmark-face-pipeline.mjs",
     "release:check-names": "node scripts/check-package-names.mjs",
     "release:check-scope": "node scripts/check-npm-scope.mjs",
     "test": "node tests/presence-core.test.mjs && node tests/face-renderer.test.mjs && node tests/runtime-adapter.test.mjs && node tests/adapter-demo.test.mjs && node tests/react-bindings.test.mjs && node tests/package-surface.test.mjs && node tests/esm-package.test.mjs && node tests/react-example.test.mjs && node tests/react-browser-example.test.mjs && node tests/controller-gallery.test.mjs && node tests/comparison-before-token.test.mjs",

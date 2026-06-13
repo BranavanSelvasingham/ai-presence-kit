@@ -68,6 +68,14 @@ npm run demo:react
 npm run pack:dry-run
 ```
 
+Recommended local face-pipeline performance smoke for controller latency work:
+
+```bash
+npm run perf:face
+```
+
+It measures shared presence snapshots across all canonical states through `faceControllerFrameForPresence` and `faceControllerDecisionTraceForFrame`, then fails on incomplete, renderer-unsafe, warning-bearing, or over-budget six-channel trace evidence. This is package-level latency evidence and is not currently part of the release-blocking `npm run validate` gate, browser smoke, or remote model latency probes.
+
 Also run `git diff --check` before committing.
 
 Then browser-smoke:

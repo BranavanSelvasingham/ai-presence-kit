@@ -252,6 +252,7 @@ Individual validation steps:
 
 ```bash
 npm run check
+npm run perf:face
 npm test
 npm run demo:adapters
 npm run demo:react
@@ -259,6 +260,8 @@ npm run pack:dry-run
 ```
 
 `npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`.
+
+`npm run perf:face` runs a local package-level smoke benchmark for the face controller pipeline. It creates shared presence snapshots across all canonical states, calls `faceControllerFrameForPresence`, derives `faceControllerDecisionTraceForFrame`, and fails if the complete six-channel renderer-safe trace exceeds the conservative `0.25ms` average frame+trace budget. This is local face-pipeline evidence, not a browser latency probe, OpenAI call, or release-blocking CI gate.
 
 Adapter source assumptions are tracked in `packages/adapters/README.md`.
 Release-readiness gates are tracked in `docs/RELEASE_READINESS.md`.
@@ -374,6 +377,7 @@ Core latency measures:
 - Interrupted response/speech work canceled on new input.
 - Compact event trace for the current input/turn.
 - Optional three-run latency probe for local read, speculation, stream open, first token, and completion.
+- Local package-level face controller frame+decision-trace average from `npm run perf:face`.
 - Early TTS request and first-audio timing when Speaker is enabled.
 - Attention, arousal, and commit signals from the local reflex layer.
 - Presence level, expression source, and active response lane.
@@ -432,6 +436,7 @@ Validation notes:
 - Core runtime subscriptions and the first React binding factory now support provider, snapshot hook, state hook, and renderer-slot patterns without adding a build step.
 - Each package now has npm-style manifests and TypeScript declaration files.
 - `npm run demo:adapters` prints adapter-to-presence traces, reference face frame evidence, and six-channel decision-trace evidence for the three starter adapter paths.
+- `npm run perf:face` prints compact package-level face-pipeline timing evidence across all canonical states while validating complete, renderer-safe, warning-free six-channel decision traces.
 - `npm pack --dry-run` passes for `@ai-presence/core`, `@ai-presence/face`, `@ai-presence/adapters`, and `@ai-presence/react` when using a writable npm cache.
 - React usage is covered by `examples/react-presence-demo.js`, `examples/react-browser.html`, `npm run demo:react`, `tests/react-example.test.mjs`, and `tests/react-browser-example.test.mjs`.
 - ESM import entrypoints now sit beside the CommonJS/browser-global source files for all four packages.

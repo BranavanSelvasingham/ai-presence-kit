@@ -29,6 +29,7 @@ for (const requiredFile of [
   "scripts/check-package-names.mjs",
   "scripts/check-npm-scope.mjs",
   "scripts/pack-dry-run.mjs",
+  "scripts/benchmark-face-pipeline.mjs",
   "VALIDATION.md",
 ]) {
   assert.ok(existsSync(resolve(root, requiredFile)), `${requiredFile} missing`);
@@ -39,7 +40,9 @@ assert.equal(rootManifest.description, "Low-latency facial presence engine for A
 assert.match(rootManifest.scripts.check, /scripts\/pack-dry-run\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-package-names\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-npm-scope\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
+assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
 assert.match(rootManifest.scripts.validate, /npm run check/);
@@ -74,8 +77,14 @@ assert.match(releaseReadiness, /renderPresenceFaceSvg/);
 assert.match(releaseReadiness, /data-controller-decision-trace/);
 assert.match(releaseReadiness, /usePresenceFrameTime/);
 assert.match(releaseReadiness, /before the first visible token/);
+assert.match(releaseReadiness, /npm run perf:face/);
+assert.match(releaseReadiness, /package-level latency evidence/);
 assert.match(releaseReadiness, /2026-06-12/);
 assert.match(releaseReadiness, /npm run release:check-scope/);
+
+const validation = readFileSync(resolve(root, "VALIDATION.md"), "utf8");
+assert.match(validation, /npm run perf:face/);
+assert.match(validation, /0\.25ms/);
 
 const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
 assert.match(operatingManual, /npm run release:check-names/);
@@ -93,6 +102,8 @@ assert.match(changelog, /renderPresenceFaceSvg/);
 assert.match(changelog, /motionScale/);
 assert.match(changelog, /data-controller-decision-trace/);
 assert.match(changelog, /adapter demo decision-trace evidence/);
+assert.match(changelog, /npm run perf:face/);
+assert.match(changelog, /face-pipeline benchmark validation/);
 assert.match(changelog, /release:check-scope/);
 assert.match(changelog, /adapter demo coverage/);
 assert.match(changelog, /usePresenceFrameTime/);
@@ -273,6 +284,8 @@ const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
 assert.match(rootReadme, /usePresenceFrameTime/);
 assert.match(rootReadme, /renderPresenceFaceSvg/);
 assert.match(rootReadme, /npm run demo:adapters/);
+assert.match(rootReadme, /npm run perf:face/);
+assert.match(rootReadme, /0\.25ms/);
 assert.match(rootReadme, /reference face frame evidence/);
 assert.match(rootReadme, /decision-trace evidence/);
 
