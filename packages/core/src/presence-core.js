@@ -200,6 +200,104 @@
     });
   }
 
+  function traceEntriesFromInput(traceOrEntries) {
+    if (Array.isArray(traceOrEntries)) return traceOrEntries;
+    if (traceOrEntries && typeof traceOrEntries.getEntries === "function") {
+      const entries = traceOrEntries.getEntries();
+      return Array.isArray(entries) ? entries : [];
+    }
+    if (traceOrEntries && typeof traceOrEntries.toJSON === "function") {
+      const entries = traceOrEntries.toJSON();
+      return Array.isArray(entries) ? entries : [];
+    }
+    return [];
+  }
+
+  function firstFiniteUpdatedAt(entries) {
+    for (const entry of entries) {
+      const updatedAt = Number(entry?.updatedAt);
+      if (Number.isFinite(updatedAt)) return updatedAt;
+    }
+    return null;
+  }
+
+  function elapsedMsForTraceEntry(entry, firstUpdatedAt) {
+    const elapsedMs = Number(entry?.elapsedMs);
+    if (Number.isFinite(elapsedMs)) return elapsedMs;
+
+    const updatedAt = Number(entry?.updatedAt);
+    if (Number.isFinite(updatedAt) && Number.isFinite(firstUpdatedAt)) {
+      return Math.max(0, updatedAt - firstUpdatedAt);
+    }
+
+    return null;
+  }
+
+  function pushUnique(values, value) {
+    if (value && !values.includes(value)) values.push(value);
+  }
+
+  function summarizePresenceTrace(traceOrEntries) {
+    const entries = traceEntriesFromInput(traceOrEntries);
+    const firstUpdatedAt = firstFiniteUpdatedAt(entries);
+    const states = [];
+    const events = [];
+    let firstStateMs = null;
+    let streamOpenMs = null;
+    let firstTokenMs = null;
+    let speechStartMs = null;
+    let firstOutputMs = null;
+    let firstOutputEvent = null;
+    let finalState = null;
+    let complete = false;
+
+    for (const entry of entries) {
+      const elapsedMs = elapsedMsForTraceEntry(entry, firstUpdatedAt);
+      const state = normalizePresenceState(entry?.state, null);
+      const event = typeof entry?.event === "string" && entry.event.length ? entry.event : null;
+
+      if (state) {
+        pushUnique(states, state);
+        finalState = state;
+        if (firstStateMs === null && elapsedMs !== null) firstStateMs = elapsedMs;
+      }
+
+      if (!event) continue;
+      pushUnique(events, event);
+
+      if (event === PresenceEvent.STREAM_OPEN && streamOpenMs === null) streamOpenMs = elapsedMs;
+      if (event === PresenceEvent.TOKEN && firstTokenMs === null) firstTokenMs = elapsedMs;
+      if (event === PresenceEvent.SPEECH_START && speechStartMs === null) speechStartMs = elapsedMs;
+      if ((event === PresenceEvent.TOKEN || event === PresenceEvent.SPEECH_START) && firstOutputEvent === null) {
+        firstOutputEvent = event;
+        firstOutputMs = elapsedMs;
+      }
+      if (event === PresenceEvent.RESPONSE_COMPLETE || event === PresenceEvent.SPEECH_END) {
+        complete = true;
+      }
+    }
+
+    const presenceBeforeOutputMs = firstStateMs !== null && firstOutputMs !== null && firstStateMs < firstOutputMs
+      ? firstOutputMs - firstStateMs
+      : null;
+
+    return Object.freeze({
+      entryCount: entries.length,
+      states: Object.freeze(states),
+      events: Object.freeze(events),
+      firstStateMs,
+      streamOpenMs,
+      firstTokenMs,
+      speechStartMs,
+      firstOutputMs,
+      firstOutputEvent,
+      presenceBeforeOutputMs,
+      finalState,
+      hasOutput: firstOutputEvent !== null,
+      complete,
+    });
+  }
+
   function normalizeSnapshotInput(snapshotOrState, options = {}) {
     if (typeof snapshotOrState === "string") {
       return {
@@ -594,6 +692,7 @@
     normalizePresenceState,
     presenceControlInputsForSnapshot,
     reducePresenceState,
+    summarizePresenceTrace,
   });
 
   if (typeof module === "object" && module.exports) {

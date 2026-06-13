@@ -10,6 +10,7 @@ const {
   createPresenceRuntime,
   presenceControlInputsForSnapshot,
   reducePresenceState,
+  summarizePresenceTrace,
 } = require("../packages/core/src/presence-core.js");
 
 assert.equal(
@@ -98,8 +99,97 @@ assert.deepEqual(
 );
 assert.equal(trace.getEntries()[1].detail.delta, "Hello");
 
+const boundedTraceSummary = summarizePresenceTrace(trace);
+assert.equal(Object.isFrozen(boundedTraceSummary), true);
+assert.equal(Object.isFrozen(boundedTraceSummary.states), true);
+assert.equal(Object.isFrozen(boundedTraceSummary.events), true);
+assert.equal(boundedTraceSummary.entryCount, 3);
+assert.deepEqual(boundedTraceSummary.states, [
+  PresenceState.WAITING,
+  PresenceState.STREAMING,
+  PresenceState.READY,
+]);
+assert.deepEqual(boundedTraceSummary.events, [
+  PresenceEvent.STREAM_OPEN,
+  PresenceEvent.TOKEN,
+  PresenceEvent.RESPONSE_COMPLETE,
+]);
+assert.equal(boundedTraceSummary.firstStateMs, 50);
+assert.equal(boundedTraceSummary.streamOpenMs, 50);
+assert.equal(boundedTraceSummary.firstTokenMs, 75);
+assert.equal(boundedTraceSummary.speechStartMs, null);
+assert.equal(boundedTraceSummary.firstOutputMs, 75);
+assert.equal(boundedTraceSummary.firstOutputEvent, PresenceEvent.TOKEN);
+assert.equal(boundedTraceSummary.presenceBeforeOutputMs, 25);
+assert.equal(boundedTraceSummary.finalState, PresenceState.READY);
+assert.equal(boundedTraceSummary.hasOutput, true);
+assert.equal(boundedTraceSummary.complete, true);
+
 trace.clear();
 assert.deepEqual(trace.getEntries(), []);
+
+const emptyTraceSummary = summarizePresenceTrace(trace);
+assert.deepEqual(emptyTraceSummary, {
+  entryCount: 0,
+  states: [],
+  events: [],
+  firstStateMs: null,
+  streamOpenMs: null,
+  firstTokenMs: null,
+  speechStartMs: null,
+  firstOutputMs: null,
+  firstOutputEvent: null,
+  presenceBeforeOutputMs: null,
+  finalState: null,
+  hasOutput: false,
+  complete: false,
+});
+
+const missingOutputSummary = summarizePresenceTrace([
+  { state: PresenceState.THINKING, event: PresenceEvent.SUBMIT, elapsedMs: 0 },
+  { state: PresenceState.WAITING, event: PresenceEvent.STREAM_OPEN, elapsedMs: 32 },
+]);
+assert.deepEqual(missingOutputSummary.states, [PresenceState.THINKING, PresenceState.WAITING]);
+assert.deepEqual(missingOutputSummary.events, [PresenceEvent.SUBMIT, PresenceEvent.STREAM_OPEN]);
+assert.equal(missingOutputSummary.firstStateMs, 0);
+assert.equal(missingOutputSummary.streamOpenMs, 32);
+assert.equal(missingOutputSummary.firstTokenMs, null);
+assert.equal(missingOutputSummary.firstOutputMs, null);
+assert.equal(missingOutputSummary.firstOutputEvent, null);
+assert.equal(missingOutputSummary.presenceBeforeOutputMs, null);
+assert.equal(missingOutputSummary.finalState, PresenceState.WAITING);
+assert.equal(missingOutputSummary.hasOutput, false);
+assert.equal(missingOutputSummary.complete, false);
+
+const speechOutputSummary = summarizePresenceTrace([
+  { state: PresenceState.WAITING, event: PresenceEvent.VOICE_WAITING, elapsedMs: 0 },
+  { state: PresenceState.SPEAKING, event: PresenceEvent.SPEECH_START, elapsedMs: 40 },
+  { state: PresenceState.READY, event: PresenceEvent.SPEECH_END, elapsedMs: 96 },
+]);
+assert.deepEqual(speechOutputSummary.states, [
+  PresenceState.WAITING,
+  PresenceState.SPEAKING,
+  PresenceState.READY,
+]);
+assert.equal(speechOutputSummary.streamOpenMs, null);
+assert.equal(speechOutputSummary.firstTokenMs, null);
+assert.equal(speechOutputSummary.speechStartMs, 40);
+assert.equal(speechOutputSummary.firstOutputMs, 40);
+assert.equal(speechOutputSummary.firstOutputEvent, PresenceEvent.SPEECH_START);
+assert.equal(speechOutputSummary.presenceBeforeOutputMs, 40);
+assert.equal(speechOutputSummary.finalState, PresenceState.READY);
+assert.equal(speechOutputSummary.hasOutput, true);
+assert.equal(speechOutputSummary.complete, true);
+
+const updatedAtSummary = summarizePresenceTrace([
+  { state: PresenceState.THINKING, event: PresenceEvent.SUBMIT, updatedAt: 1_000 },
+  { state: PresenceState.WAITING, event: PresenceEvent.STREAM_OPEN, updatedAt: 1_024 },
+  { state: PresenceState.STREAMING, event: PresenceEvent.TOKEN, updatedAt: 1_060 },
+]);
+assert.equal(updatedAtSummary.firstStateMs, 0);
+assert.equal(updatedAtSummary.streamOpenMs, 24);
+assert.equal(updatedAtSummary.firstTokenMs, 60);
+assert.equal(updatedAtSummary.presenceBeforeOutputMs, 60);
 
 const controlExpectations = [
   [PresenceState.USER_TYPING, "input", "input", 0],

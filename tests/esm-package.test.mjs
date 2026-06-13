@@ -19,6 +19,7 @@ const react = await import(distUrl("react"));
 assert.equal(core.PresenceState.THINKING, "thinking");
 assert.equal(core.default.PresenceEvent.SUBMIT, core.PresenceEvent.SUBMIT);
 assert.equal(typeof core.presenceControlInputsForSnapshot, "function");
+assert.equal(typeof core.summarizePresenceTrace, "function");
 
 const runtime = core.createPresenceRuntime();
 const trace = core.createPresenceTrace({ limit: 8 });
@@ -27,6 +28,9 @@ runtime.send(core.PresenceEvent.SUBMIT);
 assert.equal(runtime.getSnapshot().state, core.PresenceState.THINKING);
 assert.equal(trace.getEntries().at(-1).state, core.PresenceState.THINKING);
 assert.equal(core.presenceControlInputsForSnapshot(runtime.getSnapshot()).latencyPhase, "before-output");
+const noOutputSummary = core.summarizePresenceTrace(trace);
+assert.equal(noOutputSummary.hasOutput, false);
+assert.equal(noOutputSummary.firstOutputMs, null);
 const transitionInputs = core.presenceControlInputsForSnapshot(runtime.getSnapshot(), {
   trace,
   now: runtime.getSnapshot().updatedAt + 5,
@@ -122,7 +126,7 @@ try {
     consumerScript,
     [
       'import { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";',
-      'import { presenceControlInputsForSnapshot } from "@ai-presence/core";',
+      'import { presenceControlInputsForSnapshot, summarizePresenceTrace } from "@ai-presence/core";',
       'import { RuntimeSignal, createRuntimeSignalAdapter } from "@ai-presence/adapters";',
       'import { FaceExpression, faceControllerCoherenceForFrame, faceControllerDecisionTraceForFrame, faceControllerDecisionsForPresence, faceControllerFrameForPresence, faceControlsForPresence, faceExpressionForPresence, renderPresenceFaceSvg } from "@ai-presence/face";',
       'import { createPresenceReactBindings } from "@ai-presence/react";',
@@ -133,6 +137,9 @@ try {
       "createRuntimeSignalAdapter(runtime).send({ type: RuntimeSignal.TOKEN });",
       "if (runtime.getSnapshot().state !== PresenceState.STREAMING) throw new Error('state mismatch');",
       "if (trace.getEntries().at(-1).state !== PresenceState.STREAMING) throw new Error('trace mismatch');",
+      "const summary = summarizePresenceTrace(trace);",
+      "if (summary.firstOutputEvent !== PresenceEvent.TOKEN) throw new Error('trace summary output mismatch');",
+      "if (!summary.hasOutput) throw new Error('trace summary output flag mismatch');",
       "if (presenceControlInputsForSnapshot(runtime.getSnapshot()).speechActivity <= 0) throw new Error('control inputs mismatch');",
       "const inputs = presenceControlInputsForSnapshot(runtime.getSnapshot(), { trace, now: runtime.getSnapshot().updatedAt + 1 });",
       "if (inputs.previousState !== PresenceState.THINKING) throw new Error('transition previous mismatch');",

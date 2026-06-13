@@ -13,10 +13,15 @@ const presence = createPresenceRuntime();
 presence.send(PresenceEvent.SUBMIT);
 ```
 
-For debugging and demos, `createPresenceTrace` records a bounded transition timeline:
+For debugging and demos, `createPresenceTrace` records a bounded transition timeline and `summarizePresenceTrace` turns it into compact integration evidence:
 
 ```js
-import { PresenceEvent, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";
+import {
+  PresenceEvent,
+  createPresenceRuntime,
+  createPresenceTrace,
+  summarizePresenceTrace,
+} from "@ai-presence/core";
 
 const trace = createPresenceTrace({ limit: 32 });
 const presence = createPresenceRuntime();
@@ -27,10 +32,11 @@ presence.send(PresenceEvent.STREAM_OPEN);
 presence.send(PresenceEvent.TOKEN);
 
 console.log(trace.getEntries().map((entry) => entry.state));
+console.log(summarizePresenceTrace(trace).presenceBeforeOutputMs);
 detach();
 ```
 
-Trace entries include `elapsedMs` and `sincePreviousMs`, which makes before-first-token behavior inspectable without coupling core to any renderer.
+Trace entries include `elapsedMs` and `sincePreviousMs`, and the summary exposes facts such as `firstTokenMs`, `firstOutputMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, and `complete` without coupling core to any renderer.
 
 Renderers can derive shared interaction-posture inputs from the same snapshot before mapping them into renderer-specific controllers:
 

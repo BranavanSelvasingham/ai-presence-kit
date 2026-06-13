@@ -79,6 +79,28 @@ export interface PresenceTrace {
   toJSON(): PresenceTraceEntry[];
 }
 
+export type PresenceTraceSummaryInputEntry = Partial<PresenceTraceEntry> & Record<string, unknown>;
+
+export interface PresenceTraceSummary {
+  entryCount: number;
+  states: readonly PresenceStateValue[];
+  events: readonly string[];
+  firstStateMs: number | null;
+  streamOpenMs: number | null;
+  firstTokenMs: number | null;
+  speechStartMs: number | null;
+  firstOutputMs: number | null;
+  firstOutputEvent: PresenceEventValue | null;
+  presenceBeforeOutputMs: number | null;
+  finalState: PresenceStateValue | null;
+  hasOutput: boolean;
+  complete: boolean;
+}
+
+export type PresenceTraceSummaryInput = PresenceTrace | ReadonlyArray<PresenceTraceSummaryInputEntry> | {
+  getEntries(): ReadonlyArray<PresenceTraceSummaryInputEntry>;
+};
+
 export type PresenceAttentionTarget = "audience" | "content" | "input" | "response" | "status" | "user";
 export type PresenceLatencyPhase = "before-output" | "error" | "input" | "interrupted" | "output" | "recovery" | "settled";
 
@@ -137,3 +159,4 @@ export declare function reducePresenceState(
   event: PresenceEventValue,
   payload?: Record<string, unknown>,
 ): PresenceStateValue;
+export declare function summarizePresenceTrace(traceOrEntries?: PresenceTraceSummaryInput): PresenceTraceSummary;
