@@ -67,8 +67,11 @@ assert.match(releasePolicy, /scope/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
+assert.match(releaseReadiness, /faceControllerDecisionTraceForFrame/);
+assert.match(releaseReadiness, /faceControllerCoherenceForFrame|coherence evidence/);
 assert.match(releaseReadiness, /motionScale/);
 assert.match(releaseReadiness, /renderPresenceFaceSvg/);
+assert.match(releaseReadiness, /data-controller-decision-trace/);
 assert.match(releaseReadiness, /usePresenceFrameTime/);
 assert.match(releaseReadiness, /before the first visible token/);
 assert.match(releaseReadiness, /2026-06-12/);
@@ -85,8 +88,10 @@ assert.match(goalLoop, /npm run release:check-scope/);
 
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
+assert.match(changelog, /faceControllerDecisionTraceForFrame/);
 assert.match(changelog, /renderPresenceFaceSvg/);
 assert.match(changelog, /motionScale/);
+assert.match(changelog, /data-controller-decision-trace/);
 assert.match(changelog, /release:check-scope/);
 assert.match(changelog, /adapter demo coverage/);
 assert.match(changelog, /usePresenceFrameTime/);

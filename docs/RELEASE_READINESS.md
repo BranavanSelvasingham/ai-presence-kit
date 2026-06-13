@@ -23,7 +23,7 @@ Each package has:
 Current public API proof points:
 
 - `@ai-presence/core` owns canonical states, events, runtimes, traces, and renderer-agnostic control inputs.
-- `@ai-presence/face` owns expression mapping, parallel controller decisions, temporal frame reports, the `motionScale` reduced-motion option, and `renderPresenceFaceSvg`.
+- `@ai-presence/face` owns expression mapping, parallel controller decisions, temporal frame reports, decision-trace evidence through `faceControllerDecisionTraceForFrame`, coherence audits through `faceControllerCoherenceForFrame`, the `motionScale` reduced-motion option, and SVG rendering through `renderPresenceFaceSvg`.
 - `@ai-presence/adapters` owns plain-object bridges for generic runtime signals, Vercel AI SDK status, OpenAI Realtime events, and generic chat events.
 - `@ai-presence/react` owns provider/runtime/snapshot hooks, renderer slots, shared control-input access, and the renderer-agnostic `usePresenceFrameTime()` hook.
 
@@ -73,7 +73,7 @@ Also run `git diff --check` before committing.
 Then browser-smoke:
 
 - Reference demo loads with no console warnings or errors.
-- Metrics route exposes canonical `Presence state`, controller composition, controller evidence, and live controller frame evidence.
+- Metrics route exposes canonical `Presence state`, controller composition, controller evidence, live controller frame evidence, coherence evidence, and decision-trace evidence through `data-controller-decision-trace*`.
 - Comparison route completes with equal first-token timing on both panes.
 - Comparison route confirms the presence side exposes state and frame channels before the first visible token.
 - Mobile comparison route has no horizontal overflow.
