@@ -66,7 +66,7 @@
     blink: Object.freeze(["state", "profile.blinkCadenceMs", "transitionEvent", "transitionAgeMs"]),
     brows: Object.freeze(["state", "detail.question", "detail.revision"]),
     mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery", "transitionEvent", "transitionAgeMs"]),
-    posture: Object.freeze(["state", "energy", "recovery", "interruption", "latencyPhase"]),
+    posture: Object.freeze(["state", "energy", "recovery", "interruption", "latencyPhase", "transitionEvent", "transitionAgeMs"]),
     motion: Object.freeze(["state", "profile.drift", "profile.settleMs", "energy", "anticipation", "recovery", "speechActivity", "latencyPhase", "transitionEvent", "transitionAgeMs", "ageMs"]),
   });
 
@@ -90,6 +90,13 @@
     [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ openness: -0.018, activity: -0.035, tension: 0.08 }),
   });
   const MOUTH_TRANSITION_RESPONSE_WINDOW_MS = 220;
+  const POSTURE_TRANSITION_RESPONSES = Object.freeze({
+    [PresenceEvent.SUBMIT || "submit"]: Object.freeze({ lean: 0.026, turn: 0.006, energy: 0.035, recovery: 0 }),
+    [PresenceEvent.STREAM_OPEN || "stream-open"]: Object.freeze({ lean: 0.018, turn: 0.012, energy: 0.03, recovery: 0 }),
+    [PresenceEvent.TOKEN || "token"]: Object.freeze({ lean: -0.012, turn: 0.006, energy: 0.025, recovery: 0 }),
+    [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ lean: -0.045, turn: -0.024, energy: 0.02, recovery: 0.14 }),
+  });
+  const POSTURE_TRANSITION_RESPONSE_WINDOW_MS = 260;
 
   function resolveCore(scope) {
     if (scope?.AIPresenceCore) return scope.AIPresenceCore;
@@ -269,6 +276,23 @@
       openness: response.openness * envelope,
       activity: response.activity * envelope,
       tension: response.tension * envelope,
+    });
+  }
+
+  function transitionPostureResponse(inputs) {
+    const response = POSTURE_TRANSITION_RESPONSES[inputs?.transitionEvent];
+    const ageMs = Number(inputs?.transitionAgeMs);
+    if (!response || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > POSTURE_TRANSITION_RESPONSE_WINDOW_MS) {
+      return null;
+    }
+
+    const progress = clamp(ageMs / POSTURE_TRANSITION_RESPONSE_WINDOW_MS, 0, 1);
+    const envelope = (1 - progress) * (1 - progress);
+    return Object.freeze({
+      lean: response.lean * envelope,
+      turn: response.turn * envelope,
+      energy: response.energy * envelope,
+      recovery: response.recovery * envelope,
     });
   }
 
@@ -699,6 +723,14 @@
 
     if (isReadyState(stateName) && recoverySignalsForContext(context).recentlyInterrupted) {
       control.recovery = Math.max(control.recovery, 0.42);
+    }
+
+    const transitionPosture = transitionPostureResponse(inputs);
+    if (transitionPosture) {
+      control.lean = clamp(control.lean + transitionPosture.lean, -1, 1);
+      control.turn = clamp(control.turn + transitionPosture.turn, -1, 1);
+      control.energy = clamp(control.energy + transitionPosture.energy, 0, 1);
+      control.recovery = clamp(control.recovery + transitionPosture.recovery, 0, 1);
     }
 
     return control;

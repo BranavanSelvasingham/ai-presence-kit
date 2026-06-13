@@ -233,6 +233,8 @@ assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionAgeMs"));
 assert.ok(freshSubmitReport.decisions.mouth.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.mouth.reads.includes("transitionAgeMs"));
+assert.ok(freshSubmitReport.decisions.posture.reads.includes("transitionEvent"));
+assert.ok(freshSubmitReport.decisions.posture.reads.includes("transitionAgeMs"));
 assert.ok(freshSubmitReport.decisions.motion.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.motion.reads.includes("transitionAgeMs"));
 assert.equal(freshSubmitReport.decisions.blink.control.pulse, true);
@@ -279,12 +281,16 @@ assert.equal(freshSubmitReport.decisions.mouth.control.shape, staleSubmitControl
 assert.ok(freshSubmitReport.decisions.mouth.control.openness > staleSubmitControls.mouth.openness);
 assert.ok(freshSubmitReport.decisions.mouth.control.activity > staleSubmitControls.mouth.activity);
 assert.ok(freshSubmitReport.decisions.mouth.control.tension > staleSubmitControls.mouth.tension);
+assert.ok(freshSubmitReport.decisions.posture.control.lean > staleSubmitControls.posture.lean);
+assert.ok(freshSubmitReport.decisions.posture.control.turn > staleSubmitControls.posture.turn);
+assert.ok(freshSubmitReport.decisions.posture.control.energy > staleSubmitControls.posture.energy);
 const staleSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
   now: 1300,
   timeMs: 1080,
 });
 assert.ok(staleSubmitFrame.frame.blink.openness > freshSubmitFrame.frame.blink.openness);
 assert.ok(staleSubmitFrame.frame.motion.offsetY > freshSubmitFrame.frame.motion.offsetY);
+assert.ok(freshSubmitFrame.frame.posture.lean > staleSubmitFrame.frame.posture.lean);
 const freshSubmitStillFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
   now: 1080,
   timeMs: 1080,
@@ -296,6 +302,7 @@ const freshSubmitStillLaterFrame = faceControllerFrameForPresence(freshSubmitSna
   motionScale: 0,
 });
 assert.deepEqual(freshSubmitStillFrame.frame.mouth, freshSubmitStillLaterFrame.frame.mouth);
+assert.deepEqual(freshSubmitStillFrame.frame.posture, freshSubmitStillLaterFrame.frame.posture);
 assert.equal(freshSubmitStillFrame.frame.motion.offsetX, 0);
 assert.equal(freshSubmitStillFrame.frame.motion.offsetY, 0);
 
@@ -341,6 +348,8 @@ assert.equal(freshTokenStreamingReport.decisions.mouth.control.shape, "speaking"
 assert.ok(freshTokenStreamingReport.decisions.mouth.control.openness > streamingControls.mouth.openness);
 assert.ok(freshTokenStreamingReport.decisions.mouth.control.activity > streamingControls.mouth.activity);
 assert.ok(freshTokenStreamingReport.decisions.mouth.control.tension < streamingControls.mouth.tension);
+assert.ok(freshTokenStreamingReport.decisions.posture.control.lean < streamingControls.posture.lean);
+assert.ok(freshTokenStreamingReport.decisions.posture.control.energy > streamingControls.posture.energy);
 
 const speakingSnapshot = { state: PresenceState.SPEAKING };
 const speakingControls = faceControlsForPresence(speakingSnapshot);
