@@ -64,7 +64,7 @@
   const FACE_CONTROLLER_READS = Object.freeze({
     gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "transitionEvent", "transitionAgeMs", "ageMs"]),
     blink: Object.freeze(["state", "profile.blinkCadenceMs", "transitionEvent", "transitionAgeMs"]),
-    brows: Object.freeze(["state", "detail.question", "detail.revision"]),
+    brows: Object.freeze(["state", "detail.question", "detail.revision", "transitionEvent", "transitionAgeMs"]),
     mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery", "transitionEvent", "transitionAgeMs"]),
     posture: Object.freeze(["state", "energy", "recovery", "interruption", "latencyPhase", "transitionEvent", "transitionAgeMs"]),
     motion: Object.freeze(["state", "profile.drift", "profile.settleMs", "energy", "anticipation", "recovery", "speechActivity", "latencyPhase", "transitionEvent", "transitionAgeMs", "ageMs"]),
@@ -97,6 +97,13 @@
     [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ openness: -0.018, activity: -0.035, tension: 0.08 }),
   });
   const MOUTH_TRANSITION_RESPONSE_WINDOW_MS = 220;
+  const BROWS_TRANSITION_RESPONSES = Object.freeze({
+    [PresenceEvent.SUBMIT || "submit"]: Object.freeze({ lift: 0.035, pinch: 0.04, asymmetry: 0.006 }),
+    [PresenceEvent.STREAM_OPEN || "stream-open"]: Object.freeze({ lift: 0.018, pinch: -0.055, asymmetry: -0.012 }),
+    [PresenceEvent.TOKEN || "token"]: Object.freeze({ lift: 0.012, pinch: -0.03, asymmetry: 0 }),
+    [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ lift: -0.022, pinch: 0.07, asymmetry: 0.055 }),
+  });
+  const BROWS_TRANSITION_RESPONSE_WINDOW_MS = 220;
   const POSTURE_TRANSITION_RESPONSES = Object.freeze({
     [PresenceEvent.SUBMIT || "submit"]: Object.freeze({ lean: 0.026, turn: 0.006, energy: 0.035, recovery: 0 }),
     [PresenceEvent.STREAM_OPEN || "stream-open"]: Object.freeze({ lean: 0.018, turn: 0.012, energy: 0.03, recovery: 0 }),
@@ -299,6 +306,22 @@
       openness: response.openness * envelope,
       activity: response.activity * envelope,
       tension: response.tension * envelope,
+    });
+  }
+
+  function transitionBrowsResponse(inputs) {
+    const response = BROWS_TRANSITION_RESPONSES[inputs?.transitionEvent];
+    const ageMs = Number(inputs?.transitionAgeMs);
+    if (!response || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > BROWS_TRANSITION_RESPONSE_WINDOW_MS) {
+      return null;
+    }
+
+    const progress = clamp(ageMs / BROWS_TRANSITION_RESPONSE_WINDOW_MS, 0, 1);
+    const envelope = (1 - progress) * (1 - progress);
+    return Object.freeze({
+      lift: response.lift * envelope,
+      pinch: response.pinch * envelope,
+      asymmetry: response.asymmetry * envelope,
     });
   }
 
@@ -550,52 +573,72 @@
   }
 
   function decideBrows(context) {
-    const { stateName, detail } = context;
+    const { stateName, detail, inputs } = context;
+    let control;
 
     switch (stateName) {
       case PresenceState.USER_TYPING:
       case "user-typing":
-        return { lift: 0.08, pinch: 0.06, asymmetry: 0 };
+        control = { lift: 0.08, pinch: 0.06, asymmetry: 0 };
+        break;
 
       case PresenceState.READING:
       case "reading":
-        return {
+        control = {
           lift: detail.question ? 0.22 : 0.08,
           pinch: detail.revision ? 0.2 : 0.12,
           asymmetry: detail.question ? 0.16 : 0,
         };
+        break;
 
       case PresenceState.WAITING:
       case "waiting":
-        return { lift: 0.02, pinch: 0.28, asymmetry: 0.04 };
+        control = { lift: 0.02, pinch: 0.28, asymmetry: 0.04 };
+        break;
 
       case PresenceState.THINKING:
       case "thinking":
-        return { lift: -0.04, pinch: 0.36, asymmetry: 0.08 };
+        control = { lift: -0.04, pinch: 0.36, asymmetry: 0.08 };
+        break;
 
       case PresenceState.STREAMING:
       case "streaming":
-        return { lift: 0.08, pinch: 0.08, asymmetry: 0 };
+        control = { lift: 0.08, pinch: 0.08, asymmetry: 0 };
+        break;
 
       case PresenceState.SPEAKING:
       case "speaking":
-        return { lift: 0.12, pinch: 0.04, asymmetry: 0 };
+        control = { lift: 0.12, pinch: 0.04, asymmetry: 0 };
+        break;
 
       case PresenceState.INTERRUPTED:
       case "interrupted":
-        return { lift: -0.12, pinch: 0.54, asymmetry: 0.34 };
+        control = { lift: -0.12, pinch: 0.54, asymmetry: 0.34 };
+        break;
 
       case PresenceState.READY:
       case "ready":
-        return { lift: 0.1, pinch: 0, asymmetry: 0 };
+        control = { lift: 0.1, pinch: 0, asymmetry: 0 };
+        break;
 
       case PresenceState.ERROR:
       case "error":
-        return { lift: -0.08, pinch: 0.5, asymmetry: 0.08 };
+        control = { lift: -0.08, pinch: 0.5, asymmetry: 0.08 };
+        break;
 
       default:
-        return { lift: 0, pinch: 0, asymmetry: 0 };
+        control = { lift: 0, pinch: 0, asymmetry: 0 };
+        break;
     }
+
+    const transitionBrows = transitionBrowsResponse(inputs);
+    if (transitionBrows) {
+      control.lift = clamp(control.lift + transitionBrows.lift, -1, 1);
+      control.pinch = clamp(control.pinch + transitionBrows.pinch, 0, 1);
+      control.asymmetry = clamp(control.asymmetry + transitionBrows.asymmetry, -1, 1);
+    }
+
+    return control;
   }
 
   function decideMouth(context) {
