@@ -115,6 +115,36 @@ export interface FaceControllerFrame {
 
 export type FaceControlChannel = "gaze" | "blink" | "brows" | "mouth" | "posture" | "motion";
 
+export interface FaceControllerChannelCoherence {
+  channel: FaceControlChannel;
+  present: boolean;
+  bounded: boolean;
+  summary: Readonly<Record<string, string | number | boolean | null>>;
+  warnings: readonly string[];
+}
+
+export interface FaceControllerCoherence {
+  channels: readonly FaceControlChannel[];
+  complete: boolean;
+  bounded: boolean;
+  rendererSafe: boolean;
+  summary: Readonly<{
+    channelCount: number;
+    presentChannelCount: number;
+    boundedChannelCount: number;
+    gazeTarget: FaceGazeFrame["target"] | null;
+    gazeFocus: number | null;
+    blinkOpenness: number | null;
+    mouthShape: FaceMouthFrame["shape"] | null;
+    mouthActivity: number | null;
+    postureLean: number | null;
+    motionEnergy: number | null;
+    motionRecovery: number | null;
+  }>;
+  channelReports: Readonly<Record<FaceControlChannel, FaceControllerChannelCoherence>>;
+  warnings: readonly string[];
+}
+
 export interface FaceControllerDecision<TControl> {
   channel: FaceControlChannel;
   controller: string;
@@ -140,6 +170,7 @@ export interface FaceControllerDecisionReport {
 
 export interface FaceControllerFrameReport extends FaceControllerDecisionReport {
   frame: FaceControllerFrame;
+  coherence: FaceControllerCoherence;
 }
 
 export interface PresenceFaceSvgOptions extends FaceControlOptions {
@@ -241,6 +272,9 @@ export declare function faceControllerDecisionsForPresence(
   snapshotOrState: PresenceSnapshot | PresenceStateValue,
   options?: FaceControlOptions,
 ): FaceControllerDecisionReport;
+export declare function faceControllerCoherenceForFrame(
+  frameReport?: Partial<FaceControllerFrameReport> & Record<string, unknown>,
+): FaceControllerCoherence;
 export declare function faceControllerFrameForPresence(
   snapshotOrState: PresenceSnapshot | PresenceStateValue,
   options?: FaceControlOptions,

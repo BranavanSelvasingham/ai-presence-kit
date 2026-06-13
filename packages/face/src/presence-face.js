@@ -42,6 +42,19 @@
 
   const FACE_CONTROL_CHANNELS = Object.freeze(["gaze", "blink", "brows", "mouth", "posture", "motion"]);
 
+  const FACE_MOUTH_SHAPES = Object.freeze([
+    "curious",
+    "downturned",
+    "held",
+    "listening",
+    "preparing",
+    "pressed",
+    "release",
+    "rest",
+    "soft-smile",
+    "speaking",
+  ]);
+
   const FACE_CONTROLLER_READS = Object.freeze({
     gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "ageMs"]),
     blink: Object.freeze(["state", "profile.blinkCadenceMs"]),
@@ -891,6 +904,156 @@
     });
   }
 
+  function finiteInRange(value, min, max) {
+    return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+  }
+
+  function validateCoherenceNumber(channel, frame, key, min, max, warnings) {
+    if (!finiteInRange(frame?.[key], min, max)) {
+      warnings.push(`${channel}.${key} must be finite ${min}..${max}`);
+      return null;
+    }
+    return frame[key];
+  }
+
+  function validateCoherenceString(channel, frame, key, allowed, warnings) {
+    if (!allowed.includes(frame?.[key])) {
+      warnings.push(`${channel}.${key} must be one of ${allowed.join(",")}`);
+      return null;
+    }
+    return frame[key];
+  }
+
+  function validateCoherenceBoolean(channel, frame, key, warnings) {
+    if (typeof frame?.[key] !== "boolean") {
+      warnings.push(`${channel}.${key} must be boolean`);
+      return null;
+    }
+    return frame[key];
+  }
+
+  function compactNumber(value) {
+    return typeof value === "number" && Number.isFinite(value)
+      ? Math.round(value * 1000) / 1000
+      : null;
+  }
+
+  function freezeChannelCoherence(channel, present, bounded, summary, warnings) {
+    return Object.freeze({
+      channel,
+      present,
+      bounded,
+      summary: Object.freeze(summary),
+      warnings: Object.freeze(warnings),
+    });
+  }
+
+  function faceControllerCoherenceForFrame(frameReport = {}) {
+    const warnings = [];
+    const frame = frameReport?.frame || {};
+    const decisions = frameReport?.decisions || {};
+    const channelReports = {};
+
+    for (const channel of FACE_CONTROL_CHANNELS) {
+      const channelWarnings = [];
+      const channelFrame = frame[channel];
+      const decision = decisions[channel];
+      const present = Boolean(channelFrame && typeof channelFrame === "object" && decision && typeof decision === "object");
+
+      if (!channelFrame || typeof channelFrame !== "object") {
+        channelWarnings.push(`${channel} frame is missing`);
+      }
+      if (!decision || typeof decision !== "object") {
+        channelWarnings.push(`${channel} decision is missing`);
+      } else {
+        if (decision.channel !== channel) channelWarnings.push(`${channel} decision channel mismatch`);
+        if (decision.controller !== `${channel}-controller`) channelWarnings.push(`${channel} controller mismatch`);
+        if (!Array.isArray(decision.reads) || !decision.reads.includes("state")) {
+          channelWarnings.push(`${channel} decision reads must include state`);
+        }
+      }
+
+      const summary = {};
+      if (channel === "gaze") {
+        summary.target = validateCoherenceString(channel, channelFrame, "target", [
+          "audience",
+          "content",
+          "input",
+          "middle-distance",
+          "question",
+          "response-origin",
+          "status",
+          "user",
+        ], channelWarnings);
+        summary.x = compactNumber(validateCoherenceNumber(channel, channelFrame, "x", -1, 1, channelWarnings));
+        summary.y = compactNumber(validateCoherenceNumber(channel, channelFrame, "y", -1, 1, channelWarnings));
+        summary.focus = compactNumber(validateCoherenceNumber(channel, channelFrame, "focus", 0, 1, channelWarnings));
+        summary.driftX = compactNumber(validateCoherenceNumber(channel, channelFrame, "driftX", -0.2, 0.2, channelWarnings));
+        summary.driftY = compactNumber(validateCoherenceNumber(channel, channelFrame, "driftY", -0.2, 0.2, channelWarnings));
+      } else if (channel === "blink") {
+        summary.openness = compactNumber(validateCoherenceNumber(channel, channelFrame, "openness", 0, 1, channelWarnings));
+        summary.cadenceMs = compactNumber(validateCoherenceNumber(channel, channelFrame, "cadenceMs", 300, 20000, channelWarnings));
+        summary.pulse = validateCoherenceBoolean(channel, channelFrame, "pulse", channelWarnings);
+        summary.phase = compactNumber(validateCoherenceNumber(channel, channelFrame, "phase", 0, 1, channelWarnings));
+      } else if (channel === "brows") {
+        summary.lift = compactNumber(validateCoherenceNumber(channel, channelFrame, "lift", -1, 1, channelWarnings));
+        summary.pinch = compactNumber(validateCoherenceNumber(channel, channelFrame, "pinch", 0, 1, channelWarnings));
+        summary.asymmetry = compactNumber(validateCoherenceNumber(channel, channelFrame, "asymmetry", -1, 1, channelWarnings));
+      } else if (channel === "mouth") {
+        summary.shape = validateCoherenceString(channel, channelFrame, "shape", FACE_MOUTH_SHAPES, channelWarnings);
+        summary.openness = compactNumber(validateCoherenceNumber(channel, channelFrame, "openness", 0, 1, channelWarnings));
+        summary.activity = compactNumber(validateCoherenceNumber(channel, channelFrame, "activity", 0, 1, channelWarnings));
+        summary.tension = compactNumber(validateCoherenceNumber(channel, channelFrame, "tension", 0, 1, channelWarnings));
+        summary.beat = compactNumber(validateCoherenceNumber(channel, channelFrame, "beat", 0, 1, channelWarnings));
+      } else if (channel === "posture") {
+        summary.lean = compactNumber(validateCoherenceNumber(channel, channelFrame, "lean", -1, 1, channelWarnings));
+        summary.turn = compactNumber(validateCoherenceNumber(channel, channelFrame, "turn", -1, 1, channelWarnings));
+        summary.energy = compactNumber(validateCoherenceNumber(channel, channelFrame, "energy", 0, 1, channelWarnings));
+        summary.recovery = compactNumber(validateCoherenceNumber(channel, channelFrame, "recovery", 0, 1, channelWarnings));
+        summary.breath = compactNumber(validateCoherenceNumber(channel, channelFrame, "breath", 0, 1, channelWarnings));
+      } else if (channel === "motion") {
+        summary.energy = compactNumber(validateCoherenceNumber(channel, channelFrame, "energy", 0, 1, channelWarnings));
+        summary.drift = compactNumber(validateCoherenceNumber(channel, channelFrame, "drift", 0, 1, channelWarnings));
+        summary.anticipation = compactNumber(validateCoherenceNumber(channel, channelFrame, "anticipation", 0, 1, channelWarnings));
+        summary.recovery = compactNumber(validateCoherenceNumber(channel, channelFrame, "recovery", 0, 1, channelWarnings));
+        summary.settleMs = compactNumber(validateCoherenceNumber(channel, channelFrame, "settleMs", 0, 20000, channelWarnings));
+        summary.offsetX = compactNumber(validateCoherenceNumber(channel, channelFrame, "offsetX", -1, 1, channelWarnings));
+        summary.offsetY = compactNumber(validateCoherenceNumber(channel, channelFrame, "offsetY", -1, 1, channelWarnings));
+      }
+
+      const bounded = channelWarnings.length === 0;
+      warnings.push(...channelWarnings);
+      channelReports[channel] = freezeChannelCoherence(channel, present, bounded, summary, channelWarnings);
+    }
+
+    const presentChannels = FACE_CONTROL_CHANNELS.filter((channel) => channelReports[channel].present);
+    const boundedChannels = FACE_CONTROL_CHANNELS.filter((channel) => channelReports[channel].bounded);
+    const complete = presentChannels.length === FACE_CONTROL_CHANNELS.length;
+    const bounded = boundedChannels.length === FACE_CONTROL_CHANNELS.length;
+
+    return Object.freeze({
+      channels: FACE_CONTROL_CHANNELS,
+      complete,
+      bounded,
+      rendererSafe: complete && bounded,
+      summary: Object.freeze({
+        channelCount: FACE_CONTROL_CHANNELS.length,
+        presentChannelCount: presentChannels.length,
+        boundedChannelCount: boundedChannels.length,
+        gazeTarget: channelReports.gaze.summary.target,
+        gazeFocus: channelReports.gaze.summary.focus,
+        blinkOpenness: channelReports.blink.summary.openness,
+        mouthShape: channelReports.mouth.summary.shape,
+        mouthActivity: channelReports.mouth.summary.activity,
+        postureLean: channelReports.posture.summary.lean,
+        motionEnergy: channelReports.motion.summary.energy,
+        motionRecovery: channelReports.motion.summary.recovery,
+      }),
+      channelReports: Object.freeze(channelReports),
+      warnings: Object.freeze(warnings),
+    });
+  }
+
   function formatSvgNumber(value, fallback = 0) {
     const numeric = finiteNumber(value, fallback);
     if (Math.abs(numeric) < 0.0005) return "0";
@@ -1047,10 +1210,14 @@
   function faceControllerFrameForPresence(snapshotOrState, options = {}) {
     const context = createFaceControllerContext(snapshotOrState, options);
     const report = faceControllerDecisionReportFromContext(context, options);
-
-    return Object.freeze({
+    const frameReport = {
       ...report,
       frame: composeFaceControllerFrame(report, context, options),
+    };
+
+    return Object.freeze({
+      ...frameReport,
+      coherence: faceControllerCoherenceForFrame(frameReport),
     });
   }
 
@@ -1118,6 +1285,7 @@
     createFaceControllerRuntime,
     createFaceRenderer,
     renderPresenceFaceSvg,
+    faceControllerCoherenceForFrame,
     faceControllerFrameForPresence,
     faceControllerDecisionsForPresence,
     faceControlsForPresence,
