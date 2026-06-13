@@ -11,6 +11,7 @@ const css = readFileSync(resolve(root, "styles.css"), "utf8");
 const { PresenceState } = require("../packages/core/src/presence-core.js");
 const {
   FACE_CONTROL_CHANNELS,
+  faceControllerDecisionTraceForFrame,
   faceControllerDecisionsForPresence,
   faceControllerFrameForPresence,
 } = require("../packages/face/src/presence-face.js");
@@ -31,6 +32,10 @@ assert.match(app, /controllerCoherenceForFrame/);
 assert.match(app, /controllerCoherenceEvidence/);
 assert.match(app, /applyControllerCoherenceDataset/);
 assert.match(app, /faceControllerCoherenceForFrame/);
+assert.match(app, /controllerDecisionTraceForFrame/);
+assert.match(app, /controllerDecisionTraceEvidence/);
+assert.match(app, /applyControllerDecisionTraceDataset/);
+assert.match(app, /faceControllerDecisionTraceForFrame/);
 assert.match(app, /dataset\.controller/);
 assert.match(app, /dataset\.reads/);
 assert.match(app, /dataset\.controllerComposition/);
@@ -41,6 +46,13 @@ assert.match(app, /dataset\.controllerCoherenceChannels/);
 assert.match(app, /dataset\.controllerCoherenceWarnings/);
 assert.match(app, /dataset\.controllerCoherenceRendererSafe/);
 assert.match(app, /dataset\.controllerCoherenceWarningFree/);
+assert.match(app, /dataset\.controllerDecisionTrace/);
+assert.match(app, /dataset\.controllerDecisionTraceChannels/);
+assert.match(app, /dataset\.controllerDecisionTraceDecisions/);
+assert.match(app, /dataset\.controllerDecisionTraceWarnings/);
+assert.match(app, /dataset\.controllerDecisionTraceRendererSafe/);
+assert.match(app, /dataset\.controllerDecisionTraceController/);
+assert.match(app, /dataset\.controllerDecisionTraceReads/);
 assert.match(app, /CONTROLLER_FRAME_SAMPLE_OFFSETS/);
 assert.match(app, /createControllerFrameSequence/);
 assert.match(app, /createControllerFrameStrip/);
@@ -55,6 +67,11 @@ assert.match(app, /applyControllerCoherenceDataset\(faceShell/);
 assert.match(app, /applyControllerCoherenceDataset\(metricControls/);
 assert.match(app, /applyControllerCoherenceDataset\(card/);
 assert.match(app, /applyControllerCoherenceDataset\(item/);
+assert.match(app, /applyControllerDecisionTraceDataset\(faceShell/);
+assert.match(app, /applyControllerDecisionTraceDataset\(faceSvg/);
+assert.match(app, /applyControllerDecisionTraceDataset\(metricControls/);
+assert.match(app, /applyControllerDecisionTraceDataset\(card/);
+assert.match(app, /applyControllerDecisionTraceDataset\(item/);
 assert.match(css, /body\.controller-gallery-mode/);
 assert.match(css, /--face-offset-x/);
 assert.match(css, /--face-offset-y/);
@@ -149,9 +166,30 @@ for (const state of [
     );
     assert.equal(frameReport.coherence.channels.join(" "), "gaze blink brows mouth posture motion", `${state} DOM coherence channels`);
     assert.equal(String(frameReport.coherence.warnings.length), "0", `${state} DOM coherence warnings`);
+    const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
+    assert.deepEqual(decisionTrace.channels, FACE_CONTROL_CHANNELS, `${state} decision trace channel order`);
+    assert.equal(decisionTrace.decisionCount, FACE_CONTROL_CHANNELS.length, `${state} decision trace count`);
+    assert.equal(decisionTrace.complete, true, `${state} decision trace complete`);
+    assert.equal(decisionTrace.rendererSafe, true, `${state} decision trace renderer safe`);
+    assert.equal(decisionTrace.warningCount, 0, `${state} decision trace warning count`);
+    assert.deepEqual(decisionTrace.warnings, [], `${state} decision trace warnings`);
+    assert.equal(decisionTrace.complete ? "complete" : "incomplete", "complete", `${state} DOM decision trace status`);
+    assert.equal(decisionTrace.channels.join(" "), "gaze blink brows mouth posture motion", `${state} DOM decision trace channels`);
+    assert.equal(String(decisionTrace.decisionCount), "6", `${state} DOM decision trace decisions`);
+    assert.equal(String(decisionTrace.warningCount), "0", `${state} DOM decision trace warnings`);
+    assert.equal(String(decisionTrace.rendererSafe), "true", `${state} DOM decision trace renderer safe`);
     assert.deepEqual(frameReport.decisions, report.decisions, `${state} frame decisions stay fixed across samples`);
     for (const channel of FACE_CONTROL_CHANNELS) {
       assert.ok(frameReport.frame[channel], `${state} frame has ${channel}`);
+      const channelTrace = decisionTrace.decisions[channel];
+      assert.equal(channelTrace.channel, channel, `${state} ${channel} decision trace channel`);
+      assert.equal(channelTrace.controller, `${channel}-controller`, `${state} ${channel} trace controller`);
+      assert.ok(channelTrace.reads.includes("state"), `${state} ${channel} trace reads state`);
+      assert.equal(channelTrace.present, true, `${state} ${channel} trace present`);
+      assert.equal(channelTrace.bounded, true, `${state} ${channel} trace bounded`);
+      assert.equal(channelTrace.rendererSafe, true, `${state} ${channel} trace renderer safe`);
+      assert.equal(channelTrace.warningCount, 0, `${state} ${channel} trace warning count`);
+      assert.deepEqual(channelTrace.frame, frameReport.coherence.channelReports[channel].summary, `${state} ${channel} trace frame summary`);
     }
   }
 
