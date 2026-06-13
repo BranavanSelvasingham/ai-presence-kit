@@ -237,6 +237,8 @@ assert.match(faceTypes, /motionScale: string/);
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
 assert.match(rootReadme, /usePresenceFrameTime/);
 assert.match(rootReadme, /renderPresenceFaceSvg/);
+assert.match(rootReadme, /npm run demo:adapters/);
+assert.match(rootReadme, /reference face frame evidence/);
 
 const faceReadme = readFileSync(resolve(root, "packages/face/README.md"), "utf8");
 assert.match(faceReadme, /motionScale/);
