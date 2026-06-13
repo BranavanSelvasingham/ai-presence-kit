@@ -118,6 +118,7 @@ assert.match(goalLoop, /npm run release:check-scope/);
 
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
+assert.match(changelog, /summarizePresenceTrace/);
 assert.match(changelog, /faceControllerDecisionTraceForFrame/);
 assert.match(changelog, /renderPresenceFaceSvg/);
 assert.match(changelog, /motionScale/);
@@ -150,6 +151,10 @@ assert.match(adapterDemo, /transition=/);
 assert.match(adapterDemo, /transitionReads=/);
 assert.match(adapterDemo, /transitionEvent/);
 assert.match(adapterDemo, /transitionAgeMs/);
+assert.match(adapterDemo, /summarizePresenceTrace/);
+assert.match(adapterDemo, /traceSummary=/);
+assert.match(adapterDemo, /firstOutputMs=/);
+assert.match(adapterDemo, /leadMs=/);
 
 const adaptersReadme = readFileSync(resolve(root, "packages/adapters/README.md"), "utf8");
 assert.match(adaptersReadme, /reference face frame evidence/);
@@ -181,6 +186,7 @@ const packages = [
       "createPresenceRuntime",
       "createPresenceTrace",
       "presenceControlInputsForSnapshot",
+      "summarizePresenceTrace",
       "PresenceState",
       "PresenceEvent",
     ],
@@ -243,6 +249,10 @@ for (const packageInfo of packages) {
 
 const coreTypes = readFileSync(resolve(root, "packages/core/src/presence-core.d.ts"), "utf8");
 assert.match(coreTypes, /PresenceTransitionEvent = PresenceEventValue \| "set-state"/);
+assert.match(coreTypes, /PresenceTraceSummary/);
+assert.match(coreTypes, /firstOutputMs: number \| null/);
+assert.match(coreTypes, /presenceBeforeOutputMs: number \| null/);
+assert.match(coreTypes, /summarizePresenceTrace/);
 assert.match(coreTypes, /previousState: PresenceStateValue \| null/);
 assert.match(coreTypes, /transitionEvent: PresenceTransitionEvent \| null/);
 assert.match(coreTypes, /transitionAgeMs: number/);
@@ -285,6 +295,13 @@ assert.equal(faceGlobal.faceControllerDecisionTraceForFrame(
 ).decisionCount, 6);
 
 const coreApi = require(resolve(root, "packages/core"));
+assert.equal(typeof globalThis.AIPresenceCore.summarizePresenceTrace, "function");
+const coreTraceSummary = coreApi.summarizePresenceTrace([
+  { state: coreApi.PresenceState.THINKING, event: coreApi.PresenceEvent.SUBMIT, elapsedMs: 0 },
+  { state: coreApi.PresenceState.STREAMING, event: coreApi.PresenceEvent.TOKEN, elapsedMs: 44 },
+]);
+assert.equal(coreTraceSummary.firstOutputEvent, coreApi.PresenceEvent.TOKEN);
+assert.equal(coreTraceSummary.presenceBeforeOutputMs, 44);
 let contextValue = null;
 const fakeReact = {
   createContext(defaultValue) {

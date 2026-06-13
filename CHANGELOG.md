@@ -6,6 +6,7 @@
 
 - Added root orchestration artifacts: `AGENTS.md`, `CORE_PILLARS.md`, `OPERATING_MANUAL.md`, `VALIDATION.md`, and `docs/ORCHESTRATION_LOOP.md`.
 - Added `createPresenceTrace` to `@ai-presence/core` for bounded transition timelines with elapsed timing.
+- Added `summarizePresenceTrace` to `@ai-presence/core` for renderer-agnostic integration timing evidence over trace timelines.
 - Added shared renderer-agnostic control inputs for attention, tension, energy, anticipation, recovery, speech activity, interruption, latency phase, and recent state history.
 - Added parallel face controller decisions for gaze, blink, brows, mouth, posture, and motion in `@ai-presence/face`.
 - Added deterministic temporal frame APIs in `@ai-presence/face`, including `faceControllerFrameForPresence` and `createFaceControllerFrameRuntime`.

@@ -12,6 +12,9 @@ assert.match(output, /vercel:submit->thinking\+\d+ms phase=before-output attenti
 assert.match(output, /vercel:stream-open->waiting\+\d+ms phase=before-output attention=response face=listening/);
 assert.match(output, /realtime:speech-start->speaking\+\d+ms phase=output attention=audience face=speaking/);
 assert.match(output, /chat:token->streaming\+\d+ms phase=output attention=audience face=speaking/);
+assert.match(output, /vercel:summary traceSummary=entries:\d+ .*firstTokenMs=\d+ms .*firstOutputMs=\d+ms firstOutput=token leadMs=\d+ms .*hasOutput=true complete=true/);
+assert.match(output, /realtime:summary traceSummary=entries:\d+ .*speechStartMs=\d+ms firstOutputMs=\d+ms firstOutput=speech-start leadMs=\d+ms .*hasOutput=true complete=true/);
+assert.match(output, /chat:summary traceSummary=entries:\d+ .*streamOpenMs=\d+ms firstTokenMs=\d+ms .*firstOutput=token leadMs=\d+ms .*hasOutput=true complete=true/);
 assert.match(output, /channels=gaze,blink,brows,mouth,posture,motion/);
 assert.match(output, /vercel:[^\n]+trace=complete decisions=6 safe=true warnings=0 transition=[^:\s]+:[^+\s]+\+0ms transitionReads=6\/6 reads=state,transitionEvent,transitionAgeMs/);
 assert.match(output, /realtime:[^\n]+trace=complete decisions=6 safe=true warnings=0 transition=[^:\s]+:[^+\s]+\+0ms transitionReads=6\/6 reads=state,transitionEvent,transitionAgeMs/);

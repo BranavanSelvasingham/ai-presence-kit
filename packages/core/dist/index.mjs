@@ -11,5 +11,6 @@ export const isPresenceState = core.isPresenceState;
 export const normalizePresenceState = core.normalizePresenceState;
 export const presenceControlInputsForSnapshot = core.presenceControlInputsForSnapshot;
 export const reducePresenceState = core.reducePresenceState;
+export const summarizePresenceTrace = core.summarizePresenceTrace;
 
 export default core;

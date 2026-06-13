@@ -5,6 +5,7 @@ const {
   createPresenceRuntime,
   createPresenceTrace,
   presenceControlInputsForSnapshot,
+  summarizePresenceTrace,
 } = require("../packages/core/src/presence-core.js");
 const {
   createChatEventAdapter,
@@ -37,8 +38,32 @@ function collect(label) {
   };
 }
 
+function formatMs(value) {
+  return Number.isFinite(value) ? `${Math.round(value)}ms` : "none";
+}
+
+function renderTraceSummary(collected) {
+  const summary = summarizePresenceTrace(collected.trace);
+  return [
+    `${collected.label}:summary`,
+    `traceSummary=entries:${summary.entryCount}`,
+    `states=${summary.states.join(",") || "none"}`,
+    `events=${summary.events.join(",") || "none"}`,
+    `firstStateMs=${formatMs(summary.firstStateMs)}`,
+    `streamOpenMs=${formatMs(summary.streamOpenMs)}`,
+    `firstTokenMs=${formatMs(summary.firstTokenMs)}`,
+    `speechStartMs=${formatMs(summary.speechStartMs)}`,
+    `firstOutputMs=${formatMs(summary.firstOutputMs)}`,
+    `firstOutput=${summary.firstOutputEvent || "none"}`,
+    `leadMs=${formatMs(summary.presenceBeforeOutputMs)}`,
+    `finalState=${summary.finalState || "none"}`,
+    `hasOutput=${summary.hasOutput}`,
+    `complete=${summary.complete}`,
+  ].join(" ");
+}
+
 function renderTrace(collected) {
-  return collected.trace
+  const entryLines = collected.trace
     .getEntries()
     .map((entry) => {
       const inputs = presenceControlInputsForSnapshot(entry, {
@@ -85,6 +110,8 @@ function renderTrace(collected) {
         `motion=${frameReport.frame.motion.energy.toFixed(2)}`,
       ].join(" ");
     });
+
+  return [renderTraceSummary(collected), ...entryLines];
 }
 
 const vercel = collect("vercel");
