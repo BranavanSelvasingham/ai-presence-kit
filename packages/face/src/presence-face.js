@@ -62,7 +62,7 @@
   ]);
 
   const FACE_CONTROLLER_READS = Object.freeze({
-    gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "ageMs"]),
+    gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "transitionEvent", "transitionAgeMs", "ageMs"]),
     blink: Object.freeze(["state", "profile.blinkCadenceMs", "transitionEvent", "transitionAgeMs"]),
     brows: Object.freeze(["state", "detail.question", "detail.revision"]),
     mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery", "transitionEvent", "transitionAgeMs"]),
@@ -76,6 +76,13 @@
     PresenceEvent.TOKEN || "token",
     PresenceEvent.INTERRUPT || "interrupt",
   ]);
+  const GAZE_TRANSITION_RESPONSES = Object.freeze({
+    [PresenceEvent.SUBMIT || "submit"]: Object.freeze({ x: -0.024, y: -0.018, focus: 0.035 }),
+    [PresenceEvent.STREAM_OPEN || "stream-open"]: Object.freeze({ x: -0.014, y: -0.014, focus: 0.028 }),
+    [PresenceEvent.TOKEN || "token"]: Object.freeze({ x: 0.018, y: 0.012, focus: 0.026 }),
+    [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ x: -0.04, y: -0.018, focus: 0.05 }),
+  });
+  const GAZE_TRANSITION_RESPONSE_WINDOW_MS = 240;
   const MOTION_TRANSITION_RESPONSES = Object.freeze({
     [PresenceEvent.SUBMIT || "submit"]: Object.freeze({ x: 0, y: -0.032 }),
     [PresenceEvent.STREAM_OPEN || "stream-open"]: Object.freeze({ x: 0.012, y: -0.024 }),
@@ -261,6 +268,22 @@
       && Number.isFinite(ageMs)
       && ageMs >= 0
       && ageMs <= windowMs;
+  }
+
+  function transitionGazeResponse(inputs) {
+    const response = GAZE_TRANSITION_RESPONSES[inputs?.transitionEvent];
+    const ageMs = Number(inputs?.transitionAgeMs);
+    if (!response || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > GAZE_TRANSITION_RESPONSE_WINDOW_MS) {
+      return null;
+    }
+
+    const progress = clamp(ageMs / GAZE_TRANSITION_RESPONSE_WINDOW_MS, 0, 1);
+    const envelope = (1 - progress) * (1 - progress);
+    return Object.freeze({
+      x: response.x * envelope,
+      y: response.y * envelope,
+      focus: response.focus * envelope,
+    });
   }
 
   function transitionMouthResponse(inputs) {
@@ -457,6 +480,13 @@
     if (!inputs && isReadyState(stateName)) {
       const softness = clamp(context.ageMs / 1800, 0, 1);
       control.focus = clamp(control.focus - softness * 0.1, 0.5, 0.72);
+    }
+
+    const transitionGaze = transitionGazeResponse(inputs);
+    if (transitionGaze) {
+      control.x = clamp(control.x + transitionGaze.x, -1, 1);
+      control.y = clamp(control.y + transitionGaze.y, -1, 1);
+      control.focus = clamp(control.focus + transitionGaze.focus, 0, 1);
     }
 
     return control;
