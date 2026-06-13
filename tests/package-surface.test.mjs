@@ -52,6 +52,10 @@ const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8")
 assert.match(workflow, /npm ci/);
 assert.match(workflow, /npm run validate/);
 
+const server = readFileSync(resolve(root, "server.mjs"), "utf8");
+assert.doesNotMatch(server, /features\.emotion/);
+assert.match(server, /Return interaction posture, not emotion detection/);
+
 const releasePolicy = readFileSync(resolve(root, "docs/RELEASE_POLICY.md"), "utf8");
 assert.match(releasePolicy, /0\.1\.0/);
 assert.match(releasePolicy, /npm run release:check-names/);

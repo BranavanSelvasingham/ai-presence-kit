@@ -576,7 +576,7 @@ function extractOutputText(payload) {
 function compactFeatures(features) {
   return {
     attention: clampNumber(features.attention ?? features.intent, 0, 1, 0),
-    arousal: clampNumber(features.arousal ?? features.emotion, 0, 1, 0),
+    arousal: clampNumber(features.arousal, 0, 1, 0),
     completion: clampNumber(features.completion, 0, 1, 0),
     question: Boolean(features.question),
     hedge: Boolean(features.hedge ?? features.uncertainty),
