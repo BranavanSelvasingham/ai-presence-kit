@@ -9,10 +9,12 @@
 - Added shared renderer-agnostic control inputs for attention, tension, energy, anticipation, recovery, speech activity, interruption, latency phase, and recent state history.
 - Added parallel face controller decisions for gaze, blink, brows, mouth, posture, and motion in `@ai-presence/face`.
 - Added deterministic temporal frame APIs in `@ai-presence/face`, including `faceControllerFrameForPresence` and `createFaceControllerFrameRuntime`.
+- Added `faceControllerDecisionTraceForFrame` in `@ai-presence/face` for bounded six-channel decision-trace evidence from temporal frame reports.
 - Added the no-DOM `renderPresenceFaceSvg` reference renderer API with inspectable six-channel frame evidence.
 - Added `motionScale` to `@ai-presence/face` frame and SVG renderer APIs for reduced-motion/still output without removing controller evidence.
 - Added `usePresenceControlInputs()` and `usePresenceFrameTime()` to the React binding factory.
-- Added browser demo evidence for controller composition, temporal frame sequences, before-first-token presence, and React-to-SVG renderer wiring.
+- Added browser demo evidence for controller composition, temporal frame sequences, decision traces, before-first-token presence, and React-to-SVG renderer wiring.
+- Added browser DOM decision-trace evidence via `data-controller-decision-trace*` on the live metrics/controller-gallery proof surfaces.
 - Added `release:check-scope` to verify authenticated npm access to the `@ai-presence` scope before publishing.
 - Reframed the main objective around a low-latency facial presence engine driven by parallel micro-decisions.
 
@@ -21,6 +23,7 @@
 - Added package-surface and ESM tests for the core trace export.
 - Added adapter demo coverage for reference face frame evidence produced from adapter-driven transitions.
 - Added controller-gallery, face-renderer, comparison-before-token, React binding, React browser, package-surface, and ESM coverage for the current package surface.
+- Added package-surface release-doc checks for the decision-trace API and browser DOM evidence.
 - Added README media validation for the comparison and React browser demo screenshots.
 - Expanded release readiness docs around browser smoke routes, package dry-runs, and package-name checks.
 
