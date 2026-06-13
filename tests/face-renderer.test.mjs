@@ -15,6 +15,7 @@ const {
   createFaceControllerFrameRuntime,
   createFaceControllerRuntime,
   createFaceRenderer,
+  faceControllerCoherenceForFrame,
   faceControllerDecisionsForPresence,
   faceControllerFrameForPresence,
   faceControlsForPresence,
@@ -68,14 +69,31 @@ function assertControllerFrame(snapshot, options = {}) {
 
   assert.ok(Object.isFrozen(frameReport), "frame report is frozen");
   assert.ok(Object.isFrozen(frameReport.frame), "frame object is frozen");
+  assert.ok(Object.isFrozen(frameReport.coherence), "coherence report is frozen");
   assert.equal(frameReport.state, decisionReport.state);
   assert.equal(frameReport.expression, decisionReport.expression);
   assert.deepEqual(frameReport.sharedInputs, decisionReport.sharedInputs);
   assert.deepEqual(frameReport.decisions, decisionReport.decisions);
   assert.deepEqual(Object.keys(frameReport.frame), FACE_CONTROL_CHANNELS);
+  assert.deepEqual(frameReport.coherence.channels, FACE_CONTROL_CHANNELS);
+  assert.equal(frameReport.coherence.complete, true);
+  assert.equal(frameReport.coherence.bounded, true);
+  assert.equal(frameReport.coherence.rendererSafe, true);
+  assert.deepEqual(frameReport.coherence.warnings, []);
+  assert.equal(frameReport.coherence.summary.channelCount, 6);
+  assert.equal(frameReport.coherence.summary.presentChannelCount, 6);
+  assert.equal(frameReport.coherence.summary.boundedChannelCount, 6);
+  assert.equal(frameReport.coherence.summary.gazeTarget, frameReport.frame.gaze.target);
+  assert.equal(frameReport.coherence.summary.mouthShape, frameReport.frame.mouth.shape);
+  assert.equal(frameReport.coherence.summary.motionEnergy, Math.round(frameReport.frame.motion.energy * 1000) / 1000);
+  assert.deepEqual(faceControllerCoherenceForFrame(frameReport), frameReport.coherence);
 
   for (const channel of FACE_CONTROL_CHANNELS) {
     assertFrameChannel(frameReport.frame, channel);
+    assert.equal(frameReport.coherence.channelReports[channel].channel, channel);
+    assert.equal(frameReport.coherence.channelReports[channel].present, true);
+    assert.equal(frameReport.coherence.channelReports[channel].bounded, true);
+    assert.deepEqual(frameReport.coherence.channelReports[channel].warnings, []);
   }
 
   assert.equal(frameReport.frame.gaze.target, frameReport.decisions.gaze.control.target);
@@ -138,6 +156,8 @@ assert.equal(waitingControls.gaze.target, "response-origin");
 assert.equal(waitingReport.sharedInputs.latencyPhase, "before-output");
 assert.equal(waitingFrame.frame.mouth.shape, "preparing");
 assert.ok(waitingFrame.frame.motion.anticipation > 0);
+assert.equal(waitingFrame.coherence.summary.mouthShape, "preparing");
+assert.ok(waitingFrame.coherence.summary.motionEnergy > 0);
 assert.equal(waitingInputs.attentionTarget, "response");
 assert.equal(waitingControls.gaze.x, waitingInputs.attentionX);
 assert.ok(waitingControls.motion.anticipation > thinkingControls.motion.anticipation);
@@ -151,6 +171,8 @@ const streamingFrame = assertControllerFrame(streamingSnapshot, { now: 1400 });
 assert.equal(streamingControls.expression, FaceExpression.SPEAKING);
 assert.equal(streamingControls.mouth.shape, "speaking");
 assert.ok(streamingFrame.frame.mouth.beat > 0);
+assert.equal(streamingFrame.coherence.summary.mouthShape, "speaking");
+assert.ok(streamingFrame.coherence.summary.mouthActivity > waitingFrame.coherence.summary.mouthActivity);
 assert.equal(streamingControls.mouth.activity, streamingInputs.speechActivity);
 assert.ok(streamingControls.mouth.activity > waitingControls.mouth.activity);
 assert.ok(streamingControls.motion.energy > waitingControls.motion.energy);
@@ -171,6 +193,7 @@ assert.equal(interruptedControls.expression, FaceExpression.UNCERTAIN);
 assert.equal(interruptedControls.blink.pulse, true);
 assert.equal(interruptedFrame.frame.blink.pulse, true);
 assert.ok(interruptedFrame.frame.motion.recovery > 0);
+assert.ok(interruptedFrame.coherence.summary.motionRecovery > 0);
 assert.equal(interruptedReport.sharedInputs.interruption, 1);
 assert.ok(interruptedControls.posture.lean < 0);
 assert.ok(interruptedControls.motion.recovery > speakingControls.motion.recovery);
@@ -188,8 +211,46 @@ const readyFrame = assertControllerFrame(readySnapshot, { ...readyOptions, timeM
 assert.equal(readyControls.expression, FaceExpression.READY);
 assert.equal(readyControls.mouth.shape, "soft-smile");
 assert.equal(readyFrame.frame.mouth.shape, "soft-smile");
+assert.equal(readyFrame.coherence.summary.mouthShape, "soft-smile");
 assert.ok(readyControls.gaze.focus < 0.68);
 assert.ok(readyControls.motion.energy < 0.24);
+
+const errorFrame = assertControllerFrame({ state: PresenceState.ERROR }, { now: 3000 });
+assert.equal(errorFrame.expression, FaceExpression.CONCERNED);
+assert.equal(errorFrame.frame.gaze.target, "status");
+assert.equal(errorFrame.frame.mouth.shape, "downturned");
+assert.equal(errorFrame.coherence.summary.mouthShape, "downturned");
+assert.equal(errorFrame.coherence.rendererSafe, true);
+
+const invalidCoherence = faceControllerCoherenceForFrame({
+  decisions: {
+    gaze: { channel: "gaze", controller: "gaze-controller", reads: ["state"] },
+    blink: { channel: "blink", controller: "blink-controller", reads: ["state"] },
+    brows: { channel: "brows", controller: "brows-controller", reads: ["state"] },
+    mouth: { channel: "mouth", controller: "mouth-controller", reads: ["state"] },
+    posture: { channel: "posture", controller: "posture-controller", reads: ["state"] },
+  },
+  frame: {
+    gaze: { target: "elsewhere", x: 2, y: 0, focus: 0.5, driftX: 0, driftY: 0 },
+    blink: { openness: 1.4, cadenceMs: 100, pulse: false, phase: 0.2 },
+    brows: { lift: 0, pinch: 0, asymmetry: 0 },
+    mouth: { shape: "speaking", openness: 0.4, activity: 0.8, tension: 0.1, beat: 0.2 },
+    posture: { lean: 0, turn: 0, energy: 0.4, recovery: 0, breath: 0.5 },
+  },
+});
+assert.ok(Object.isFrozen(invalidCoherence));
+assert.equal(invalidCoherence.complete, false);
+assert.equal(invalidCoherence.bounded, false);
+assert.equal(invalidCoherence.rendererSafe, false);
+assert.equal(invalidCoherence.summary.presentChannelCount, 5);
+assert.equal(invalidCoherence.summary.boundedChannelCount, 3);
+assert.equal(invalidCoherence.channelReports.motion.present, false);
+assert.equal(invalidCoherence.channelReports.gaze.bounded, false);
+assert.equal(invalidCoherence.channelReports.blink.bounded, false);
+assert.ok(invalidCoherence.warnings.includes("motion frame is missing"));
+assert.ok(invalidCoherence.warnings.includes("motion decision is missing"));
+assert.ok(invalidCoherence.warnings.includes("gaze.x must be finite -1..1"));
+assert.ok(invalidCoherence.warnings.includes("blink.cadenceMs must be finite 300..20000"));
 
 const earlyFrame = faceControllerFrameForPresence({
   state: PresenceState.WAITING,

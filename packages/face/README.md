@@ -23,7 +23,7 @@ console.log(report.decisions.gaze.controller); // "gaze-controller"
 ```
 
 ```js
-import { faceControllerFrameForPresence } from "@ai-presence/face";
+import { faceControllerCoherenceForFrame, faceControllerFrameForPresence } from "@ai-presence/face";
 
 const frameReport = faceControllerFrameForPresence(snapshot, {
   trace,
@@ -34,6 +34,9 @@ const frameReport = faceControllerFrameForPresence(snapshot, {
 renderer.setGaze(frameReport.frame.gaze);
 renderer.setBlink(frameReport.frame.blink);
 renderer.setPosture(frameReport.frame.posture);
+
+console.log(frameReport.coherence.rendererSafe); // true
+console.log(faceControllerCoherenceForFrame(frameReport).channels); // ["gaze", "blink", "brows", "mouth", "posture", "motion"]
 ```
 
 ```js
@@ -74,7 +77,42 @@ The controller does not claim hidden internal state. It stays grounded in observ
 }
 ```
 
-`faceControllerFrameForPresence` returns the same report fields plus a frozen `frame` object. The frame keeps controller decisions stable and adds bounded temporal values such as blink `phase`, mouth `beat`, posture `breath`, and motion offsets so renderers can animate interaction posture without adding their own timing policy.
+`faceControllerFrameForPresence` returns the same report fields plus a frozen `frame` object and frozen `coherence` audit. The frame keeps controller decisions stable and adds bounded temporal values such as blink `phase`, mouth `beat`, posture `breath`, and motion offsets so renderers can animate interaction posture without adding their own timing policy.
+
+The coherence audit proves the six independently decided channels compose into one renderer-consumable frame:
+
+```js
+{
+  channels: ["gaze", "blink", "brows", "mouth", "posture", "motion"],
+  complete: true,
+  bounded: true,
+  rendererSafe: true,
+  summary: {
+    channelCount: 6,
+    presentChannelCount: 6,
+    boundedChannelCount: 6,
+    gazeTarget: "response-origin",
+    gazeFocus: 0.66,
+    blinkOpenness: 0.9,
+    mouthShape: "preparing",
+    mouthActivity: 0.16,
+    postureLean: 0.24,
+    motionEnergy: 0.46,
+    motionRecovery: 0
+  },
+  channelReports: {
+    gaze: { channel: "gaze", present: true, bounded: true, summary: {}, warnings: [] },
+    blink: { channel: "blink", present: true, bounded: true, summary: {}, warnings: [] },
+    brows: { channel: "brows", present: true, bounded: true, summary: {}, warnings: [] },
+    mouth: { channel: "mouth", present: true, bounded: true, summary: {}, warnings: [] },
+    posture: { channel: "posture", present: true, bounded: true, summary: {}, warnings: [] },
+    motion: { channel: "motion", present: true, bounded: true, summary: {}, warnings: [] }
+  },
+  warnings: []
+}
+```
+
+Use `faceControllerCoherenceForFrame(frameReport)` when auditing a saved or externally assembled report. Missing channels, mismatched controller metadata, invalid targets/shapes, and out-of-range numeric values make `rendererSafe` false and appear in `warnings`.
 
 Pass `motionScale` when a downstream renderer needs reduced motion. `motionScale: 1` is the default live temporal behavior, `motionScale: 0` produces deterministic still frames across different `timeMs` values for the same snapshot/options, and values between `0` and `1` reduce temporal blink closure, drift, mouth beat, breath, anticipation/recovery kicks, and motion offsets. The option does not remove the six controller channels or their evidence; gaze target, blink baseline, brows, mouth shape, posture, and motion decisions remain available for custom renderers.
 
