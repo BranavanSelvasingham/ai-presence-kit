@@ -39,6 +39,14 @@ npm run release:check-names
 
 An npm `404` proves the package name is not published in the registry. It does not prove that the publisher controls the `@ai-presence` scope. Before publishing, create or confirm control of the npm user/org scope.
 
+After authenticating with npm, verify scope access:
+
+```bash
+npm run release:check-scope
+```
+
+This check intentionally is not part of CI because it requires npm credentials. It should pass before the first public publish.
+
 ## Versioning
 
 Use lockstep package versions for the initial public phase. The four packages depend on the same core state contract, so publishing them together keeps adapters, renderers, and React bindings easier to reason about.
@@ -80,4 +88,5 @@ Before a public release:
 5. Run `git diff --check`.
 6. Browser-smoke the reference route, comparison route, and React browser demo.
 7. Run `npm run release:check-names`.
-8. Publish in dependency order: `core`, `face`, `adapters`, `react`.
+8. Run `npm run release:check-scope` from an authenticated npm session.
+9. Publish in dependency order: `core`, `face`, `adapters`, `react`.

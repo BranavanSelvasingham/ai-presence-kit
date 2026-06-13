@@ -26,6 +26,7 @@ for (const requiredFile of [
   "examples/react-presence-demo.js",
   "package-lock.json",
   "scripts/check-package-names.mjs",
+  "scripts/check-npm-scope.mjs",
   "scripts/pack-dry-run.mjs",
   "VALIDATION.md",
 ]) {
@@ -35,8 +36,10 @@ for (const requiredFile of [
 const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 assert.match(rootManifest.scripts.check, /scripts\/pack-dry-run\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-package-names\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/check-npm-scope\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
+assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
 assert.match(rootManifest.scripts.validate, /npm run check/);
 assert.match(rootManifest.scripts.validate, /npm test/);
 assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
@@ -50,6 +53,7 @@ assert.match(workflow, /npm run validate/);
 const releasePolicy = readFileSync(resolve(root, "docs/RELEASE_POLICY.md"), "utf8");
 assert.match(releasePolicy, /0\.1\.0/);
 assert.match(releasePolicy, /npm run release:check-names/);
+assert.match(releasePolicy, /npm run release:check-scope/);
 assert.match(releasePolicy, /@ai-presence\/core -> npm E404/);
 assert.match(releasePolicy, /2026-06-12/);
 assert.match(releasePolicy, /scope/);
@@ -61,11 +65,13 @@ assert.match(releaseReadiness, /renderPresenceFaceSvg/);
 assert.match(releaseReadiness, /usePresenceFrameTime/);
 assert.match(releaseReadiness, /before the first visible token/);
 assert.match(releaseReadiness, /2026-06-12/);
+assert.match(releaseReadiness, /npm run release:check-scope/);
 
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
 assert.match(changelog, /renderPresenceFaceSvg/);
 assert.match(changelog, /motionScale/);
+assert.match(changelog, /release:check-scope/);
 assert.match(changelog, /usePresenceFrameTime/);
 assert.match(changelog, /before-first-token presence/);
 

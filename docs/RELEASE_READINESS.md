@@ -87,10 +87,11 @@ Release policy and package-name checks:
 
 ```bash
 npm run release:check-names
+npm run release:check-scope
 ```
 
 The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished. See `docs/RELEASE_POLICY.md`.
 
 ## Remaining Before Public Release
 
-- Create or confirm control of the npm `@ai-presence` scope before publishing.
+- Create or confirm control of the npm `@ai-presence` scope, then pass `npm run release:check-scope` from an authenticated npm session before publishing.
