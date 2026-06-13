@@ -13,6 +13,9 @@ assert.match(output, /vercel:stream-open->waiting\+\d+ms phase=before-output att
 assert.match(output, /realtime:speech-start->speaking\+\d+ms phase=output attention=audience face=speaking/);
 assert.match(output, /chat:token->streaming\+\d+ms phase=output attention=audience face=speaking/);
 assert.match(output, /channels=gaze,blink,brows,mouth,posture,motion/);
+assert.match(output, /vercel:[^\n]+trace=complete decisions=6 safe=true warnings=0 reads=state/);
+assert.match(output, /realtime:[^\n]+trace=complete decisions=6 safe=true warnings=0 reads=state/);
+assert.match(output, /chat:[^\n]+trace=complete decisions=6 safe=true warnings=0 reads=state/);
 assert.match(output, /mouth=preparing/);
 assert.match(output, /motion=0\.\d+/);
 assert.doesNotMatch(output, /emotion[- ]detection|private emotion/i);
