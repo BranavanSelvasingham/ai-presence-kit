@@ -27,11 +27,20 @@ assert.match(app, /runtime\.faceDecisionReport/);
 assert.match(app, /runtime\.faceFrameReport/);
 assert.match(app, /activeFaceFrameReport/);
 assert.match(app, /frameSummary/);
+assert.match(app, /controllerCoherenceForFrame/);
+assert.match(app, /controllerCoherenceEvidence/);
+assert.match(app, /applyControllerCoherenceDataset/);
+assert.match(app, /faceControllerCoherenceForFrame/);
 assert.match(app, /dataset\.controller/);
 assert.match(app, /dataset\.reads/);
 assert.match(app, /dataset\.controllerComposition/);
 assert.match(app, /dataset\.controllerEvidence/);
 assert.match(app, /dataset\.controllerFrame/);
+assert.match(app, /dataset\.controllerCoherence/);
+assert.match(app, /dataset\.controllerCoherenceChannels/);
+assert.match(app, /dataset\.controllerCoherenceWarnings/);
+assert.match(app, /dataset\.controllerCoherenceRendererSafe/);
+assert.match(app, /dataset\.controllerCoherenceWarningFree/);
 assert.match(app, /CONTROLLER_FRAME_SAMPLE_OFFSETS/);
 assert.match(app, /createControllerFrameSequence/);
 assert.match(app, /createControllerFrameStrip/);
@@ -42,6 +51,10 @@ assert.match(app, /faceDecisionReport/);
 assert.match(app, /metricControls\.dataset\.controllerComposition/);
 assert.match(app, /metricControls\.dataset\.controllerEvidence/);
 assert.match(app, /metricControls\.dataset\.controllerFrame/);
+assert.match(app, /applyControllerCoherenceDataset\(faceShell/);
+assert.match(app, /applyControllerCoherenceDataset\(metricControls/);
+assert.match(app, /applyControllerCoherenceDataset\(card/);
+assert.match(app, /applyControllerCoherenceDataset\(item/);
 assert.match(css, /body\.controller-gallery-mode/);
 assert.match(css, /--face-offset-x/);
 assert.match(css, /--face-offset-y/);
@@ -124,6 +137,18 @@ for (const state of [
   for (const frameReport of frameSamples) {
     assert.equal(frameReport.state, state, `${state} frame report state`);
     assert.deepEqual(Object.keys(frameReport.frame), FACE_CONTROL_CHANNELS, `${state} frame channel order`);
+    assert.deepEqual(frameReport.coherence.channels, FACE_CONTROL_CHANNELS, `${state} coherence channel order`);
+    assert.equal(frameReport.coherence.rendererSafe, true, `${state} coherence renderer safe`);
+    assert.deepEqual(frameReport.coherence.warnings, [], `${state} coherence warnings`);
+    assert.equal(frameReport.coherence.summary.presentChannelCount, FACE_CONTROL_CHANNELS.length, `${state} coherence present channels`);
+    assert.equal(frameReport.coherence.summary.boundedChannelCount, FACE_CONTROL_CHANNELS.length, `${state} coherence bounded channels`);
+    assert.equal(
+      frameReport.coherence.rendererSafe && frameReport.coherence.warnings.length === 0 ? "safe" : "unsafe",
+      "safe",
+      `${state} DOM coherence status`,
+    );
+    assert.equal(frameReport.coherence.channels.join(" "), "gaze blink brows mouth posture motion", `${state} DOM coherence channels`);
+    assert.equal(String(frameReport.coherence.warnings.length), "0", `${state} DOM coherence warnings`);
     assert.deepEqual(frameReport.decisions, report.decisions, `${state} frame decisions stay fixed across samples`);
     for (const channel of FACE_CONTROL_CHANNELS) {
       assert.ok(frameReport.frame[channel], `${state} frame has ${channel}`);

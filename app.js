@@ -673,6 +673,54 @@ function frameSummary(report = activeFaceFrameReport()) {
     .join(" | ");
 }
 
+function controllerCoherenceForFrame(report = activeFaceFrameReport()) {
+  if (report?.coherence) return report.coherence;
+  if (report && typeof PresenceFace.faceControllerCoherenceForFrame === "function") {
+    return PresenceFace.faceControllerCoherenceForFrame(report);
+  }
+  return null;
+}
+
+function controllerCoherenceEvidence(report = activeFaceFrameReport()) {
+  const coherence = controllerCoherenceForFrame(report);
+  const channels = Array.isArray(coherence?.channels) && coherence.channels.length
+    ? coherence.channels
+    : FACE_CONTROL_CHANNELS;
+  const channelText = channels.join(" ");
+  const warningCount = Array.isArray(coherence?.warnings) ? coherence.warnings.length : 0;
+  const rendererSafe = Boolean(coherence?.rendererSafe);
+  const warningFree = Boolean(coherence) && warningCount === 0;
+  const hasAllChannels = FACE_CONTROL_CHANNELS.every((channel) => channels.includes(channel));
+  const safe = rendererSafe && warningFree && hasAllChannels;
+  const summary = coherence?.summary || {};
+  const channelCount = summary.channelCount || FACE_CONTROL_CHANNELS.length;
+  const presentCount = summary.presentChannelCount || 0;
+  const boundedCount = summary.boundedChannelCount || 0;
+
+  return {
+    status: safe ? "safe" : "unsafe",
+    channels: channelText,
+    warningCount: String(warningCount),
+    rendererSafe: String(rendererSafe),
+    warningFree: String(warningFree),
+    summary: coherence
+      ? `rendererSafe:${rendererSafe ? "yes" : "no"} warnings:${warningCount} channels:${presentCount}/${channelCount} bounded:${boundedCount}/${channelCount}`
+      : "none",
+  };
+}
+
+function applyControllerCoherenceDataset(element, report = activeFaceFrameReport()) {
+  if (!element) return null;
+  const evidence = controllerCoherenceEvidence(report);
+  element.dataset.controllerCoherence = evidence.status;
+  element.dataset.controllerCoherenceChannels = evidence.channels;
+  element.dataset.controllerCoherenceWarnings = evidence.warningCount;
+  element.dataset.controllerCoherenceRendererSafe = evidence.rendererSafe;
+  element.dataset.controllerCoherenceWarningFree = evidence.warningFree;
+  element.dataset.controllerCoherenceSummary = evidence.summary;
+  return evidence;
+}
+
 function decisionForChannel(report, channel) {
   return report?.decisions?.[channel] || null;
 }
@@ -731,6 +779,7 @@ function syncPresenceSnapshot(snapshot) {
   faceShell.dataset.controllerComposition = controllerCompositionText();
   faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
   faceShell.dataset.controllerFrame = frameSummary();
+  applyControllerCoherenceDataset(faceShell);
   if (controls?.expression && controls.expression !== runtime.state) {
     setExpression(controls.expression, null, "face-controller", {
       immediate: snapshot.changed || controls.motion.settleMs <= 140,
@@ -794,6 +843,7 @@ function setPresence(level) {
       faceShell.dataset.controllerComposition = controllerCompositionText();
       faceShell.dataset.controllerEvidence = controllerEvidenceText(controls, activeFaceDecisionReport());
       faceShell.dataset.controllerFrame = frameSummary();
+      applyControllerCoherenceDataset(faceShell);
     }
   }
   setExpression(runtime.state, null, runtime.expressionSource, { immediate: true });
@@ -858,6 +908,7 @@ function applyExpression(name, eventStartedAt = null, source = runtime.expressio
   faceShell.dataset.rendererState = name;
   faceShell.dataset.presence = runtime.presence;
   faceShell.dataset.controllerFrame = frameSummary();
+  applyControllerCoherenceDataset(faceShell);
   faceShell.style.setProperty("--face-tilt", `${tilt.toFixed(2)}deg`);
   faceShell.style.setProperty("--face-offset-x", `${frameOffsetX.toFixed(2)}px`);
   faceShell.style.setProperty("--face-offset-y", `${frameOffsetY.toFixed(2)}px`);
@@ -3168,6 +3219,7 @@ function createControllerFrameStrip(state, samples) {
   strip.dataset.frameSamples = samples.map((sample) => String(sample.offsetMs)).join(",");
   strip.dataset.frameChannels = FACE_CONTROL_CHANNELS.join(",");
   strip.dataset.frameSequence = frameSequenceSummary(samples);
+  applyControllerCoherenceDataset(strip, samples[0]?.report);
 
   for (const [index, sample] of samples.entries()) {
     const controls = controlsFromFrameReport(sample.report);
@@ -3179,6 +3231,7 @@ function createControllerFrameStrip(state, samples) {
     item.dataset.frameOffsetMs = String(sample.offsetMs);
     item.dataset.controllerFrame = frameSummary(sample.report);
     item.dataset.frameChannels = FACE_CONTROL_CHANNELS.join(",");
+    applyControllerCoherenceDataset(item, sample.report);
 
     const time = document.createElement("span");
     time.className = "controller-frame-time";
@@ -3216,6 +3269,7 @@ function createControllerGalleryCard(state, report, frameSamples = []) {
   card.dataset.frameSequence = frameSequenceSummary(frameSamples);
   if (frameSamples[0]?.report) {
     card.dataset.controllerFrame = frameSummary(frameSamples[0].report);
+    applyControllerCoherenceDataset(card, frameSamples[0].report);
   }
 
   const title = document.createElement("h2");
@@ -5427,8 +5481,10 @@ function installRuntimeTestHarness() {
       eye: eyeLeftGroup.style.transform,
       controls: controlsSummary(),
       controllerComposition: controllerCompositionText(),
+      controllerCoherence: controllerCoherenceEvidence(),
       faceControls: runtime.faceControls,
       faceDecisionReport: runtime.faceDecisionReport,
+      faceFrameReport: runtime.faceFrameReport,
       turns: runtime.metrics.turns,
       trace: [...runtime.trace],
     }),
@@ -5558,6 +5614,7 @@ function renderMetrics() {
   metricControls.dataset.controllerComposition = controllerCompositionText();
   metricControls.dataset.controllerEvidence = controllerEvidenceText(activeFaceControls(), activeFaceDecisionReport());
   metricControls.dataset.controllerFrame = frameSummary();
+  applyControllerCoherenceDataset(metricControls);
   metricTrace.textContent = runtime.trace.length ? runtime.trace.join(" -> ") : "--";
   metricBenchmark.textContent = runtime.benchmark.summary;
 }
