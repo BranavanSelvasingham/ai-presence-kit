@@ -67,7 +67,7 @@
     brows: Object.freeze(["state", "detail.question", "detail.revision"]),
     mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery"]),
     posture: Object.freeze(["state", "energy", "recovery", "interruption", "latencyPhase"]),
-    motion: Object.freeze(["state", "profile.drift", "profile.settleMs", "energy", "anticipation", "recovery", "speechActivity", "latencyPhase", "ageMs"]),
+    motion: Object.freeze(["state", "profile.drift", "profile.settleMs", "energy", "anticipation", "recovery", "speechActivity", "latencyPhase", "transitionEvent", "transitionAgeMs", "ageMs"]),
   });
 
   const BLINK_TRANSITION_PULSE_EVENTS = Object.freeze([
@@ -76,6 +76,13 @@
     PresenceEvent.TOKEN || "token",
     PresenceEvent.INTERRUPT || "interrupt",
   ]);
+  const MOTION_TRANSITION_RESPONSES = Object.freeze({
+    [PresenceEvent.SUBMIT || "submit"]: Object.freeze({ x: 0, y: -0.032 }),
+    [PresenceEvent.STREAM_OPEN || "stream-open"]: Object.freeze({ x: 0.012, y: -0.024 }),
+    [PresenceEvent.TOKEN || "token"]: Object.freeze({ x: 0.018, y: 0.016 }),
+    [PresenceEvent.INTERRUPT || "interrupt"]: Object.freeze({ x: -0.032, y: 0.012 }),
+  });
+  const MOTION_TRANSITION_RESPONSE_WINDOW_MS = 240;
 
   function resolveCore(scope) {
     if (scope?.AIPresenceCore) return scope.AIPresenceCore;
@@ -874,6 +881,21 @@
     return clamp(envelope * 0.52 * motionScale, 0, 0.72);
   }
 
+  function transitionMotionResponse(inputs, motionScale) {
+    const response = MOTION_TRANSITION_RESPONSES[inputs?.transitionEvent];
+    const ageMs = Number(inputs?.transitionAgeMs);
+    if (!response || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > MOTION_TRANSITION_RESPONSE_WINDOW_MS) {
+      return Object.freeze({ x: 0, y: 0 });
+    }
+
+    const progress = clamp(ageMs / MOTION_TRANSITION_RESPONSE_WINDOW_MS, 0, 1);
+    const envelope = (1 - progress) * (1 - progress) * motionScale;
+    return Object.freeze({
+      x: response.x * envelope,
+      y: response.y * envelope,
+    });
+  }
+
   function composeFaceControllerFrame(report, context, options = {}) {
     const timeMs = resolveFrameTime(options, context.now);
     const motionScale = resolveMotionScale(options);
@@ -898,6 +920,7 @@
     const driftWaveY = motionScale === 0 ? 0 : normalizedWave(timeMs, 3100, 0.41) * motionScale;
     const speechBeat = speechActivity * (0.5 + normalizedWave(timeMs, 260, 0.08) * 0.5) * motionScale;
     const breath = clamp((0.5 + normalizedWave(timeMs, 3600, 0.32) * 0.5) * motionScale, 0, 1);
+    const transitionMotion = transitionMotionResponse(context.inputs, motionScale);
     const settle = clamp(ageMs / Math.max(1, finiteNumber(motion.settleMs, context.profile.settleMs)), 0, 1);
     const driftScale = drift * (0.18 + energy * 0.32) * (1 - recovery * 0.35);
     const driftX = driftWaveX * driftScale;
@@ -945,8 +968,8 @@
         anticipation,
         recovery,
         settleMs: finiteClamp(motion.settleMs, 0, 20000, context.profile.settleMs),
-        offsetX: finiteClamp(driftX + anticipationKick - recoveryDrop, -1, 1, 0),
-        offsetY: finiteClamp(driftY + breath * energy * 0.02 - recoveryDrop, -1, 1, 0),
+        offsetX: finiteClamp(driftX + anticipationKick - recoveryDrop + transitionMotion.x, -1, 1, 0),
+        offsetY: finiteClamp(driftY + breath * energy * 0.02 - recoveryDrop + transitionMotion.y, -1, 1, 0),
       }),
     });
   }

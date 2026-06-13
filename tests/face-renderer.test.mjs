@@ -231,6 +231,8 @@ assert.equal(freshSubmitReport.sharedInputs.transitionEvent, PresenceEvent.SUBMI
 assert.equal(freshSubmitReport.sharedInputs.transitionAgeMs, 80);
 assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionEvent"));
 assert.ok(freshSubmitReport.decisions.blink.reads.includes("transitionAgeMs"));
+assert.ok(freshSubmitReport.decisions.motion.reads.includes("transitionEvent"));
+assert.ok(freshSubmitReport.decisions.motion.reads.includes("transitionAgeMs"));
 assert.equal(freshSubmitReport.decisions.blink.control.pulse, true);
 const freshSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
   now: 1080,
@@ -238,6 +240,7 @@ const freshSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
 });
 assert.equal(freshSubmitFrame.frame.blink.pulse, true);
 assert.ok(freshSubmitFrame.frame.blink.openness < 0.4);
+assert.ok(freshSubmitFrame.frame.motion.offsetY < 0);
 const freshSubmitTrace = assertControllerDecisionTrace(freshSubmitFrame);
 assert.deepEqual(freshSubmitTrace.transitionContext, {
   previousState: PresenceState.READY,
@@ -260,6 +263,8 @@ assert.equal(freshSubmitSvg.attributes.decisionTrace, "complete");
 assert.equal(freshSubmitSvg.attributes.decisionTraceDecisions, "6");
 assert.equal(freshSubmitSvg.attributes.decisionTraceWarnings, "0");
 assert.equal(freshSubmitSvg.attributes.decisionTraceRendererSafe, "true");
+assert.ok(freshSubmitSvg.channelEvidence.motion.reads.includes("transitionEvent"));
+assert.equal(freshSubmitSvg.frame.motion.offsetY, freshSubmitFrame.frame.motion.offsetY);
 assert.match(freshSubmitSvg.svg, /data-face-previous-state="ready"/);
 assert.match(freshSubmitSvg.svg, /data-face-transition-event="submit"/);
 assert.match(freshSubmitSvg.svg, /data-face-transition-age-ms="80"/);
@@ -269,9 +274,17 @@ const staleSubmitControls = faceControlsForPresence(freshSubmitSnapshot, {
 assert.equal(staleSubmitControls.blink.pulse, false);
 const staleSubmitFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
   now: 1300,
-  timeMs: 1300,
+  timeMs: 1080,
 });
 assert.ok(staleSubmitFrame.frame.blink.openness > freshSubmitFrame.frame.blink.openness);
+assert.ok(staleSubmitFrame.frame.motion.offsetY > freshSubmitFrame.frame.motion.offsetY);
+const freshSubmitStillFrame = faceControllerFrameForPresence(freshSubmitSnapshot, {
+  now: 1080,
+  timeMs: 1080,
+  motionScale: 0,
+});
+assert.equal(freshSubmitStillFrame.frame.motion.offsetX, 0);
+assert.equal(freshSubmitStillFrame.frame.motion.offsetY, 0);
 
 const waitingSnapshot = { state: PresenceState.WAITING };
 const waitingControls = faceControlsForPresence(waitingSnapshot);
