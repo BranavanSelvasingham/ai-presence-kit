@@ -155,6 +155,7 @@
       ...frameOptions,
       title: `Reference face rendering ${snapshot.state}`,
     });
+    const transitionEvidence = transitionEvidenceForRenderedFace(renderedFace);
 
     return React.createElement(
       "div",
@@ -171,10 +172,41 @@
         "data-face-decision-trace-warnings": renderedFace.attributes.decisionTraceWarnings,
         "data-face-decision-trace-renderer-safe": renderedFace.attributes.decisionTraceRendererSafe,
         "data-face-latency-phase": renderedFace.attributes.latencyPhase || "unknown",
+        "data-face-previous-state": renderedFace.attributes.previousState || "",
+        "data-face-transition-event": renderedFace.attributes.transitionEvent || "",
+        "data-face-transition-age-ms": renderedFace.attributes.transitionAgeMs || "",
+        "data-face-transition-context": transitionEvidence.context,
+        "data-face-transition-controller-reads": transitionEvidence.controllerReads,
+        "data-face-transition-controller-reads-event": transitionEvidence.readsEvent,
+        "data-face-transition-controller-reads-age": transitionEvidence.readsAge,
         "data-renderer-slot-face": "",
         dangerouslySetInnerHTML: { __html: renderedFace.svg },
       },
     );
+  }
+
+  function transitionEvidenceForRenderedFace(renderedFace) {
+    const previousState = renderedFace.attributes.previousState || "none";
+    const transitionEvent = renderedFace.attributes.transitionEvent || "none";
+    const transitionAgeMs = renderedFace.attributes.transitionAgeMs || "none";
+    const eventReadChannels = controllerReadChannels(renderedFace.decisionTrace, "transitionEvent");
+    const ageReadChannels = controllerReadChannels(renderedFace.decisionTrace, "transitionAgeMs");
+    const controllerReads = renderedFace.decisionTrace.channels
+      .filter((channel) => eventReadChannels.includes(channel) && ageReadChannels.includes(channel));
+
+    return Object.freeze({
+      context: `${previousState} ${transitionEvent} ${transitionAgeMs}`,
+      controllerReads: controllerReads.join(" "),
+      readsEvent: String(eventReadChannels.length === renderedFace.decisionTrace.channels.length),
+      readsAge: String(ageReadChannels.length === renderedFace.decisionTrace.channels.length),
+    });
+  }
+
+  function controllerReadChannels(decisionTrace, readName) {
+    return decisionTrace.channels.filter((channel) => {
+      const reads = decisionTrace.decisions[channel]?.reads || [];
+      return reads.includes(readName);
+    });
   }
 
   function ChatPanel({ events, prompt, response, running, onPromptChange, onReset, onRun }) {
