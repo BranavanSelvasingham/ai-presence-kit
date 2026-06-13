@@ -128,6 +128,7 @@ assert.match(changelog, /before-first-token presence/);
 assert.match(changelog, /comparison-route DOM lead-time evidence/);
 assert.match(changelog, /React browser renderer-slot DOM evidence/);
 assert.match(changelog, /controller-gallery transition-cue DOM evidence/);
+assert.match(changelog, /adapter demo transition-read evidence/);
 assert.match(changelog, /data-face-latency-phase="before-output"/);
 
 const adapterDemo = readFileSync(resolve(root, "examples/adapter-demo.mjs"), "utf8");
@@ -139,12 +140,19 @@ assert.match(adapterDemo, /trace=/);
 assert.match(adapterDemo, /decisions=/);
 assert.match(adapterDemo, /safe=/);
 assert.match(adapterDemo, /warnings=/);
+assert.match(adapterDemo, /transition=/);
+assert.match(adapterDemo, /transitionReads=/);
+assert.match(adapterDemo, /transitionEvent/);
+assert.match(adapterDemo, /transitionAgeMs/);
 
 const adaptersReadme = readFileSync(resolve(root, "packages/adapters/README.md"), "utf8");
 assert.match(adaptersReadme, /reference face frame evidence/);
 assert.match(adaptersReadme, /decision-trace evidence/);
 assert.match(adaptersReadme, /channels=gaze,blink,brows,mouth,posture,motion/);
 assert.match(adaptersReadme, /trace=complete/);
+assert.match(adaptersReadme, /transition=thinking:stream-open\+0ms/);
+assert.match(adaptersReadme, /transitionReads=6\/6/);
+assert.match(adaptersReadme, /reads=state,transitionEvent,transitionAgeMs/);
 
 for (const mediaFile of [
   "docs/media/presence-comparison.jpg",
