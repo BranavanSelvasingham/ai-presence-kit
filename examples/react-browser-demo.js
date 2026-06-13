@@ -14,7 +14,12 @@
 
   const { PresenceEvent, createPresenceRuntime } = PresenceCore;
   const { createVercelAISDKAdapter } = PresenceAdapters;
-  const { faceExpressionForPresence, renderPresenceFaceSvg } = PresenceFace;
+  const {
+    faceControllerDecisionTraceForFrame,
+    faceControllerFrameForPresence,
+    faceExpressionForPresence,
+    renderPresenceFaceSvg,
+  } = PresenceFace;
 
   const runtime = createPresenceRuntime();
   const aiSdkPresence = createVercelAISDKAdapter(runtime);
@@ -144,10 +149,15 @@
 
   function FaceRendererSlot({ snapshot }) {
     const frameTimeMs = bindings.usePresenceFrameTime();
-    const renderedFace = renderPresenceFaceSvg(snapshot, {
-      className: "react-face",
+    const frameOptions = {
       now: frameTimeMs,
       timeMs: frameTimeMs,
+    };
+    const frameReport = faceControllerFrameForPresence(snapshot, frameOptions);
+    const decisionTrace = faceControllerDecisionTraceForFrame(frameReport);
+    const renderedFace = renderPresenceFaceSvg(snapshot, {
+      className: "react-face",
+      ...frameOptions,
       title: `Reference face rendering ${snapshot.state}`,
     });
 
@@ -160,6 +170,12 @@
         "data-face-svg-channels": renderedFace.attributes.channels,
         "data-face-svg-frame-time": String(frameTimeMs),
         "data-face-svg-motion-energy": renderedFace.attributes.motionEnergy,
+        "data-face-decision-trace": decisionTrace.complete ? "complete" : "incomplete",
+        "data-face-decision-trace-channels": decisionTrace.channels.join(" "),
+        "data-face-decision-trace-decisions": String(decisionTrace.decisionCount),
+        "data-face-decision-trace-warnings": String(decisionTrace.warningCount),
+        "data-face-decision-trace-renderer-safe": String(decisionTrace.rendererSafe),
+        "data-face-latency-phase": frameReport.sharedInputs?.latencyPhase || "unknown",
         "data-renderer-slot-face": "",
         dangerouslySetInnerHTML: { __html: renderedFace.svg },
       },
