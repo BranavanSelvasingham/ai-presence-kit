@@ -119,18 +119,51 @@ for (const [state, attentionTarget, latencyPhase, speechActivity] of controlExpe
   assert.equal(inputs.attentionTarget, attentionTarget);
   assert.equal(inputs.latencyPhase, latencyPhase);
   assert.equal(inputs.speechActivity, speechActivity);
+  assert.equal(inputs.previousState, null);
+  assert.equal(inputs.transitionEvent, null);
+  assert.equal(inputs.transitionAgeMs, 0);
   assert.equal(Object.isFrozen(inputs), true);
   assert.equal(Object.isFrozen(inputs.recentStates), true);
 }
 
-const beforeOutputInputs = presenceControlInputsForSnapshot({ state: PresenceState.WAITING, updatedAt: 1_000 }, { now: 1_200 });
+const beforeOutputInputs = presenceControlInputsForSnapshot({
+  state: PresenceState.WAITING,
+  previousState: PresenceState.THINKING,
+  event: PresenceEvent.STREAM_OPEN,
+  updatedAt: 1_000,
+}, { now: 1_200 });
 assert.equal(beforeOutputInputs.ageMs, 200);
+assert.equal(beforeOutputInputs.previousState, PresenceState.THINKING);
+assert.equal(beforeOutputInputs.transitionEvent, PresenceEvent.STREAM_OPEN);
+assert.equal(beforeOutputInputs.transitionAgeMs, 200);
 assert.ok(beforeOutputInputs.anticipation > 0.5);
 assert.ok(beforeOutputInputs.tension > 0.3);
 
 const outputInputs = presenceControlInputsForSnapshot(PresenceState.STREAMING);
 assert.equal(outputInputs.attentionTarget, "audience");
 assert.ok(outputInputs.energy > beforeOutputInputs.energy);
+
+const setStateTransitionInputs = presenceControlInputsForSnapshot({
+  state: PresenceState.READY,
+  previousState: PresenceState.IDLE,
+  event: "set-state",
+  updatedAt: 10,
+}, { now: 24 });
+assert.equal(setStateTransitionInputs.previousState, PresenceState.IDLE);
+assert.equal(setStateTransitionInputs.transitionEvent, "set-state");
+assert.equal(setStateTransitionInputs.transitionAgeMs, 14);
+
+const beforeOutputFromHistory = presenceControlInputsForSnapshot({ state: PresenceState.WAITING }, {
+  history: [
+    { state: PresenceState.THINKING, event: PresenceEvent.SUBMIT, updatedAt: 1_000 },
+    { state: PresenceState.WAITING, previousState: PresenceState.THINKING, event: PresenceEvent.STREAM_OPEN, updatedAt: 1_200 },
+  ],
+  now: 1_350,
+});
+assert.equal(beforeOutputFromHistory.latencyPhase, "before-output");
+assert.equal(beforeOutputFromHistory.previousState, PresenceState.THINKING);
+assert.equal(beforeOutputFromHistory.transitionEvent, PresenceEvent.STREAM_OPEN);
+assert.equal(beforeOutputFromHistory.transitionAgeMs, 150);
 
 let controlClock = 0;
 const controlRuntimeSource = createPresenceRuntime({
@@ -147,9 +180,12 @@ controlRuntimeSource.send(PresenceEvent.TOKEN);
 controlRuntimeSource.send(PresenceEvent.RESPONSE_COMPLETE);
 const recoveredFromOutput = presenceControlInputsForSnapshot(controlRuntimeSource.getSnapshot(), {
   trace: controlTrace,
-  now: 450,
+  now: 550,
 });
 assert.equal(recoveredFromOutput.latencyPhase, "recovery");
+assert.equal(recoveredFromOutput.previousState, PresenceState.STREAMING);
+assert.equal(recoveredFromOutput.transitionEvent, PresenceEvent.RESPONSE_COMPLETE);
+assert.equal(recoveredFromOutput.transitionAgeMs, 50);
 assert.deepEqual(recoveredFromOutput.recentStates, [
   PresenceState.THINKING,
   PresenceState.WAITING,
@@ -158,6 +194,15 @@ assert.deepEqual(recoveredFromOutput.recentStates, [
 ]);
 assert.ok(recoveredFromOutput.recovery > 0);
 assert.ok(recoveredFromOutput.speechActivity > 0);
+
+const recoveredFromTraceHistory = presenceControlInputsForSnapshot({ state: PresenceState.READY }, {
+  trace: controlTrace,
+  now: 550,
+});
+assert.equal(recoveredFromTraceHistory.latencyPhase, "recovery");
+assert.equal(recoveredFromTraceHistory.previousState, PresenceState.STREAMING);
+assert.equal(recoveredFromTraceHistory.transitionEvent, PresenceEvent.RESPONSE_COMPLETE);
+assert.equal(recoveredFromTraceHistory.transitionAgeMs, 50);
 
 const recoveredFromInterrupt = presenceControlInputsForSnapshot({
   state: PresenceState.READY,
@@ -171,6 +216,9 @@ const recoveredFromInterrupt = presenceControlInputsForSnapshot({
   now: 2_100,
 });
 assert.equal(recoveredFromInterrupt.latencyPhase, "recovery");
+assert.equal(recoveredFromInterrupt.previousState, PresenceState.INTERRUPTED);
+assert.equal(recoveredFromInterrupt.transitionEvent, null);
+assert.equal(recoveredFromInterrupt.transitionAgeMs, 100);
 assert.ok(recoveredFromInterrupt.recovery > recoveredFromOutput.recovery);
 assert.ok(recoveredFromInterrupt.tension > 0);
 

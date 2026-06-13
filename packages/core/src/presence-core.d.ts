@@ -32,6 +32,7 @@ export declare const PresenceEvent: Readonly<{
 }>;
 
 export type PresenceEventValue = typeof PresenceEvent[keyof typeof PresenceEvent];
+export type PresenceTransitionEvent = PresenceEventValue | "set-state";
 
 export interface PresenceSnapshot {
   state: PresenceStateValue;
@@ -83,6 +84,9 @@ export type PresenceLatencyPhase = "before-output" | "error" | "input" | "interr
 
 export interface PresenceControlInputs {
   state: PresenceStateValue;
+  previousState: PresenceStateValue | null;
+  transitionEvent: PresenceTransitionEvent | null;
+  transitionAgeMs: number;
   attentionTarget: PresenceAttentionTarget;
   attentionX: number;
   attentionY: number;

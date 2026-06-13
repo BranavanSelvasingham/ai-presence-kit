@@ -43,6 +43,7 @@ const inputs = presenceControlInputsForSnapshot(snapshot);
 
 console.log(inputs.latencyPhase); // "before-output"
 console.log(inputs.attentionTarget); // "response"
+console.log(inputs.transitionEvent); // "stream-open"
 ```
 
-These values describe observable interaction posture such as attention target, tension, speech activity, interruption, latency phase, and recovery. They are not emotion detection or private emotion inference.
+These values describe observable interaction posture such as attention target, tension, speech activity, interruption, latency phase, recovery, and compact transition context. They are not emotion detection or private emotion inference.

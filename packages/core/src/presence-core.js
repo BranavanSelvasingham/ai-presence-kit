@@ -35,6 +35,7 @@
   const PRESENCE_STATES = Object.freeze(Object.values(PresenceState));
   const PRESENCE_EVENTS = Object.freeze(Object.values(PresenceEvent));
   const presenceStateSet = new Set(PRESENCE_STATES);
+  const presenceTransitionEventSet = new Set([...PRESENCE_EVENTS, "set-state"]);
 
   function isPresenceState(value) {
     return presenceStateSet.has(value);
@@ -42,6 +43,10 @@
 
   function normalizePresenceState(value, fallback = PresenceState.IDLE) {
     return isPresenceState(value) ? value : fallback;
+  }
+
+  function normalizePresenceTransitionEvent(value) {
+    return presenceTransitionEventSet.has(value) ? value : null;
   }
 
   function hasText(payload) {
@@ -244,6 +249,15 @@
     return history.length ? history[history.length - 1] : null;
   }
 
+  function latestTransitionHistory(history, state) {
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+      const entry = history[index];
+      const entryState = normalizePresenceState(entry?.state, null);
+      if (!entryState || entryState === state) return { entry, index };
+    }
+    return { entry: null, index: -1 };
+  }
+
   function stateAgeMs(snapshot, history, now) {
     if (snapshot.updatedAt !== null) return Math.max(0, now - snapshot.updatedAt);
     const latest = latestHistoryEntry(history);
@@ -270,6 +284,36 @@
       if (state && !states.includes(state)) states.unshift(state);
     }
     return Object.freeze(states);
+  }
+
+  function previousHistoryState(history, beforeIndex) {
+    for (let index = beforeIndex - 1; index >= 0; index -= 1) {
+      const state = normalizePresenceState(history[index]?.state, null);
+      if (state) return state;
+    }
+    return null;
+  }
+
+  function transitionContext(snapshot, history, now) {
+    const transitionHistory = latestTransitionHistory(history, snapshot.state);
+    const latest = transitionHistory.entry;
+    const previousState = snapshot.previousState
+      || normalizePresenceState(latest?.previousState, null)
+      || previousHistoryState(history, transitionHistory.index);
+    const transitionEvent = normalizePresenceTransitionEvent(snapshot.event)
+      || normalizePresenceTransitionEvent(latest?.event);
+    const transitionUpdatedAt = snapshot.updatedAt !== null
+      ? snapshot.updatedAt
+      : Number(latest?.updatedAt);
+    const transitionAgeMs = Number.isFinite(transitionUpdatedAt)
+      ? Math.max(0, now - transitionUpdatedAt)
+      : 0;
+
+    return {
+      previousState,
+      transitionEvent,
+      transitionAgeMs,
+    };
   }
 
   function baseControlInputsForState(state, detail = {}) {
@@ -422,6 +466,7 @@
     const history = readHistory(options);
     const now = resolveNow(options, snapshot, history);
     const ageMs = stateAgeMs(snapshot, history, now);
+    const transition = transitionContext(snapshot, history, now);
     const inputs = baseControlInputsForState(snapshot.state, snapshot.detail);
     const recentlyInterrupted = includesRecentState(snapshot, history, PresenceState.INTERRUPTED, 2400, now);
     const recentlyStreaming = includesRecentState(snapshot, history, PresenceState.STREAMING, 1800, now);
@@ -447,6 +492,9 @@
 
     return Object.freeze({
       state: snapshot.state,
+      previousState: transition.previousState,
+      transitionEvent: transition.transitionEvent,
+      transitionAgeMs: transition.transitionAgeMs,
       attentionTarget: inputs.attentionTarget,
       attentionX: inputs.attentionX,
       attentionY: inputs.attentionY,

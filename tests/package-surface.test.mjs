@@ -221,6 +221,12 @@ for (const packageInfo of packages) {
   }
 }
 
+const coreTypes = readFileSync(resolve(root, "packages/core/src/presence-core.d.ts"), "utf8");
+assert.match(coreTypes, /PresenceTransitionEvent = PresenceEventValue \| "set-state"/);
+assert.match(coreTypes, /previousState: PresenceStateValue \| null/);
+assert.match(coreTypes, /transitionEvent: PresenceTransitionEvent \| null/);
+assert.match(coreTypes, /transitionAgeMs: number/);
+
 const faceGlobal = globalThis.AIPresenceFace;
 assert.equal(typeof faceGlobal.faceControllerDecisionsForPresence, "function");
 assert.equal(typeof faceGlobal.faceControllerCoherenceForFrame, "function");

@@ -3,6 +3,7 @@
 
   const core = resolveCore(globalScope);
   const PresenceState = core?.PresenceState || {};
+  const PresenceEvent = core?.PresenceEvent || {};
 
   const FaceExpression = Object.freeze({
     IDLE: "idle",
@@ -57,12 +58,19 @@
 
   const FACE_CONTROLLER_READS = Object.freeze({
     gaze: Object.freeze(["state", "detail.question", "attentionTarget", "attentionX", "attentionY", "focus", "ageMs"]),
-    blink: Object.freeze(["state", "profile.blinkCadenceMs"]),
+    blink: Object.freeze(["state", "profile.blinkCadenceMs", "transitionEvent", "transitionAgeMs"]),
     brows: Object.freeze(["state", "detail.question", "detail.revision"]),
     mouth: Object.freeze(["state", "detail.question", "detail.revision", "speechActivity", "tension", "latencyPhase", "recovery"]),
     posture: Object.freeze(["state", "energy", "recovery", "interruption", "latencyPhase"]),
     motion: Object.freeze(["state", "profile.drift", "profile.settleMs", "energy", "anticipation", "recovery", "speechActivity", "latencyPhase", "ageMs"]),
   });
+
+  const BLINK_TRANSITION_PULSE_EVENTS = Object.freeze([
+    PresenceEvent.SUBMIT || "submit",
+    PresenceEvent.STREAM_OPEN || "stream-open",
+    PresenceEvent.TOKEN || "token",
+    PresenceEvent.INTERRUPT || "interrupt",
+  ]);
 
   function resolveCore(scope) {
     if (scope?.AIPresenceCore) return scope.AIPresenceCore;
@@ -219,6 +227,14 @@
 
   function isReadyState(stateName) {
     return stateName === PresenceState.READY || stateName === "ready";
+  }
+
+  function hasFreshTransitionEvent(inputs, events, windowMs) {
+    const ageMs = Number(inputs?.transitionAgeMs);
+    return events.includes(inputs?.transitionEvent)
+      && Number.isFinite(ageMs)
+      && ageMs >= 0
+      && ageMs <= windowMs;
   }
 
   function faceAttentionTarget(stateName, detail, inputs, fallback) {
@@ -388,46 +404,60 @@
   }
 
   function decideBlink(context) {
-    const { stateName, profile } = context;
+    const { stateName, profile, inputs } = context;
+    const transitionPulse = hasFreshTransitionEvent(inputs, BLINK_TRANSITION_PULSE_EVENTS, 180);
+    let control;
 
     switch (stateName) {
       case PresenceState.USER_TYPING:
       case "user-typing":
-        return { openness: 1, cadenceMs: 4400, pulse: false };
+        control = { openness: 1, cadenceMs: 4400, pulse: false };
+        break;
 
       case PresenceState.READING:
       case "reading":
-        return { openness: 0.94, cadenceMs: 5200, pulse: false };
+        control = { openness: 0.94, cadenceMs: 5200, pulse: false };
+        break;
 
       case PresenceState.WAITING:
       case "waiting":
-        return { openness: 0.9, cadenceMs: 3400, pulse: false };
+        control = { openness: 0.9, cadenceMs: 3400, pulse: false };
+        break;
 
       case PresenceState.THINKING:
       case "thinking":
-        return { openness: 0.82, cadenceMs: 3800, pulse: false };
+        control = { openness: 0.82, cadenceMs: 3800, pulse: false };
+        break;
 
       case PresenceState.STREAMING:
       case "streaming":
-        return { openness: 0.98, cadenceMs: 6800, pulse: false };
+        control = { openness: 0.98, cadenceMs: 6800, pulse: false };
+        break;
 
       case PresenceState.SPEAKING:
       case "speaking":
-        return { openness: 0.98, cadenceMs: 7200, pulse: false };
+        control = { openness: 0.98, cadenceMs: 7200, pulse: false };
+        break;
 
       case PresenceState.INTERRUPTED:
       case "interrupted":
-        return { openness: 0.72, cadenceMs: 900, pulse: true };
+        control = { openness: 0.72, cadenceMs: 900, pulse: true };
+        break;
 
       case PresenceState.ERROR:
       case "error":
-        return { openness: 0.86, cadenceMs: 3000, pulse: false };
+        control = { openness: 0.86, cadenceMs: 3000, pulse: false };
+        break;
 
       case PresenceState.READY:
       case "ready":
       default:
-        return { openness: 1, cadenceMs: profile.blinkCadenceMs, pulse: false };
+        control = { openness: 1, cadenceMs: profile.blinkCadenceMs, pulse: false };
+        break;
     }
+
+    if (transitionPulse) control.pulse = true;
+    return control;
   }
 
   function decideBrows(context) {
@@ -830,6 +860,15 @@
     return clamp(closure * (pulse ? 0.52 : 0.32), 0, 0.72);
   }
 
+  function transitionBlinkClosure(inputs, motionScale) {
+    if (!hasFreshTransitionEvent(inputs, BLINK_TRANSITION_PULSE_EVENTS, 180)) return 0;
+    const progress = clamp(finiteNumber(inputs.transitionAgeMs, 0) / 180, 0, 1);
+    const envelope = progress < 0.45
+      ? progress / 0.45
+      : 1 - ((progress - 0.45) / 0.55);
+    return clamp(envelope * 0.52 * motionScale, 0, 0.72);
+  }
+
   function composeFaceControllerFrame(report, context, options = {}) {
     const timeMs = resolveFrameTime(options, context.now);
     const motionScale = resolveMotionScale(options);
@@ -841,7 +880,10 @@
     const posture = controls.posture;
     const cadenceMs = finiteClamp(blink.cadenceMs, 300, 20000, context.profile.blinkCadenceMs);
     const phase = normalizedPhase(timeMs * motionScale, cadenceMs);
-    const closure = blinkClosureForPhase(phase, blink.pulse) * motionScale;
+    const closure = Math.max(
+      blinkClosureForPhase(phase, blink.pulse) * motionScale,
+      transitionBlinkClosure(context.inputs, motionScale),
+    );
     const energy = finiteClamp(motion.energy, 0, 1, 0);
     const drift = finiteClamp(motion.drift, 0, 1, context.profile.drift);
     const anticipation = finiteClamp(motion.anticipation, 0, 1, 0);
