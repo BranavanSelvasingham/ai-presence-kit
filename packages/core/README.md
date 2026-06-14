@@ -31,12 +31,14 @@ presence.send(PresenceEvent.SUBMIT);
 presence.send(PresenceEvent.STREAM_OPEN);
 presence.send(PresenceEvent.TOKEN);
 
+const summary = summarizePresenceTrace(trace);
 console.log(trace.getEntries().map((entry) => entry.state));
-console.log(summarizePresenceTrace(trace).presenceBeforeOutputMs);
+console.log(summary.presenceBeforeOutputMs);
+console.log(summary.interrupted);
 detach();
 ```
 
-Trace entries include `elapsedMs` and `sincePreviousMs`, and the summary exposes facts such as `firstTokenMs`, `firstOutputMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, and `complete` without coupling core to any renderer.
+Trace entries include `elapsedMs` and `sincePreviousMs`, and the summary exposes facts such as `firstTokenMs`, `firstOutputMs`, `presenceBeforeOutputMs`, `interruptMs`, `interrupted`, `finalState`, `hasOutput`, and `complete` without coupling core to any renderer.
 
 Renderers can derive shared interaction-posture inputs from the same snapshot before mapping them into renderer-specific controllers:
 

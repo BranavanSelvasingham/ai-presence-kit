@@ -73,6 +73,8 @@ assert.match(releasePolicy, /scope/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
 assert.match(releaseReadiness, /summarizePresenceTrace/);
+assert.match(releaseReadiness, /interruptMs/);
+assert.match(releaseReadiness, /interrupted/);
 assert.match(releaseReadiness, /npm run perf:core/);
 assert.match(releaseReadiness, /renderer-agnostic package path before the face renderer/);
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
@@ -142,6 +144,8 @@ assert.match(goalLoop, /npm run release:check-scope/);
 assert.match(goalLoop, /summarizePresenceTrace/);
 assert.match(goalLoop, /firstOutputMs/);
 assert.match(goalLoop, /leadMs/);
+assert.match(goalLoop, /interruptMs/);
+assert.match(goalLoop, /interrupted/);
 assert.match(goalLoop, /data-presence-trace-summary="complete"/);
 assert.match(goalLoop, /data-presence-trace-first-output-ms/);
 assert.match(goalLoop, /data-presence-trace-lead-ms/);
@@ -158,6 +162,8 @@ assert.match(goalLoop, /data-react-trace-complete/);
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
 assert.match(changelog, /summarizePresenceTrace/);
+assert.match(changelog, /interruptMs/);
+assert.match(changelog, /interrupted/);
 assert.match(changelog, /npm run perf:core/);
 assert.match(changelog, /core-runtime benchmark validation/);
 assert.match(changelog, /faceControllerDecisionTraceForFrame/);
@@ -304,6 +310,8 @@ assert.match(coreTypes, /PresenceTransitionEvent = PresenceEventValue \| "set-st
 assert.match(coreTypes, /PresenceTraceSummary/);
 assert.match(coreTypes, /firstOutputMs: number \| null/);
 assert.match(coreTypes, /presenceBeforeOutputMs: number \| null/);
+assert.match(coreTypes, /interruptMs: number \| null/);
+assert.match(coreTypes, /interrupted: boolean/);
 assert.match(coreTypes, /summarizePresenceTrace/);
 assert.match(coreTypes, /previousState: PresenceStateValue \| null/);
 assert.match(coreTypes, /transitionEvent: PresenceTransitionEvent \| null/);
@@ -354,6 +362,8 @@ const coreTraceSummary = coreApi.summarizePresenceTrace([
 ]);
 assert.equal(coreTraceSummary.firstOutputEvent, coreApi.PresenceEvent.TOKEN);
 assert.equal(coreTraceSummary.presenceBeforeOutputMs, 44);
+assert.equal(coreTraceSummary.interruptMs, null);
+assert.equal(coreTraceSummary.interrupted, false);
 let contextValue = null;
 const fakeReact = {
   createContext(defaultValue) {
@@ -442,6 +452,8 @@ assert.match(faceTypes, /faceControllerDecisionTraceForFrame/);
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
 assert.match(rootReadme, /summarizePresenceTrace/);
 assert.match(rootReadme, /firstOutputMs/);
+assert.match(rootReadme, /interruptMs/);
+assert.match(rootReadme, /interrupted/);
 assert.match(rootReadme, /PresenceRendererSlot/);
 assert.match(rootReadme, /usePresenceFrameTime/);
 assert.match(rootReadme, /renderPresenceFaceSvg/);

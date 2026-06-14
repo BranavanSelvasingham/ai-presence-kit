@@ -22,7 +22,7 @@ Each package has:
 
 Current public API proof points:
 
-- `@ai-presence/core` owns canonical states, events, runtimes, traces, renderer-agnostic trace summaries through `summarizePresenceTrace`, and shared control inputs.
+- `@ai-presence/core` owns canonical states, events, runtimes, traces, renderer-agnostic trace summaries through `summarizePresenceTrace` including `interruptMs` and `interrupted`, and shared control inputs.
 - `@ai-presence/face` owns expression mapping, parallel controller decisions, temporal frame reports, decision-trace evidence through `faceControllerDecisionTraceForFrame`, coherence audits through `faceControllerCoherenceForFrame`, the `motionScale` reduced-motion option, and SVG rendering through `renderPresenceFaceSvg`.
 - `@ai-presence/adapters` owns plain-object bridges for generic runtime signals, Vercel AI SDK status, OpenAI Realtime events, and generic chat events.
 - `@ai-presence/react` owns provider/runtime/snapshot hooks, renderer slots, shared control-input access, and the renderer-agnostic `usePresenceFrameTime()` hook.
@@ -42,6 +42,8 @@ Command-line demos:
 npm run demo:adapters
 npm run demo:react
 ```
+
+`npm run demo:adapters` reports compact trace summaries for adapter-driven turns, including `interruptMs` and `interrupted` so interruption posture is observable without importing the face renderer into core.
 
 README media:
 
