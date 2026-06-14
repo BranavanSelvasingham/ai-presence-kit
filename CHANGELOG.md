@@ -24,6 +24,7 @@
 - Added controller-gallery transition-cue DOM evidence for fresh `submit`, `stream-open`, `token`, and `interrupt` cues across all six face controllers.
 - Added adapter demo decision-trace evidence for complete six-channel controller proof across Vercel AI SDK, OpenAI Realtime, and generic chat transitions.
 - Added adapter demo transition-read evidence showing adapter-driven transitions reach all six face controllers through `transitionEvent` and `transitionAgeMs`.
+- Added `npm run perf:core` for local package-level renderer-agnostic runtime, adapter, trace-recording, and trace-summary performance smoke evidence before the face renderer.
 - Added `npm run perf:face` for local package-level face-pipeline performance smoke evidence across all canonical presence states, including the full SVG reference renderer path.
 - Added `release:check-scope` to verify authenticated npm access to the `@ai-presence` scope before publishing.
 - Reframed the main objective around a low-latency facial presence engine driven by parallel micro-decisions.
@@ -33,6 +34,7 @@
 - Added package-surface and ESM tests for the core trace export.
 - Added adapter demo coverage for reference face frame evidence and complete six-channel decision-trace evidence produced from adapter-driven transitions.
 - Added face-pipeline benchmark validation for complete, renderer-safe, warning-free six-channel decision traces within conservative average frame+trace and SVG renderer budgets.
+- Added core-runtime benchmark validation for completed before-output traces through core runtime sends, Vercel AI SDK and generic chat adapters, trace recording, and `summarizePresenceTrace`.
 - Added controller-gallery, face-renderer, comparison-before-token, React binding, React browser, package-surface, and ESM coverage for the current package surface.
 - Added package-surface release-doc checks for the decision-trace API and browser DOM evidence.
 - Added package-surface release-doc checks for browser trace-summary DOM evidence.
