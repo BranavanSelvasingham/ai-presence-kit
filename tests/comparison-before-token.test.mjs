@@ -8,8 +8,11 @@ const root = resolve(new URL("..", import.meta.url).pathname);
 const app = readFileSync(resolve(root, "app.js"), "utf8");
 const html = readFileSync(resolve(root, "index.html"), "utf8");
 const {
+  PresenceEvent,
   PresenceState,
+  createPresenceTrace,
   createPresenceRuntime,
+  summarizePresenceTrace,
 } = require("../packages/core/src/presence-core.js");
 const {
   RuntimeSignal,
@@ -43,6 +46,20 @@ assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenDecisions/);
 assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenWarnings/);
 assert.match(app, /dataset\.presenceDecisionTraceBeforeTokenRendererSafe/);
 assert.match(app, /dataset\.presenceDecisionTraceLeadMs/);
+assert.match(app, /summarizePresenceTrace\(comparisonTrace\)/);
+assert.match(app, /dataset\.presenceTraceSummary/);
+assert.match(app, /dataset\.presenceTraceEntryCount/);
+assert.match(app, /dataset\.presenceTraceStates/);
+assert.match(app, /dataset\.presenceTraceEvents/);
+assert.match(app, /dataset\.presenceTraceFirstStateMs/);
+assert.match(app, /dataset\.presenceTraceFirstTokenMs/);
+assert.match(app, /dataset\.presenceTraceFirstOutputMs/);
+assert.match(app, /dataset\.presenceTraceFirstOutputEvent/);
+assert.match(app, /dataset\.presenceTraceLeadMs/);
+assert.match(app, /dataset\.presenceTraceFinalState/);
+assert.match(app, /dataset\.presenceTraceHasOutput/);
+assert.match(app, /dataset\.presenceTraceComplete/);
+assert.match(app, /summary\.presenceBeforeOutputMs/);
 assert.match(app, /dataset\.genericBeforeToken/);
 assert.match(app, /dataset\.genericBeforeTokenState/);
 assert.match(app, /dataset\.genericBeforeTokenLoading/);
@@ -64,11 +81,13 @@ const runtime = createPresenceRuntime({
   now: () => now,
 });
 const adapter = createRuntimeSignalAdapter(runtime);
+const comparisonTrace = createPresenceTrace({ limit: 16 });
 const history = [];
 
 function sendAt(timeMs, signal) {
   now = timeMs;
   const snapshot = adapter.send(signal);
+  comparisonTrace.record(snapshot);
   history.push(snapshot);
   return snapshot;
 }
@@ -183,6 +202,39 @@ const token = sendAt(1400, {
   source: "comparison-test",
 });
 assert.equal(token.state, PresenceState.STREAMING);
+
+const complete = sendAt(2600, {
+  type: RuntimeSignal.RESPONSE_COMPLETE,
+  source: "comparison-test",
+});
+assert.equal(complete.state, PresenceState.READY);
+
+const traceSummary = summarizePresenceTrace(comparisonTrace);
+assert.equal(traceSummary.entryCount, 6);
+assert.deepEqual(traceSummary.states, [
+  PresenceState.USER_TYPING,
+  PresenceState.READING,
+  PresenceState.THINKING,
+  PresenceState.WAITING,
+  PresenceState.STREAMING,
+  PresenceState.READY,
+]);
+assert.deepEqual(traceSummary.events, [
+  PresenceEvent.USER_INPUT,
+  PresenceEvent.LOCAL_READ,
+  PresenceEvent.USER_PAUSE,
+  PresenceEvent.STREAM_OPEN,
+  PresenceEvent.TOKEN,
+  PresenceEvent.RESPONSE_COMPLETE,
+]);
+assert.equal(traceSummary.firstStateMs, 0);
+assert.equal(traceSummary.firstTokenMs, 1400);
+assert.equal(traceSummary.firstOutputMs, 1400);
+assert.equal(traceSummary.firstOutputEvent, PresenceEvent.TOKEN);
+assert.equal(traceSummary.presenceBeforeOutputMs, 1400);
+assert.equal(traceSummary.finalState, PresenceState.READY);
+assert.equal(traceSummary.hasOutput, true);
+assert.equal(traceSummary.complete, true);
 
 assert.doesNotMatch(`${html}\n${app}`, /emotion[- ]detection|private emotion/i);
 
