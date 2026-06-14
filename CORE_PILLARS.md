@@ -2,7 +2,9 @@
 
 ## Main Objective
 
-Build a low-latency facial presence engine for AI interfaces, where the face is not a fixed avatar or a pose switcher, but a set of parallel micro-decision systems reacting to runtime state.
+Build AI Presence Kit into a small, renderer-agnostic presence state layer and reference facial controller system for AI interfaces.
+
+The product goal is to help existing AI apps replace passive waiting indicators with visible interaction posture. The face is not a fixed avatar, pose switcher, or emotion detector. It is the reference proof surface for parallel micro-decision systems reacting to runtime state.
 
 The core flow is:
 
@@ -14,6 +16,20 @@ AI/user runtime signals
 ```
 
 AI Presence Kit should turn interaction state into coordinated facial micro-movements that make an AI interface feel attentive, alive, and responsive before, during, and after speech.
+
+## Product Wedge
+
+AI interfaces already know useful runtime facts: the user is typing, pausing, reading, interrupting, or waiting; the model is opening a stream, thinking, streaming, speaking, ready, or errored.
+
+Most interfaces collapse those facts into spinners, disabled buttons, typing dots, or a static avatar.
+
+AI Presence Kit should make those runtime facts visible as low-latency presence:
+
+```text
+replace passive waiting indicators with presence
+```
+
+The package should stay useful even when the final renderer is not this SVG face.
 
 ## 1. Parallel Micro-Decisions Over Pose Swaps
 
@@ -100,3 +116,65 @@ Reusable packages should remain narrow:
 - `@ai-presence/face`: default SVG reference renderer and facial controller proof.
 
 Avoid becoming a full chat framework, avatar platform, lip-sync engine, or emotion detector.
+
+## 7. Renderer-Agnostic Package Surface
+
+The reusable product is the contract between runtime signals, canonical presence states, trace evidence, and controller inputs.
+
+Keep `@ai-presence/core` independent of SVG, React, browser DOM, OpenAI APIs, and face-specific decisions. Core should answer:
+
+- what state is the AI interface in?
+- what event caused the transition?
+- what shared control inputs should a renderer see?
+- what happened before the first output?
+- was there an interruption posture?
+
+Adapters, React bindings, and face rendering can sit on top of that contract, but should not leak renderer assumptions back into core.
+
+## 8. Inspectable Evidence Over Vibes
+
+The project should prove behavior with inspectable evidence:
+
+- package tests for state/event contracts
+- latency budgets for core and face pipelines
+- DOM attributes for before-output timing and controller decisions
+- browser screenshots for public visual claims
+- package dry-runs and consumer smokes for publish claims
+
+If the claim cannot be inspected or measured, treat it as a hypothesis.
+
+## 9. Fresh-Eyes Public Surface
+
+The project is now public and looking for collaborators, so every meaningful milestone should preserve first-time comprehension:
+
+- README explains why the project exists before implementation detail.
+- Screenshots match the default app or changed visual surface.
+- `CONTRIBUTING.md` lists concrete ways to help.
+- Release docs keep validation, security, publish, and npm-token handling repeatable.
+- Public copy says interaction posture, not emotion detection.
+
+Run `npm run release:public-gate` when those surfaces change.
+
+## Non-Goals
+
+Do not steer the project toward:
+
+- emotion detection or private emotion inference
+- a full chat framework
+- a general avatar identity platform
+- lip-sync as the core product
+- renderer-specific APIs in `@ai-presence/core`
+- broad rewrites without narrow validation evidence
+
+## Automation Steering Rubric
+
+When choosing the next arc, prefer work that answers yes to several of these:
+
+- Does it strengthen presence before output?
+- Does it keep the core renderer-agnostic?
+- Does it improve or validate parallel controller coherence?
+- Does it make adoption easier for an existing AI app?
+- Does it sharpen the public collaborator surface?
+- Can it be validated with targeted tests, browser evidence, package smoke, or release gates?
+
+Defer work that is visually interesting but weakens the package contract, adds heavy runtime dependencies, or shifts the project toward emotion inference.

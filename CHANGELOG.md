@@ -11,6 +11,7 @@
 ### Changed
 
 - Updated README, release policy, release runbook, operating manual, validation docs, and package-surface tests so public-facing milestones include a fresh-eyes gate before broad release claims.
+- Sharpened `CORE_PILLARS.md`, `docs/ORCHESTRATION_LOOP.md`, and `docs/GOAL_LOOP.md` around the renderer-agnostic presence-layer objective, product wedge, non-goals, and automation steering rubric.
 
 ## 0.1.1 - 2026-06-14
 

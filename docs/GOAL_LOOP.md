@@ -2,11 +2,11 @@
 
 ## Objective
 
-Build AI Presence Kit into a low-latency facial presence engine for AI interfaces.
+Build AI Presence Kit into a small, renderer-agnostic presence state layer and reference facial controller system for AI interfaces.
 
 The face is not a fixed avatar or pose switcher. It is the reference proof surface for parallel micro-decision systems: gaze, blink, brows, mouth, posture, and motion reacting to runtime state.
 
-The product is the reusable state model, runtime, adapters, and facial controller contracts that let existing AI interfaces replace generic loading indicators with visible interaction posture.
+The product is the reusable state model, runtime, adapters, trace evidence, and controller contracts that let existing AI interfaces replace generic loading indicators with visible interaction posture.
 
 ## Wedge
 
@@ -31,6 +31,8 @@ It is:
 - A facial presence runtime where independent controllers make local movement decisions from a shared state snapshot.
 - Upstream of renderers like SVG faces, Rive, Live2D, 3D avatars, or Audio2Face.
 - Designed to plug into existing AI UI frameworks.
+
+The automation should steer toward work that improves this wedge, not toward decorative animation alone.
 
 ## Loop Cadence
 
@@ -130,7 +132,7 @@ Validate:
 
 ## Loop 5: Public Readiness
 
-Status: in progress.
+Status: completed for the initial public release; ongoing as a recurring gate.
 
 Build:
 
@@ -140,7 +142,7 @@ Build:
 - Examples. Current examples cover adapter traces, command-line React bindings, and a real browser React runtime.
 - Release notes. Current file: `CHANGELOG.md`.
 - README demo media. Completed for the A/B comparison and React browser demo.
-- Release policy. Completed for lockstep `0.x` package versioning, changelog headings, publish order, and package-name checks.
+- Release policy. Completed for lockstep `0.x` package versioning, changelog headings, token-safe publish automation, public-readiness gates, and package-name/scope checks.
 
 Validate:
 
@@ -152,7 +154,7 @@ Validate:
 - React browser demo smoke test now covers provider, snapshot hook, renderer slot, AI SDK adapter, and face expression mapping with actual React and ReactDOM.
 - CI validation now runs `npm ci` and `npm run validate` through GitHub Actions.
 - README media is generated from the validated browser routes and checked by package-surface tests.
-- Package-name availability was rechecked on 2026-06-12 with npm registry `E404` results for all four intended names; scope ownership still needs authenticated verification with `npm run release:check-scope` before publishing.
+- Package-name availability was rechecked on 2026-06-12 with npm registry `E404` results for all four intended names; ongoing releases verify scope ownership with `npm run release:check-scope` through `npm run release:preflight`.
 
 ## Loop 6: Integration Evidence
 
@@ -174,3 +176,21 @@ Validate:
 - Adapter demo output that shows pre-token state transitions and compact summary fields such as `firstOutputMs`, `leadMs`, `interruptMs`, `interrupted`, `finalState`, `hasOutput`, and `complete`.
 - Comparison route smoke evidence now includes helper-derived `data-presence-trace-summary="complete"`, `data-presence-trace-first-output-ms`, `data-presence-trace-lead-ms`, `data-presence-trace-final-state`, `data-presence-trace-has-output`, and `data-presence-trace-complete` on the browser proof surface.
 - React browser smoke evidence now includes helper-derived `data-react-trace-summary="complete"`, `data-react-trace-first-output-ms`, `data-react-trace-lead-ms`, `data-react-trace-final-state`, `data-react-trace-has-output`, and `data-react-trace-complete` on the actual React proof surface.
+
+## Loop 7: Collaborator And Adoption Path
+
+Status: active.
+
+Build:
+
+- Make first-time comprehension durable: why this exists, what the package does, what it is not, and where to help.
+- Keep `CONTRIBUTING.md`, README, release docs, examples, and screenshots aligned after every public-facing milestone.
+- Turn real AI-runtime integration gaps into narrow adapter or example arcs.
+- Keep release and npm-token handling repeatable through `npm run release:publish -- X.Y.Z`.
+
+Validate:
+
+- `npm run release:public-gate` for first-time visitor and collaborator-readiness changes.
+- `npm run release:preflight` before broad release claims.
+- Browser/screenshot evidence when the default app or README visual surface changes.
+- Published-package consumer smoke after any package release.

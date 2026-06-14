@@ -4,11 +4,13 @@ Use this thread as the AI Presence Kit orchestration, regression, release, and i
 
 This thread is primarily the control plane. Keep the project moving toward:
 
-- building a low-latency facial presence engine for AI interfaces
+- building a small, renderer-agnostic presence state layer for AI interfaces
+- using the SVG face as the reference proof surface, not as the whole product
 - replacing pose swaps with parallel micro-decisions for gaze, blink, brows, mouth, posture, and motion
+- proving the before-first-token wedge with inspectable evidence
 - preserving interaction-posture framing, not emotion detection
-- proving the before-first-token wedge
 - keeping reusable packages small enough for existing AI apps to adopt
+- preserving first-time visitor and collaborator readiness after public-facing changes
 
 ## Control-Plane Behavior
 
@@ -43,9 +45,21 @@ When no active implementation or release gate remains:
 
 1. Read `AGENTS.md`, `OPERATING_MANUAL.md`, `CORE_PILLARS.md`, and `VALIDATION.md`.
 2. Inspect current package state, tests, demos, and recent work.
-3. Compare candidate opportunities by impact, risk, files touched, validation cost, release risk, and pillar alignment.
+3. Compare candidate opportunities by impact, risk, files touched, validation cost, release risk, public-readiness cost, and pillar alignment.
 4. Select one focused implementation slice.
 5. Define acceptance criteria and validation evidence before editing.
+
+Prefer arcs that strengthen at least one of these:
+
+- before-output presence evidence
+- renderer-agnostic core contract
+- parallel controller coherence
+- adapter usefulness for real AI runtimes
+- React/browser adoption path
+- public collaborator surface
+- repeatable release/security automation
+
+Reject or defer arcs that primarily add decorative motion, broaden the product into a chat framework, introduce private emotion inference, or require a broad rewrite without clear validation.
 
 ## Owner Prompt Shape
 
@@ -56,8 +70,9 @@ Objective:
 <one narrow, concrete outcome>
 
 Current context to preserve:
-- AI Presence Kit is a low-latency facial presence engine driven by runtime signals and parallel facial micro-decisions.
-- The face is the reference proof surface; reusable packages should stay narrow and extensible.
+- AI Presence Kit is a renderer-agnostic presence state layer for AI interfaces, with a reference SVG face proving the controller model.
+- The face is the reference proof surface; reusable packages should stay narrow, inspectable, and extensible.
+- The project wedge is replacing passive waiting indicators with visible interaction posture before, during, and after output.
 - Do not frame behavior as emotion detection.
 - Preserve canonical presence states unless the objective explicitly changes the public contract.
 
@@ -89,6 +104,7 @@ Acceptance criteria:
 Validation expected:
 - targeted commands for touched area
 - `npm run validate` for package/API changes
+- `npm run release:public-gate` for README/docs/screenshots/collaboration-surface changes
 - `git diff --check` before handoff
 - browser/screenshot/log inspection for visual or browser-facing changes
 
