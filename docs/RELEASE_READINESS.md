@@ -89,6 +89,7 @@ Also run `git diff --check` before committing.
 Then browser-smoke:
 
 - Reference demo loads with no console warnings or errors.
+- Default route exposes safe live server-backed response evidence on the document root, face shell, and metrics panel through `data-live-response-configured`, `data-live-response-stream`, `data-live-trace-summary`, `data-live-trace-entry-count`, `data-live-trace-first-output-ms`, `data-live-trace-first-output-event`, `data-live-trace-lead-ms`, `data-live-trace-final-state`, `data-live-trace-has-output`, and `data-live-trace-complete`.
 - Metrics route exposes canonical `Presence state`, controller composition, controller evidence, live controller frame evidence, coherence evidence, and decision-trace evidence through `data-controller-decision-trace*`.
 - Controller gallery route exposes fresh transition-cue evidence for `submit`, `stream-open`, `token`, and `interrupt` through `data-transition-events="submit stream-open token interrupt"`, `data-transition-decision-trace="complete"`, `data-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-transition-controller-reads-event="true"`, and `data-transition-controller-reads-age="true"`.
 - Comparison route completes with equal first-token timing on both panes through `data-generic-first-token-ms` and `data-presence-first-token-ms`.
