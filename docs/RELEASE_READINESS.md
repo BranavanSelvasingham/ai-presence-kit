@@ -85,6 +85,7 @@ Then browser-smoke:
 - Controller gallery route exposes fresh transition-cue evidence for `submit`, `stream-open`, `token`, and `interrupt` through `data-transition-events="submit stream-open token interrupt"`, `data-transition-decision-trace="complete"`, `data-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-transition-controller-reads-event="true"`, and `data-transition-controller-reads-age="true"`.
 - Comparison route completes with equal first-token timing on both panes through `data-generic-first-token-ms` and `data-presence-first-token-ms`.
 - Comparison route confirms the presence side exposes state, frame channels, and complete decision-trace evidence before the first visible token through `data-presence-first-state-ms`, `data-presence-frame-before-token-ms`, `data-presence-decision-trace-before-token-ms`, and positive `data-presence-decision-trace-lead-ms`.
+- Comparison route mirrors `summarizePresenceTrace` output onto the comparison root and SVG face through `data-presence-trace-summary="complete"`, `data-presence-trace-entry-count`, `data-presence-trace-first-output-ms`, `data-presence-trace-lead-ms`, `data-presence-trace-final-state`, `data-presence-trace-has-output`, and `data-presence-trace-complete`.
 - Mobile comparison route has no horizontal overflow.
 - React browser demo loads with actual React/ReactDOM, runs a simulated AI SDK turn, and returns to `ready`.
 - React browser demo uses `@ai-presence/face` SVG output and proves frame time can advance while the presence state is stable.

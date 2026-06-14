@@ -17,6 +17,7 @@
 - Added browser demo evidence for controller composition, temporal frame sequences, decision traces, before-first-token presence, and React-to-SVG renderer wiring.
 - Added browser DOM decision-trace evidence via `data-controller-decision-trace*` on the live metrics/controller-gallery proof surfaces.
 - Added comparison-route DOM lead-time evidence for equal first-token timing plus pre-token presence state, frame, and decision-trace timing.
+- Added comparison-route DOM trace-summary evidence from `summarizePresenceTrace` through `data-presence-trace-*` on the comparison root and SVG face.
 - Added React browser renderer-slot DOM evidence for complete six-channel face decision traces and `data-face-latency-phase="before-output"` during the simulated pre-output turn.
 - Added React browser renderer-slot transition-context DOM evidence for adapter-driven pre-output `stream-open` cues, including all-six-controller `transitionEvent` and `transitionAgeMs` reads.
 - Added controller-gallery transition-cue DOM evidence for fresh `submit`, `stream-open`, `token`, and `interrupt` cues across all six face controllers.
@@ -33,6 +34,7 @@
 - Added face-pipeline benchmark validation for complete, renderer-safe, warning-free six-channel decision traces within conservative average frame+trace and SVG renderer budgets.
 - Added controller-gallery, face-renderer, comparison-before-token, React binding, React browser, package-surface, and ESM coverage for the current package surface.
 - Added package-surface release-doc checks for the decision-trace API and browser DOM evidence.
+- Added package-surface release-doc checks for browser trace-summary DOM evidence.
 - Added README media validation for the comparison and React browser demo screenshots.
 - Expanded release readiness docs around browser smoke routes, package dry-runs, and package-name checks.
 

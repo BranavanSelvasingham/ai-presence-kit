@@ -163,6 +163,7 @@ Build:
 - Core transition trace primitive for bounded runtime timelines. Current API: `createPresenceTrace`.
 - Renderer-agnostic trace summary helper for before-output and first-output timing evidence. Current API: `summarizePresenceTrace`.
 - Adapter/demo output that exposes event-to-state timing, first-output timing, and presence-before-output lead time.
+- Browser comparison evidence that mirrors `summarizePresenceTrace` output onto the comparison root and SVG face through `data-presence-trace-*`.
 - Documentation that explains trace summaries as integration evidence, not renderer behavior.
 
 Validate:
@@ -170,3 +171,4 @@ Validate:
 - Deterministic trace tests for elapsed timing, bounded history, detach behavior, and detail capture.
 - Package-surface tests for CommonJS and ESM exports.
 - Adapter demo output that shows pre-token state transitions and compact summary fields such as `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, and `complete`.
+- Comparison route smoke evidence now includes helper-derived `data-presence-trace-summary="complete"`, `data-presence-trace-first-output-ms`, `data-presence-trace-lead-ms`, `data-presence-trace-final-state`, `data-presence-trace-has-output`, and `data-presence-trace-complete` on the browser proof surface.
