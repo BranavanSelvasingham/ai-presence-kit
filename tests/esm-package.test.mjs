@@ -140,6 +140,7 @@ try {
       "const summary = summarizePresenceTrace(trace);",
       "if (summary.firstOutputEvent !== PresenceEvent.TOKEN) throw new Error('trace summary output mismatch');",
       "if (!summary.hasOutput) throw new Error('trace summary output flag mismatch');",
+      "if (summary.interrupted || summary.interruptMs !== null) throw new Error('trace summary interrupt mismatch');",
       "if (presenceControlInputsForSnapshot(runtime.getSnapshot()).speechActivity <= 0) throw new Error('control inputs mismatch');",
       "const inputs = presenceControlInputsForSnapshot(runtime.getSnapshot(), { trace, now: runtime.getSnapshot().updatedAt + 1 });",
       "if (inputs.previousState !== PresenceState.THINKING) throw new Error('transition previous mismatch');",

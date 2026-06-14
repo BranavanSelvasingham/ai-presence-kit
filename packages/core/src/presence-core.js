@@ -248,6 +248,8 @@
     let speechStartMs = null;
     let firstOutputMs = null;
     let firstOutputEvent = null;
+    let interruptMs = null;
+    let interrupted = false;
     let finalState = null;
     let complete = false;
 
@@ -259,6 +261,7 @@
       if (state) {
         pushUnique(states, state);
         finalState = state;
+        if (state === PresenceState.INTERRUPTED) interrupted = true;
         if (firstStateMs === null && elapsedMs !== null) firstStateMs = elapsedMs;
       }
 
@@ -268,6 +271,10 @@
       if (event === PresenceEvent.STREAM_OPEN && streamOpenMs === null) streamOpenMs = elapsedMs;
       if (event === PresenceEvent.TOKEN && firstTokenMs === null) firstTokenMs = elapsedMs;
       if (event === PresenceEvent.SPEECH_START && speechStartMs === null) speechStartMs = elapsedMs;
+      if (event === PresenceEvent.INTERRUPT) {
+        if (interruptMs === null) interruptMs = elapsedMs;
+        interrupted = true;
+      }
       if ((event === PresenceEvent.TOKEN || event === PresenceEvent.SPEECH_START) && firstOutputEvent === null) {
         firstOutputEvent = event;
         firstOutputMs = elapsedMs;
@@ -291,6 +298,8 @@
       speechStartMs,
       firstOutputMs,
       firstOutputEvent,
+      interruptMs,
+      interrupted,
       presenceBeforeOutputMs,
       finalState,
       hasOutput: firstOutputEvent !== null,
