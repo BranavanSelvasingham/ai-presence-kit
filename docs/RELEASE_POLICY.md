@@ -1,6 +1,6 @@
 # Release Policy
 
-AI Presence Kit is pre-release. The repository version and package versions remain `0.0.0` until the first public npm publish is intentional.
+AI Presence Kit is pre-1.0. The first public npm release target is `0.1.0`.
 
 ## Package Names
 
@@ -57,7 +57,7 @@ Initial public release target:
 0.1.0
 ```
 
-Keep `0.0.0` only for unpublished local development.
+Use `0.0.0` only for unpublished local development before the first public release.
 
 For `0.x` releases:
 
@@ -81,7 +81,7 @@ Validation
 
 Before a public release:
 
-1. Bump the root package and all workspace package versions from `0.0.0` to the release version.
+1. Bump the root package and all workspace package versions to the release version.
 2. Bump internal workspace dependency versions to the same release version.
 3. Update `CHANGELOG.md`.
 4. Run `npm run validate`.
