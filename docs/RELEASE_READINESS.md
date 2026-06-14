@@ -117,10 +117,12 @@ The package names were rechecked against the npm registry on 2026-06-12 and all 
 Repeatable release gate:
 
 ```bash
+npm run release:public-gate
 npm run release:preflight
+npm run release:publish -- X.Y.Z
 npm run release:consumer-smoke -- X.Y.Z
 ```
 
-`npm run release:preflight` combines package validation, core and face latency gates, security/tarball preflight, `git diff --check`, and authenticated npm scope verification. `npm run release:consumer-smoke -- X.Y.Z` verifies a fresh consumer can install and execute all four published package entrypoints after npm publish.
+`npm run release:public-gate` checks the first-time visitor and collaborator-readiness surface. `npm run release:preflight` combines package validation, core and face latency gates, public-readiness checks, security/tarball preflight, `git diff --check`, and authenticated npm scope verification. `npm run release:publish -- X.Y.Z` publishes with token-safe npm config, verifies npm metadata, and runs `npm run release:consumer-smoke -- X.Y.Z`. The consumer smoke verifies a fresh consumer can install and execute all four published package entrypoints after npm publish.
 
 See `docs/RELEASE_RUNBOOK.md` for the full recurring process, including browser-smoke routes, npm publish order, post-publish metadata checks, and stop conditions.

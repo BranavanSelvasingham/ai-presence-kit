@@ -2,7 +2,15 @@
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Added `CONTRIBUTING.md` with collaborator paths for AI interface, expressive system, SVG/rendering, adapter, React proof, and release-gate work.
+- Added `docs/PUBLIC_RELEASE_GATE.md` and `npm run release:public-gate` for first-time visitor and collaborator-readiness checks.
+- Added `npm run release:publish -- X.Y.Z` for token-safe npm publishing, registry verification, and published-package consumer smoke.
+
+### Changed
+
+- Updated README, release policy, release runbook, operating manual, validation docs, and package-surface tests so public-facing milestones include a fresh-eyes gate before broad release claims.
 
 ## 0.1.1 - 2026-06-14
 

@@ -11,12 +11,14 @@ for (const requiredFile of [
   ".github/workflows/ci.yml",
   "AGENTS.md",
   "CHANGELOG.md",
+  "CONTRIBUTING.md",
   "CORE_PILLARS.md",
   "docs/GOAL_LOOP.md",
   "docs/media/presence-comparison.jpg",
   "docs/media/main-app-release.png",
   "docs/media/react-browser-demo.jpg",
   "docs/ORCHESTRATION_LOOP.md",
+  "docs/PUBLIC_RELEASE_GATE.md",
   "docs/RELEASE_POLICY.md",
   "docs/RELEASE_READINESS.md",
   "docs/RELEASE_RUNBOOK.md",
@@ -33,6 +35,8 @@ for (const requiredFile of [
   "scripts/pack-dry-run.mjs",
   "scripts/capture-release-media.mjs",
   "scripts/release-consumer-smoke.mjs",
+  "scripts/release-public-readiness.mjs",
+  "scripts/release-publish.mjs",
   "scripts/release-preflight.mjs",
   "scripts/release-security-preflight.mjs",
   "scripts/benchmark-core-runtime.mjs",
@@ -47,8 +51,10 @@ assert.equal(rootManifest.description, "Low-latency facial presence engine for A
 assert.match(rootManifest.scripts.check, /scripts\/pack-dry-run\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-package-names\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-npm-scope\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/release-public-readiness\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/release-security-preflight\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/release-preflight\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/release-publish\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/release-consumer-smoke\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/capture-release-media\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-core-runtime\.mjs/);
@@ -58,8 +64,10 @@ assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-run
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
+assert.equal(rootManifest.scripts["release:public-gate"], "node scripts/release-public-readiness.mjs");
 assert.equal(rootManifest.scripts["release:security"], "node scripts/release-security-preflight.mjs");
 assert.equal(rootManifest.scripts["release:preflight"], "node scripts/release-preflight.mjs");
+assert.equal(rootManifest.scripts["release:publish"], "node scripts/release-publish.mjs");
 assert.equal(rootManifest.scripts["release:consumer-smoke"], "node scripts/release-consumer-smoke.mjs");
 assert.equal(rootManifest.scripts["release:capture-media"], "node scripts/capture-release-media.mjs");
 assert.match(rootManifest.scripts.validate, /npm run check/);
@@ -81,15 +89,19 @@ const releasePolicy = readFileSync(resolve(root, "docs/RELEASE_POLICY.md"), "utf
 assert.match(releasePolicy, /0\.1\.0/);
 assert.match(releasePolicy, /npm run release:check-names/);
 assert.match(releasePolicy, /npm run release:check-scope/);
+assert.match(releasePolicy, /npm run release:public-gate/);
 assert.match(releasePolicy, /npm run release:preflight/);
-assert.match(releasePolicy, /npm run release:consumer-smoke -- X\.Y\.Z/);
+assert.match(releasePolicy, /npm run release:publish -- X\.Y\.Z/);
 assert.match(releasePolicy, /@ai-presence\/core -> npm E404/);
 assert.match(releasePolicy, /2026-06-12/);
 assert.match(releasePolicy, /scope/);
 
 const releaseRunbook = readFileSync(resolve(root, "docs/RELEASE_RUNBOOK.md"), "utf8");
+assert.match(releaseRunbook, /Fresh-Eyes Gate/);
+assert.match(releaseRunbook, /npm run release:public-gate/);
 assert.match(releaseRunbook, /npm run release:preflight/);
 assert.match(releaseRunbook, /npm run release:security/);
+assert.match(releaseRunbook, /npm run release:publish -- X\.Y\.Z/);
 assert.match(releaseRunbook, /npm run release:consumer-smoke -- X\.Y\.Z/);
 assert.match(releaseRunbook, /npm run release:capture-media/);
 assert.match(releaseRunbook, /npm publish \.\/packages\/core --access public/);
@@ -97,6 +109,7 @@ assert.match(releaseRunbook, /npm publish \.\/packages\/face --access public/);
 assert.match(releaseRunbook, /npm publish \.\/packages\/adapters --access public/);
 assert.match(releaseRunbook, /npm publish \.\/packages\/react --access public/);
 assert.match(releaseRunbook, /Do not paste API keys, npm tokens, or npm OTP values/);
+assert.match(releaseRunbook, /\.env\.release\.local/);
 assert.match(releaseRunbook, /\.env/);
 assert.match(releaseRunbook, /tracked secret scan/);
 assert.match(releaseRunbook, /consumer smoke/);
@@ -158,6 +171,24 @@ assert.match(releaseReadiness, /npm run release:check-scope/);
 assert.match(releaseReadiness, /npm run release:preflight/);
 assert.match(releaseReadiness, /npm run release:consumer-smoke -- X\.Y\.Z/);
 
+const publicReleaseGate = readFileSync(resolve(root, "docs/PUBLIC_RELEASE_GATE.md"), "utf8");
+assert.match(publicReleaseGate, /Fresh-Eyes Gate/);
+assert.match(publicReleaseGate, /Collaborator-Readiness Gate/);
+assert.match(publicReleaseGate, /npm run release:public-gate/);
+assert.match(publicReleaseGate, /npm run release:preflight/);
+assert.match(publicReleaseGate, /npm run release:publish -- X\.Y\.Z/);
+assert.match(publicReleaseGate, /NPM_TOKEN/);
+assert.match(publicReleaseGate, /Do not paste/);
+assert.match(publicReleaseGate, /CONTRIBUTING\.md/);
+
+const contributing = readFileSync(resolve(root, "CONTRIBUTING.md"), "utf8");
+assert.match(contributing, /Good First Collaboration Areas/);
+assert.match(contributing, /presence state layer/);
+assert.match(contributing, /interaction posture/);
+assert.match(contributing, /not emotion detection/i);
+assert.match(contributing, /npm run validate/);
+assert.match(contributing, /npm run release:public-gate/);
+
 const validation = readFileSync(resolve(root, "VALIDATION.md"), "utf8");
 assert.match(validation, /npm run release:capture-media/);
 assert.match(validation, /npm run perf:core/);
@@ -169,8 +200,9 @@ assert.match(validation, /0\.25ms/);
 const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
 assert.match(operatingManual, /npm run release:check-names/);
 assert.match(operatingManual, /npm run release:check-scope/);
+assert.match(operatingManual, /npm run release:public-gate/);
 assert.match(operatingManual, /npm run release:preflight/);
-assert.match(operatingManual, /npm run release:consumer-smoke -- X\.Y\.Z/);
+assert.match(operatingManual, /npm run release:publish -- X\.Y\.Z/);
 assert.match(operatingManual, /Browser-smoke the reference, metrics, comparison, and React browser routes/);
 
 const goalLoop = readFileSync(resolve(root, "docs/GOAL_LOOP.md"), "utf8");
@@ -496,6 +528,10 @@ assert.match(faceTypes, /FaceControllerDecisionTrace/);
 assert.match(faceTypes, /faceControllerDecisionTraceForFrame/);
 
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
+assert.match(rootReadme, /Why This Exists/);
+assert.match(rootReadme, /AI interfaces should not feel frozen until text appears/);
+assert.match(rootReadme, /Collaborating/);
+assert.match(rootReadme, /AI interfaces, expressive systems, interaction design, SVG\/rendering, or low-latency UI behavior/);
 assert.match(rootReadme, /main-app-release\.png/);
 assert.doesNotMatch(rootReadme, /presence-comparison-release\.png/);
 assert.doesNotMatch(rootReadme, /react-before-output-release\.png/);

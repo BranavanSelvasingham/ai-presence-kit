@@ -8,11 +8,11 @@ Every meaningful milestone should end with a durable handoff, not only local edi
 
 1. Review `git status --short --branch`.
 2. Run the narrow validation for the touched area.
-3. Run `npm run release:preflight` before broad readiness claims.
-4. Commit the intended files and push the branch.
-5. If package source, package README, package metadata, examples, release media, or public package behavior changed, bump the lockstep package version and publish all four packages.
-6. After npm publish, run `npm run release:consumer-smoke -- X.Y.Z`.
-7. Verify npm metadata, then push the release tag.
+3. Run the Fresh-Eyes Gate when README, docs, examples, screenshots, public package behavior, or collaborator-facing language changed.
+4. Run `npm run release:preflight` before broad readiness claims.
+5. Commit the intended files and push the branch.
+6. If package source, package README, package metadata, examples, release media, or public package behavior changed, bump the lockstep package version and publish all four packages.
+7. After npm publish, verify npm metadata and the consumer smoke, then push the release tag.
 
 Do not publish a package when only private orchestration notes changed. Do publish when the milestone changes the public release surface or package-facing evidence.
 
@@ -56,6 +56,24 @@ The capture command writes:
 docs/media/main-app-release.png
 ```
 
+## Fresh-Eyes Gate
+
+Run this whenever a milestone changes what a first-time visitor or potential collaborator will see:
+
+```bash
+npm run release:public-gate
+```
+
+This checks that `README.md`, `CONTRIBUTING.md`, `docs/PUBLIC_RELEASE_GATE.md`, the release runbook, and the lead screenshot stay aligned around the public story:
+
+- AI interfaces should not feel frozen until text appears.
+- AI Presence Kit is a presence state layer, not emotion detection.
+- The SVG face is the proof surface for parallel gaze, blink, brows, mouth, posture, and motion controllers.
+- The repo offers concrete collaboration paths.
+- Release/security instructions do not encourage pasting API keys, npm tokens, or OTP values.
+
+See `docs/PUBLIC_RELEASE_GATE.md` for the full collaborator-readiness checklist.
+
 ## Pre-Publish Gate
 
 Before publishing a new version, confirm the worktree contains only intended changes:
@@ -75,6 +93,7 @@ This runs:
 - `npm run validate`
 - `npm run perf:core`
 - `npm run perf:face`
+- `npm run release:public-gate`
 - `npm run release:security`
 - `git diff --check`
 - `npm run release:check-scope`
@@ -96,7 +115,27 @@ For a release:
 
 ## Publish
 
-Publish in dependency order:
+Preferred publish path:
+
+```bash
+npm run release:publish -- X.Y.Z
+```
+
+This command:
+
+- requires a clean worktree unless `--allow-dirty` is supplied
+- requires local tag `vX.Y.Z` to point at `HEAD`
+- verifies root and workspace package versions
+- reads `NPM_TOKEN` from the environment or `.env.release.local`
+- writes a temporary npm config that references `${NPM_TOKEN}`
+- publishes in dependency order
+- verifies exact npm metadata and `latest` metadata
+- runs `npm run release:consumer-smoke -- X.Y.Z`
+- deletes the temporary npm config on exit
+
+`.env.release.local` is ignored by git. Do not paste its contents into chat, docs, commit messages, shell history, or logs.
+
+Manual fallback, still in dependency order:
 
 ```bash
 npm publish ./packages/core --access public
@@ -105,11 +144,11 @@ npm publish ./packages/adapters --access public
 npm publish ./packages/react --access public
 ```
 
-If npm asks for a one-time password or passkey confirmation, complete it outside the repo and do not paste the value anywhere in the project.
+If npm asks for a one-time password or passkey confirmation, complete it outside the repo and do not paste the value anywhere in the project. Prefer an npm automation or granular access token with package-scoped publish permission for repeatable releases.
 
 ## Post-Publish Gate
 
-After npm accepts all packages, wait for registry metadata to propagate, then verify a fresh consumer can install and execute both ESM and CommonJS entrypoints:
+`npm run release:publish -- X.Y.Z` performs this gate automatically. If publishing manually, after npm accepts all packages, wait for registry metadata to propagate, then verify a fresh consumer can install and execute both ESM and CommonJS entrypoints:
 
 ```bash
 npm run release:consumer-smoke -- X.Y.Z

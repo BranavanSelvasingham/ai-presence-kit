@@ -21,10 +21,16 @@ npm run validate
 
 ## Milestone Closeout
 
-After every meaningful milestone, close the loop with a pushed git commit. When package source, package README, package metadata, examples, release media, or public package behavior changed, also bump and publish the lockstep package family, then run:
+After every meaningful milestone, close the loop with a pushed git commit. When README, screenshots, docs, examples, or collaborator-facing language changed, run:
 
 ```bash
-npm run release:consumer-smoke -- X.Y.Z
+npm run release:public-gate
+```
+
+When package source, package README, package metadata, examples, release media, or public package behavior changed, also bump and publish the lockstep package family with:
+
+```bash
+npm run release:publish -- X.Y.Z
 ```
 
 ## When To Run What
@@ -35,8 +41,8 @@ npm run release:consumer-smoke -- X.Y.Z
 - Adapter mappings: `npm run demo:adapters`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
 - Browser or visual behavior: run the relevant browser route and inspect the output directly.
-- Major improvement work: `npm run validate`, `git diff --check`, and browser smoke when visual or browser-facing behavior changed.
-- Packaging or release work: `npm run release:preflight`, browser smoke, publish in dependency order, then `npm run release:consumer-smoke -- X.Y.Z`.
+- Major improvement work: `npm run validate`, `npm run release:public-gate` for public-facing changes, `git diff --check`, and browser smoke when visual or browser-facing behavior changed.
+- Packaging or release work: `npm run release:preflight`, browser smoke, `npm run release:publish -- X.Y.Z`, then push the release tag after npm verification passes.
 
 ## Package-Level Performance Smoke
 
@@ -85,7 +91,7 @@ Run before publishing a new package version:
 npm run release:preflight
 ```
 
-This includes `npm run validate`, `npm run perf:core`, `npm run perf:face`, `npm run release:security`, `git diff --check`, and `npm run release:check-scope`.
+This includes `npm run validate`, `npm run perf:core`, `npm run perf:face`, `npm run release:public-gate`, `npm run release:security`, `git diff --check`, and `npm run release:check-scope`.
 
 `npm run release:security` confirms local env/npm config files are ignored and untracked, scans tracked files for token-shaped secret material without printing values, and checks package dry-run tarballs for forbidden files.
 
@@ -101,7 +107,7 @@ npm run release:check-scope
 
 ## Post-Publish Consumer Smoke
 
-After npm accepts a release, verify fresh consumer install and both ESM/CommonJS entrypoints:
+`npm run release:publish -- X.Y.Z` performs this automatically. After a manual npm publish, verify fresh consumer install and both ESM/CommonJS entrypoints:
 
 ```bash
 npm run release:consumer-smoke -- X.Y.Z

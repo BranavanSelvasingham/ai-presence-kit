@@ -8,11 +8,23 @@ The simple SVG face in this repo is the proof surface. It exists to prove that g
 
 Can an AI interface make many small facial movement decisions from runtime state quickly enough that it feels co-present before the model responds?
 
+## Why This Exists
+
+AI interfaces should not feel frozen until text appears. They can show presence while reading, waiting, thinking, streaming, speaking, or recovering from interruption without pretending to know a user's private emotional state.
+
+AI Presence Kit explores that middle layer: runtime signals become interaction posture, then independent micro-controllers turn that posture into legible interface motion.
+
 ## Goal Statement
 
 Build a minimal, artful facial presence engine for expressive AI interaction: a low-latency web prototype that maps input, response, voice, and latency signals into a conservative presence state model, then lets independent facial controllers make parallel micro-decisions for gaze, blink, brows, mouth, posture, and motion.
 
 The finished prototype should feel less like an avatar and more like a living interface: attentive before it speaks, elegant when idle, responsive under pressure, coherent without pose swaps, and adjustable in expressiveness without pretending to infer private emotion.
+
+## Collaborating
+
+This project is looking for collaborators interested in AI interfaces, expressive systems, interaction design, SVG/rendering, or low-latency UI behavior.
+
+Good places to help include the reference face, runtime adapters, React/browser proof paths, package docs, release gates, and non-face renderers that consume the same presence state layer. See `CONTRIBUTING.md` for the current collaboration map.
 
 ## Product Direction
 

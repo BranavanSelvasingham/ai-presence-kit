@@ -8,6 +8,7 @@ const gates = [
   { label: "workspace validation", command: "npm", args: ["run", "validate"] },
   { label: "core runtime performance smoke", command: "npm", args: ["run", "perf:core"] },
   { label: "face pipeline performance smoke", command: "npm", args: ["run", "perf:face"] },
+  { label: "public collaborator readiness", command: "npm", args: ["run", "release:public-gate"] },
   { label: "release security preflight", command: "npm", args: ["run", "release:security"] },
   { label: "whitespace diff check", command: "git", args: ["diff", "--check"] },
   { label: "authenticated npm scope check", command: "npm", args: ["run", "release:check-scope"] },

@@ -86,11 +86,11 @@ Before a public release:
 1. Bump the root package and all workspace package versions to the release version.
 2. Bump internal workspace dependency versions to the same release version.
 3. Update `CHANGELOG.md`.
-4. Run `npm run release:preflight`.
-5. Browser-smoke the reference, metrics, controller gallery, comparison, and React browser routes.
-6. Commit and tag the release.
-7. Publish in dependency order: `core`, `face`, `adapters`, `react`.
-8. Run `npm run release:consumer-smoke -- X.Y.Z`.
+4. Run `npm run release:public-gate` when first-time visitor or collaborator-facing surfaces changed.
+5. Run `npm run release:preflight`.
+6. Browser-smoke the reference, metrics, controller gallery, comparison, and React browser routes.
+7. Commit and tag the release.
+8. Publish with `npm run release:publish -- X.Y.Z`.
 9. Verify npm metadata, then push `main` and `vX.Y.Z`.
 
 See `docs/RELEASE_RUNBOOK.md` for the exact commands and stop conditions.
