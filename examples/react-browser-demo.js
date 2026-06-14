@@ -12,7 +12,12 @@
     throw new Error("React browser demo dependencies did not load.");
   }
 
-  const { PresenceEvent, createPresenceRuntime } = PresenceCore;
+  const {
+    PresenceEvent,
+    createPresenceRuntime,
+    createPresenceTrace,
+    summarizePresenceTrace,
+  } = PresenceCore;
   const { createVercelAISDKAdapter } = PresenceAdapters;
   const {
     faceExpressionForPresence,
@@ -32,7 +37,17 @@
     const [response, setResponse] = React.useState("");
     const [events, setEvents] = React.useState([]);
     const [running, setRunning] = React.useState(false);
+    const reactTraceRef = React.useRef(createPresenceTrace({ limit: 16 }));
+    const [traceEvidence, setTraceEvidence] = React.useState(() => reactTraceSummaryEvidence(reactTraceRef.current));
     const timersRef = React.useRef([]);
+
+    const recordReactTraceSnapshot = React.useCallback((snapshot, elapsedMs) => {
+      reactTraceRef.current.record({
+        ...snapshot,
+        updatedAt: elapsedMs,
+      });
+      setTraceEvidence(reactTraceSummaryEvidence(reactTraceRef.current));
+    }, []);
 
     React.useEffect(() => {
       const unsubscribe = runtime.subscribe((snapshot) => {
@@ -59,34 +74,41 @@
       timersRef.current = [];
       setRunning(true);
       setResponse("");
+      reactTraceRef.current.clear();
+      setTraceEvidence(reactTraceSummaryEvidence(reactTraceRef.current));
 
-      aiSdkPresence.onSubmit(prompt);
+      const submitSnapshot = aiSdkPresence.onSubmit(prompt);
+      recordReactTraceSnapshot(submitSnapshot, 0);
 
       timersRef.current.push(setTimeout(() => {
-        aiSdkPresence.update({ status: "streaming", messages: [] });
+        const streamOpenSnapshot = aiSdkPresence.update({ status: "streaming", messages: [] });
+        recordReactTraceSnapshot(streamOpenSnapshot, 420);
       }, 420));
 
       timersRef.current.push(setTimeout(() => {
-        aiSdkPresence.update({
+        const firstTokenSnapshot = aiSdkPresence.update({
           status: "streaming",
           messages: [{ role: "assistant", parts: [{ type: "text", text: RESPONSE_TEXT.slice(0, 30) }] }],
         });
+        recordReactTraceSnapshot(firstTokenSnapshot, 980);
         setResponse(RESPONSE_TEXT.slice(0, 30));
       }, 980));
 
       timersRef.current.push(setTimeout(() => {
-        aiSdkPresence.update({
+        const laterTokenSnapshot = aiSdkPresence.update({
           status: "streaming",
           messages: [{ role: "assistant", parts: [{ type: "text", text: RESPONSE_TEXT }] }],
         });
+        recordReactTraceSnapshot(laterTokenSnapshot, 1520);
         setResponse(RESPONSE_TEXT);
       }, 1520));
 
       timersRef.current.push(setTimeout(() => {
-        aiSdkPresence.onFinish({ finishReason: "stop" });
+        const completeSnapshot = aiSdkPresence.onFinish({ finishReason: "stop" });
+        recordReactTraceSnapshot(completeSnapshot, 2080);
         setRunning(false);
       }, 2080));
-    }, [prompt]);
+    }, [prompt, recordReactTraceSnapshot]);
 
     const resetTurn = React.useCallback(() => {
       clearTimers(timersRef.current);
@@ -94,6 +116,8 @@
       setRunning(false);
       setResponse("");
       setEvents([]);
+      reactTraceRef.current.clear();
+      setTraceEvidence(reactTraceSummaryEvidence(reactTraceRef.current));
       runtime.send(PresenceEvent.RESET);
     }, []);
 
@@ -103,7 +127,7 @@
       React.createElement(
         "div",
         { className: "react-demo-grid" },
-        React.createElement(PresencePanel),
+        React.createElement(PresencePanel, { traceEvidence }),
         React.createElement(ChatPanel, {
           events,
           prompt,
@@ -117,7 +141,7 @@
     );
   }
 
-  function PresencePanel() {
+  function PresencePanel({ traceEvidence }) {
     return React.createElement(
       bindings.PresenceRendererSlot,
       null,
@@ -126,7 +150,18 @@
 
         return React.createElement(
           "article",
-          { className: "presence-panel", "data-rendered-state": snapshot.state },
+          {
+            className: "presence-panel",
+            "data-rendered-state": snapshot.state,
+            "data-react-trace-summary": traceEvidence.status,
+            "data-react-trace-entry-count": traceEvidence.entryCount,
+            "data-react-trace-first-output-ms": traceEvidence.firstOutputMs,
+            "data-react-trace-first-output-event": traceEvidence.firstOutputEvent,
+            "data-react-trace-lead-ms": traceEvidence.leadMs,
+            "data-react-trace-final-state": traceEvidence.finalState,
+            "data-react-trace-has-output": traceEvidence.hasOutput,
+            "data-react-trace-complete": traceEvidence.complete,
+          },
           React.createElement("p", { className: "eyebrow" }, "AI Presence Kit"),
           React.createElement("h1", null, "React runtime"),
           React.createElement(FaceRendererSlot, { snapshot, frameTimeMs }),
@@ -143,6 +178,26 @@
         );
       },
     );
+  }
+
+  function reactTraceSummaryEvidence(reactTrace) {
+    const summary = summarizePresenceTrace(reactTrace);
+    const complete = Boolean(summary.complete && summary.hasOutput && summary.finalState);
+
+    return Object.freeze({
+      status: complete ? "complete" : "incomplete",
+      entryCount: String(summary.entryCount),
+      firstOutputMs: reactTraceEvidenceMs(summary.firstOutputMs),
+      firstOutputEvent: summary.firstOutputEvent || "none",
+      leadMs: reactTraceEvidenceMs(summary.presenceBeforeOutputMs),
+      finalState: summary.finalState || "none",
+      hasOutput: String(summary.hasOutput),
+      complete: String(summary.complete),
+    });
+  }
+
+  function reactTraceEvidenceMs(value) {
+    return Number.isFinite(value) ? String(value) : "none";
   }
 
   function FaceRendererSlot({ snapshot, frameTimeMs }) {

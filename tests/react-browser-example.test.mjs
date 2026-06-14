@@ -8,6 +8,14 @@ const root = resolve(new URL("..", import.meta.url).pathname);
 const html = readFileSync(resolve(root, "examples/react-browser.html"), "utf8");
 const script = readFileSync(resolve(root, "examples/react-browser-demo.js"), "utf8");
 const css = readFileSync(resolve(root, "examples/react-browser.css"), "utf8");
+const {
+  PresenceEvent,
+  PresenceState,
+  createPresenceRuntime,
+  createPresenceTrace,
+  summarizePresenceTrace,
+} = require(resolve(root, "packages/core/src/presence-core.js"));
+const { createVercelAISDKAdapter } = require(resolve(root, "packages/adapters/src/runtime-adapter.js"));
 const { renderPresenceFaceSvg } = require(resolve(root, "packages/face/src/presence-face.js"));
 
 assert.match(html, /node_modules\/react\/umd\/react\.production\.min\.js/);
@@ -20,9 +28,25 @@ assert.match(html, /data-react-demo-root/);
 assert.match(script, /ReactDOM\.createRoot/);
 assert.match(script, /createPresenceReactBindings\(React, \{ runtime \}\)/);
 assert.match(script, /createVercelAISDKAdapter\(runtime\)/);
+assert.match(script, /createPresenceTrace\(\{ limit: 16 \}\)/);
+assert.match(script, /summarizePresenceTrace\(reactTrace\)/);
+assert.match(script, /recordReactTraceSnapshot\(submitSnapshot, 0\)/);
+assert.match(script, /recordReactTraceSnapshot\(streamOpenSnapshot, 420\)/);
+assert.match(script, /recordReactTraceSnapshot\(firstTokenSnapshot, 980\)/);
+assert.match(script, /recordReactTraceSnapshot\(laterTokenSnapshot, 1520\)/);
+assert.match(script, /recordReactTraceSnapshot\(completeSnapshot, 2080\)/);
+assert.match(script, /summary\.presenceBeforeOutputMs/);
 assert.match(script, /bindings\.PresenceRendererSlot/);
 assert.match(script, /data-presence-phase/);
 assert.match(script, /data-presence-attention/);
+assert.match(script, /data-react-trace-summary/);
+assert.match(script, /data-react-trace-entry-count/);
+assert.match(script, /data-react-trace-first-output-ms/);
+assert.match(script, /data-react-trace-first-output-event/);
+assert.match(script, /data-react-trace-lead-ms/);
+assert.match(script, /data-react-trace-final-state/);
+assert.match(script, /data-react-trace-has-output/);
+assert.match(script, /data-react-trace-complete/);
 assert.match(script, /faceExpressionForPresence\(snapshot\)/);
 assert.doesNotMatch(script, /faceControllerFrameForPresence/);
 assert.doesNotMatch(script, /faceControllerDecisionTraceForFrame/);
@@ -64,6 +88,41 @@ assert.match(script, /decisionTrace\.decisions\[channel\]\?\.reads/);
 assert.match(script, /data-renderer-slot-face/);
 assert.match(script, /@ai-presence\/face/);
 assert.doesNotMatch(script, /emotion/i);
+
+const traceRuntime = createPresenceRuntime({ initialState: PresenceState.IDLE });
+const traceAdapter = createVercelAISDKAdapter(traceRuntime);
+const reactTrace = createPresenceTrace({ limit: 16 });
+
+function recordAt(snapshot, updatedAt) {
+  reactTrace.record({
+    ...snapshot,
+    updatedAt,
+  });
+}
+
+recordAt(traceAdapter.onSubmit("Why does this feel faster?"), 0);
+recordAt(traceAdapter.update({ status: "streaming", messages: [] }), 420);
+recordAt(traceAdapter.update({
+  status: "streaming",
+  messages: [{ role: "assistant", parts: [{ type: "text", text: "Presence moved through thinking" }] }],
+}), 980);
+recordAt(traceAdapter.update({
+  status: "streaming",
+  messages: [{ role: "assistant", parts: [{ type: "text", text: "Presence moved through thinking and waiting before the first visible token." }] }],
+}), 1520);
+recordAt(traceAdapter.onFinish({ finishReason: "stop" }), 2080);
+
+const reactTraceSummary = summarizePresenceTrace(reactTrace);
+assert.equal(reactTraceSummary.entryCount, 5);
+assert.equal(reactTraceSummary.firstStateMs, 0);
+assert.equal(reactTraceSummary.streamOpenMs, 420);
+assert.equal(reactTraceSummary.firstTokenMs, 980);
+assert.equal(reactTraceSummary.firstOutputMs, 980);
+assert.equal(reactTraceSummary.firstOutputEvent, PresenceEvent.TOKEN);
+assert.equal(reactTraceSummary.presenceBeforeOutputMs, 980);
+assert.equal(reactTraceSummary.finalState, PresenceState.READY);
+assert.equal(reactTraceSummary.hasOutput, true);
+assert.equal(reactTraceSummary.complete, true);
 
 const thinkingFace = renderPresenceFaceSvg("thinking", { now: 1000, timeMs: 1000 });
 assert.equal(thinkingFace.frameReport.sharedInputs.latencyPhase, "before-output");
