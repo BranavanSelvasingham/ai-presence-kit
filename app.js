@@ -121,12 +121,20 @@ const MEDIAPIPE_TASKS_VERSION = "0.10.35";
 const MEDIAPIPE_TASKS_VISION_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_TASKS_VERSION}/vision_bundle.mjs`;
 const MEDIAPIPE_WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_TASKS_VERSION}/wasm`;
 const MEDIAPIPE_FACE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
+const LIVE_RESPONSE_STREAM_STATES = new Set(["idle", "opened", "token", "done", "error", "aborted"]);
 
 const runtime = {
   presenceState: PresenceState.IDLE,
   presenceReason: PresenceEvent.RESET,
   presenceSnapshot: null,
   presenceTrace: null,
+  liveResponseTrace: null,
+  liveResponseEvidence: {
+    configured: false,
+    stream: "idle",
+    active: false,
+    turnId: 0,
+  },
   presenceRuntime: null,
   faceControllerRuntime: null,
   faceControls: null,
@@ -295,6 +303,7 @@ runtime.presenceRuntime = createPresenceRuntime({
 });
 runtime.presenceTrace = createPresenceTrace({ limit: 24 });
 runtime.presenceTrace.attach(runtime.presenceRuntime);
+runtime.liveResponseTrace = createPresenceTrace({ limit: 16 });
 runtime.faceControllerRuntime = PresenceFace.createFaceControllerRuntime();
 runtime.presenceSnapshot = runtime.presenceRuntime.getSnapshot();
 
@@ -598,6 +607,92 @@ function randomBetween(min, max) {
 
 function setPressed(button, pressed) {
   button.setAttribute("aria-pressed", String(pressed));
+}
+
+function normalizeLiveResponseStream(stream) {
+  return LIVE_RESPONSE_STREAM_STATES.has(stream) ? stream : "idle";
+}
+
+function liveTraceEvidenceMs(value) {
+  return Number.isFinite(value) ? String(Math.max(0, Math.round(value))) : "unknown";
+}
+
+function liveResponseEvidenceTargets() {
+  return [document.documentElement, faceShell, metricsPanel].filter(Boolean);
+}
+
+function liveResponseTraceSummaryEvidence() {
+  const summary = summarizePresenceTrace(runtime.liveResponseTrace);
+  const complete = Boolean(summary.complete && summary.hasOutput && summary.finalState);
+  return {
+    status: complete ? "complete" : "incomplete",
+    entryCount: String(summary.entryCount),
+    states: summary.states.join(" "),
+    events: summary.events.join(" "),
+    firstStateMs: liveTraceEvidenceMs(summary.firstStateMs),
+    firstTokenMs: liveTraceEvidenceMs(summary.firstTokenMs),
+    firstOutputMs: liveTraceEvidenceMs(summary.firstOutputMs),
+    firstOutputEvent: summary.firstOutputEvent || "none",
+    leadMs: liveTraceEvidenceMs(summary.presenceBeforeOutputMs),
+    finalState: summary.finalState || "none",
+    hasOutput: String(summary.hasOutput),
+    complete: String(summary.complete),
+  };
+}
+
+function applyLiveResponseEvidenceDataset(element) {
+  if (!element) return;
+  const evidence = liveResponseTraceSummaryEvidence();
+  element.dataset.liveResponseConfigured = String(runtime.liveResponseEvidence.configured);
+  element.dataset.liveResponseStream = normalizeLiveResponseStream(runtime.liveResponseEvidence.stream);
+  element.dataset.liveTraceSummary = evidence.status;
+  element.dataset.liveTraceEntryCount = evidence.entryCount;
+  element.dataset.liveTraceStates = evidence.states;
+  element.dataset.liveTraceEvents = evidence.events;
+  element.dataset.liveTraceFirstStateMs = evidence.firstStateMs;
+  element.dataset.liveTraceFirstTokenMs = evidence.firstTokenMs;
+  element.dataset.liveTraceFirstOutputMs = evidence.firstOutputMs;
+  element.dataset.liveTraceFirstOutputEvent = evidence.firstOutputEvent;
+  element.dataset.liveTraceLeadMs = evidence.leadMs;
+  element.dataset.liveTraceFinalState = evidence.finalState;
+  element.dataset.liveTraceHasOutput = evidence.hasOutput;
+  element.dataset.liveTraceComplete = evidence.complete;
+}
+
+function renderLiveResponseEvidence() {
+  for (const element of liveResponseEvidenceTargets()) {
+    applyLiveResponseEvidenceDataset(element);
+  }
+}
+
+function beginLiveResponseEvidence(turnId, submitSnapshot) {
+  runtime.liveResponseTrace.clear();
+  runtime.liveResponseEvidence.active = true;
+  runtime.liveResponseEvidence.turnId = turnId;
+  runtime.liveResponseEvidence.stream = "idle";
+  if (submitSnapshot) {
+    runtime.liveResponseTrace.record(submitSnapshot);
+  }
+  renderLiveResponseEvidence();
+}
+
+function recordLiveResponseSnapshot(turnId, stream, snapshot) {
+  if (!runtime.liveResponseEvidence.active || runtime.liveResponseEvidence.turnId !== turnId) return;
+  runtime.liveResponseEvidence.stream = normalizeLiveResponseStream(stream);
+  if (snapshot) {
+    runtime.liveResponseTrace.record(snapshot);
+  }
+  renderLiveResponseEvidence();
+}
+
+function endLiveResponseEvidence(stream, snapshot = runtime.presenceSnapshot) {
+  if (!runtime.liveResponseEvidence.active) return;
+  runtime.liveResponseEvidence.stream = normalizeLiveResponseStream(stream);
+  runtime.liveResponseEvidence.active = false;
+  if (snapshot) {
+    runtime.liveResponseTrace.record(snapshot);
+  }
+  renderLiveResponseEvidence();
 }
 
 function currentPresenceProfile() {
@@ -2332,7 +2427,8 @@ function markResponseComplete(sendStartedAt, responseMs = performance.now() - se
 
 function finishTextResponse() {
   runtime.speaking = false;
-  sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "text-response" });
+  const completeSnapshot = sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "text-response" });
+  endLiveResponseEvidence("done", completeSnapshot);
   setExpression("ready", null, "response-ready");
   maybeResumeMicAfterResponse();
   renderMetrics();
@@ -2347,7 +2443,8 @@ function revealFullResponseWithSpeech(text, sendStartedAt, responseMs = performa
   if (!runtime.speechBusy && !runtime.speechQueue.length && !runtime.speechPlaying) {
     responseText.textContent = text;
     runtime.speaking = false;
-    sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "speech-response-empty" });
+    const completeSnapshot = sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "speech-response-empty" });
+    endLiveResponseEvidence("done", completeSnapshot);
     setExpression("ready", null, "response-ready");
     maybeResumeMicAfterResponse();
   }
@@ -2386,7 +2483,8 @@ function cancelActiveTurn() {
   runtime.responseStreaming = false;
   runtime.speaking = false;
   cancelSpeechPlayback();
-  sendPresenceEvent(PresenceEvent.INTERRUPT, { source: "cancel-active-turn" });
+  const interruptSnapshot = sendPresenceEvent(PresenceEvent.INTERRUPT, { source: "cancel-active-turn" });
+  endLiveResponseEvidence("aborted", interruptSnapshot);
   return true;
 }
 
@@ -2673,7 +2771,8 @@ function finishSpeechSegment(url = null, requestId = null, segment = null) {
 
   if (!runtime.responseStreaming) {
     runtime.speaking = false;
-    sendPresenceEvent(PresenceEvent.SPEECH_END, { source: "speech" });
+    const speechEndSnapshot = sendPresenceEvent(PresenceEvent.SPEECH_END, { source: "speech" });
+    endLiveResponseEvidence("done", speechEndSnapshot);
     setExpression("ready", null, "response-ready");
     maybeResumeMicAfterResponse();
   }
@@ -2727,7 +2826,8 @@ function cancelSpeechPlayback() {
 async function speak(text, sendStartedAt) {
   if (!runtime.speakerOn) {
     runtime.speaking = false;
-    sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "speech-disabled" });
+    const completeSnapshot = sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "speech-disabled" });
+    endLiveResponseEvidence("done", completeSnapshot);
     setExpression("ready", null, "response-ready");
     return false;
   }
@@ -2969,6 +3069,7 @@ async function streamApiResponse(text, features, sendStartedAt) {
   const turnId = runtime.activeTurnId;
   const controller = new AbortController();
   runtime.responseAbort = controller;
+  beginLiveResponseEvidence(turnId, runtime.presenceSnapshot);
 
   try {
     const prepared = preparedForText(text);
@@ -2989,7 +3090,8 @@ async function streamApiResponse(text, features, sendStartedAt) {
     runtime.metrics.streamOpenMs = performance.now() - sendStartedAt;
     runtime.responseLane = "openai-stream";
     runtime.responseStreaming = true;
-    sendPresenceEvent(PresenceEvent.STREAM_OPEN, { text, source: "openai" });
+    const streamOpenSnapshot = sendPresenceEvent(PresenceEvent.STREAM_OPEN, { text, source: "openai" });
+    recordLiveResponseSnapshot(turnId, "opened", streamOpenSnapshot);
     trace("open", runtime.metrics.streamOpenMs);
     renderMetrics();
 
@@ -3025,7 +3127,8 @@ async function streamApiResponse(text, features, sendStartedAt) {
           const payload = JSON.parse(event.data);
           const delta = payload.delta || "";
           if (delta && runtime.metrics.firstTokenMs === null) {
-            sendPresenceEvent(PresenceEvent.TOKEN, { text, source: "openai" });
+            const tokenSnapshot = sendPresenceEvent(PresenceEvent.TOKEN, { text, source: "openai" });
+            recordLiveResponseSnapshot(turnId, "token", tokenSnapshot);
             runtime.metrics.firstTokenMs = performance.now() - sendStartedAt;
             recordSample("firstToken", runtime.metrics.firstTokenMs);
             trace("token", runtime.metrics.firstTokenMs);
@@ -3052,7 +3155,8 @@ async function streamApiResponse(text, features, sendStartedAt) {
       if (!runtime.speechBusy && !runtime.speechQueue.length) {
         responseText.textContent = fullText;
         runtime.speaking = false;
-        sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "openai-text" });
+        const completeSnapshot = sendPresenceEvent(PresenceEvent.RESPONSE_COMPLETE, { source: "openai-text" });
+        endLiveResponseEvidence("done", completeSnapshot);
         setExpression("ready", null, "response-ready");
         maybeResumeMicAfterResponse();
       }
@@ -3063,10 +3167,12 @@ async function streamApiResponse(text, features, sendStartedAt) {
   } catch (error) {
     if (controller.signal.aborted || error.name === "AbortError" || turnId !== runtime.activeTurnId) {
       runtime.responseStreaming = false;
+      endLiveResponseEvidence("aborted");
       return true;
     }
 
     runtime.responseStreaming = false;
+    endLiveResponseEvidence("error");
     runtime.apiLabel = "fallback";
     runtime.responseLane = "local-fallback";
     trace("fallback");
@@ -5988,6 +6094,7 @@ function installRuntimeTestHarness() {
 }
 
 function renderMetrics() {
+  renderLiveResponseEvidence();
   metricState.textContent = runtime.presenceState;
   metricRenderer.textContent = runtime.state;
   metricPresence.textContent = runtime.presence;
@@ -6039,9 +6146,14 @@ function handleComposerKeys(event) {
 async function loadHealth() {
   try {
     const response = await fetch("/api/health", { cache: "no-store" });
-    if (!response.ok) return;
+    if (!response.ok) {
+      runtime.apiAvailable = false;
+      runtime.liveResponseEvidence.configured = false;
+      return;
+    }
     const health = await response.json();
     runtime.apiAvailable = Boolean(health.openaiConfigured);
+    runtime.liveResponseEvidence.configured = Boolean(health.openaiConfigured);
     runtime.apiLabel = runtime.apiAvailable ? health.model : "local";
     runtime.realtimeModel = health.realtimeModel || "";
     runtime.realtimeVoice = health.realtimeVoice || "";
@@ -6050,9 +6162,11 @@ async function loadHealth() {
     }
   } catch {
     runtime.apiAvailable = false;
+    runtime.liveResponseEvidence.configured = false;
     runtime.apiLabel = "local";
     runtime.voiceLabel = "off";
   } finally {
+    renderLiveResponseEvidence();
     renderMetrics();
   }
 }
@@ -6070,6 +6184,7 @@ function boot() {
   setPressed(faceToggle, false);
   setPressed(metricsToggle, false);
   setPressed(compareToggle, false);
+  renderLiveResponseEvidence();
   applyInitialViewState();
 
   input.addEventListener("input", onInput);
