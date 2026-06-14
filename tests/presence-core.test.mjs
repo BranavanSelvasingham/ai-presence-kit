@@ -120,6 +120,8 @@ assert.equal(boundedTraceSummary.firstTokenMs, 75);
 assert.equal(boundedTraceSummary.speechStartMs, null);
 assert.equal(boundedTraceSummary.firstOutputMs, 75);
 assert.equal(boundedTraceSummary.firstOutputEvent, PresenceEvent.TOKEN);
+assert.equal(boundedTraceSummary.interruptMs, null);
+assert.equal(boundedTraceSummary.interrupted, false);
 assert.equal(boundedTraceSummary.presenceBeforeOutputMs, 25);
 assert.equal(boundedTraceSummary.finalState, PresenceState.READY);
 assert.equal(boundedTraceSummary.hasOutput, true);
@@ -139,6 +141,8 @@ assert.deepEqual(emptyTraceSummary, {
   speechStartMs: null,
   firstOutputMs: null,
   firstOutputEvent: null,
+  interruptMs: null,
+  interrupted: false,
   presenceBeforeOutputMs: null,
   finalState: null,
   hasOutput: false,
@@ -156,6 +160,8 @@ assert.equal(missingOutputSummary.streamOpenMs, 32);
 assert.equal(missingOutputSummary.firstTokenMs, null);
 assert.equal(missingOutputSummary.firstOutputMs, null);
 assert.equal(missingOutputSummary.firstOutputEvent, null);
+assert.equal(missingOutputSummary.interruptMs, null);
+assert.equal(missingOutputSummary.interrupted, false);
 assert.equal(missingOutputSummary.presenceBeforeOutputMs, null);
 assert.equal(missingOutputSummary.finalState, PresenceState.WAITING);
 assert.equal(missingOutputSummary.hasOutput, false);
@@ -176,6 +182,8 @@ assert.equal(speechOutputSummary.firstTokenMs, null);
 assert.equal(speechOutputSummary.speechStartMs, 40);
 assert.equal(speechOutputSummary.firstOutputMs, 40);
 assert.equal(speechOutputSummary.firstOutputEvent, PresenceEvent.SPEECH_START);
+assert.equal(speechOutputSummary.interruptMs, null);
+assert.equal(speechOutputSummary.interrupted, false);
 assert.equal(speechOutputSummary.presenceBeforeOutputMs, 40);
 assert.equal(speechOutputSummary.finalState, PresenceState.READY);
 assert.equal(speechOutputSummary.hasOutput, true);
@@ -190,6 +198,35 @@ assert.equal(updatedAtSummary.firstStateMs, 0);
 assert.equal(updatedAtSummary.streamOpenMs, 24);
 assert.equal(updatedAtSummary.firstTokenMs, 60);
 assert.equal(updatedAtSummary.presenceBeforeOutputMs, 60);
+
+const interruptedSummary = summarizePresenceTrace([
+  { state: PresenceState.THINKING, event: PresenceEvent.SUBMIT, elapsedMs: 0 },
+  { state: PresenceState.WAITING, event: PresenceEvent.STREAM_OPEN, elapsedMs: 32 },
+  { state: PresenceState.INTERRUPTED, event: PresenceEvent.INTERRUPT, elapsedMs: 48 },
+]);
+assert.deepEqual(interruptedSummary.states, [
+  PresenceState.THINKING,
+  PresenceState.WAITING,
+  PresenceState.INTERRUPTED,
+]);
+assert.deepEqual(interruptedSummary.events, [
+  PresenceEvent.SUBMIT,
+  PresenceEvent.STREAM_OPEN,
+  PresenceEvent.INTERRUPT,
+]);
+assert.equal(interruptedSummary.interruptMs, 48);
+assert.equal(interruptedSummary.interrupted, true);
+assert.equal(interruptedSummary.firstOutputMs, null);
+assert.equal(interruptedSummary.firstOutputEvent, null);
+assert.equal(interruptedSummary.hasOutput, false);
+assert.equal(interruptedSummary.complete, false);
+assert.equal(interruptedSummary.finalState, PresenceState.INTERRUPTED);
+
+const interruptedStateOnlySummary = summarizePresenceTrace([
+  { state: PresenceState.INTERRUPTED, event: "set-state", elapsedMs: 12 },
+]);
+assert.equal(interruptedStateOnlySummary.interruptMs, null);
+assert.equal(interruptedStateOnlySummary.interrupted, true);
 
 const controlExpectations = [
   [PresenceState.USER_TYPING, "input", "input", 0],

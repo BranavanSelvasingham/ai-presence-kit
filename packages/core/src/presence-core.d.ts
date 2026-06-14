@@ -91,6 +91,8 @@ export interface PresenceTraceSummary {
   speechStartMs: number | null;
   firstOutputMs: number | null;
   firstOutputEvent: PresenceEventValue | null;
+  interruptMs: number | null;
+  interrupted: boolean;
   presenceBeforeOutputMs: number | null;
   finalState: PresenceStateValue | null;
   hasOutput: boolean;

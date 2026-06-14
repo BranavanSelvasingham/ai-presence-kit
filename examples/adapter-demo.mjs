@@ -55,6 +55,8 @@ function renderTraceSummary(collected) {
     `speechStartMs=${formatMs(summary.speechStartMs)}`,
     `firstOutputMs=${formatMs(summary.firstOutputMs)}`,
     `firstOutput=${summary.firstOutputEvent || "none"}`,
+    `interruptMs=${formatMs(summary.interruptMs)}`,
+    `interrupted=${summary.interrupted}`,
     `leadMs=${formatMs(summary.presenceBeforeOutputMs)}`,
     `finalState=${summary.finalState || "none"}`,
     `hasOutput=${summary.hasOutput}`,
@@ -138,4 +140,16 @@ chatAdapter.handleEvent({ type: "stream-open" });
 chatAdapter.handleEvent({ type: "delta", delta: "Hi" });
 chatAdapter.handleEvent({ type: "finish" });
 
-console.log([...renderTrace(vercel), ...renderTrace(realtime), ...renderTrace(chat)].join("\n"));
+const interrupted = collect("interrupt");
+const interruptedAdapter = createChatEventAdapter(interrupted.runtime, interrupted.options);
+interruptedAdapter.handleEvent({ type: "submit", text: "Stop this turn" });
+interruptedAdapter.handleEvent({ type: "stream-open" });
+interruptedAdapter.handleEvent({ type: "delta", delta: "Working" });
+interruptedAdapter.handleEvent({ type: "interrupt", reason: "user-started-new-turn" });
+
+console.log([
+  ...renderTrace(vercel),
+  ...renderTrace(realtime),
+  ...renderTrace(chat),
+  ...renderTrace(interrupted),
+].join("\n"));
