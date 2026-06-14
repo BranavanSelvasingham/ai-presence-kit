@@ -45,7 +45,7 @@ packages/core/src/presence-core.js
 ```
 
 The prototype loads that core runtime first, then lets the SVG face interpret the canonical state as a renderer-specific expression. In the metrics panel, `Presence state` is the package-facing state contract; `Renderer` is the face's current expression.
-Core also exposes a small transition trace primitive so integrations can inspect what happened before the first visible token.
+Core also exposes a small transition trace primitive so integrations can inspect what happened before the first visible token and whether an interruption posture occurred.
 
 The shortest pitch:
 
@@ -141,8 +141,10 @@ presence.send(PresenceEvent.SUBMIT);
 presence.send(PresenceEvent.STREAM_OPEN);
 presence.send(PresenceEvent.TOKEN);
 
+const summary = summarizePresenceTrace(trace);
 console.log(trace.getEntries().map((entry) => entry.state));
-console.log(summarizePresenceTrace(trace).firstOutputMs);
+console.log(summary.firstOutputMs);
+console.log(summary.interruptMs, summary.interrupted);
 ```
 
 Intended public packages:
@@ -274,7 +276,7 @@ npm run demo:react
 npm run pack:dry-run
 ```
 
-`npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`.
+`npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
 
 `npm run perf:core` runs a local package-level smoke benchmark for the renderer-agnostic runtime path. It drives `createPresenceRuntime().send(...)`, Vercel AI SDK and generic chat adapters, `createPresenceTrace().record(...)`, and `summarizePresenceTrace(...)` through completed traces with `thinking` and `waiting` before the first `token`, final `ready`, `hasOutput=true`, and `complete=true`. It is local core/adapters/trace latency evidence, not a browser latency probe, OpenAI call, face-renderer benchmark, or release-blocking CI gate.
 
