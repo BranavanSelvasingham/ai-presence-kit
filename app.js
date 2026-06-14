@@ -69,7 +69,13 @@ if (!PresenceAdapters) {
   throw new Error("AI Presence adapters did not load.");
 }
 
-const { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } = PresenceCore;
+const {
+  PresenceEvent,
+  PresenceState,
+  createPresenceRuntime,
+  createPresenceTrace,
+  summarizePresenceTrace,
+} = PresenceCore;
 const { RuntimeSignal, createRuntimeSignalAdapter } = PresenceAdapters;
 const FACE_CONTROL_CHANNELS = Array.isArray(PresenceFace.FACE_CONTROL_CHANNELS)
   ? PresenceFace.FACE_CONTROL_CHANNELS
@@ -296,6 +302,7 @@ const comparisonRuntime = createPresenceRuntime({
   initialState: PresenceState.IDLE,
   now: () => performance.now(),
 });
+const comparisonTrace = createPresenceTrace({ limit: 16 });
 const comparisonAdapter = createRuntimeSignalAdapter(comparisonRuntime, {
   onSignal: () => renderComparisonPresence(),
 });
@@ -3768,7 +3775,44 @@ function applyComparisonDecisionTraceBeforeTokenDataset(element) {
   element.dataset.presenceDecisionTraceBeforeTokenRendererSafe = comparisonState.beforeTokenDecisionTraceRendererSafe;
 }
 
+function comparisonTraceSummaryEvidence() {
+  const summary = summarizePresenceTrace(comparisonTrace);
+  const complete = Boolean(summary.complete && summary.hasOutput && summary.finalState);
+  return {
+    status: complete ? "complete" : "incomplete",
+    entryCount: String(summary.entryCount),
+    states: summary.states.join(" "),
+    events: summary.events.join(" "),
+    firstStateMs: comparisonEvidenceMs(summary.firstStateMs),
+    firstTokenMs: comparisonEvidenceMs(summary.firstTokenMs),
+    firstOutputMs: comparisonEvidenceMs(summary.firstOutputMs),
+    firstOutputEvent: summary.firstOutputEvent || "none",
+    leadMs: comparisonEvidenceMs(summary.presenceBeforeOutputMs),
+    finalState: summary.finalState || "none",
+    hasOutput: String(summary.hasOutput),
+    complete: String(summary.complete),
+  };
+}
+
+function applyComparisonTraceSummaryDataset(element) {
+  if (!element) return;
+  const evidence = comparisonTraceSummaryEvidence();
+  element.dataset.presenceTraceSummary = evidence.status;
+  element.dataset.presenceTraceEntryCount = evidence.entryCount;
+  element.dataset.presenceTraceStates = evidence.states;
+  element.dataset.presenceTraceEvents = evidence.events;
+  element.dataset.presenceTraceFirstStateMs = evidence.firstStateMs;
+  element.dataset.presenceTraceFirstTokenMs = evidence.firstTokenMs;
+  element.dataset.presenceTraceFirstOutputMs = evidence.firstOutputMs;
+  element.dataset.presenceTraceFirstOutputEvent = evidence.firstOutputEvent;
+  element.dataset.presenceTraceLeadMs = evidence.leadMs;
+  element.dataset.presenceTraceFinalState = evidence.finalState;
+  element.dataset.presenceTraceHasOutput = evidence.hasOutput;
+  element.dataset.presenceTraceComplete = evidence.complete;
+}
+
 function resetComparisonEvidence() {
+  comparisonTrace.clear();
   comparisonState.beforeTokenStates = [];
   comparisonState.beforeTokenRenderers = [];
   comparisonState.beforeTokenFirstStateMs = null;
@@ -3800,13 +3844,32 @@ function resetComparisonEvidence() {
   comparisonDemo.dataset.presenceFrameBeforeTokenSummary = "none";
   applyComparisonLeadTimeDataset(comparisonDemo);
   applyComparisonDecisionTraceBeforeTokenDataset(comparisonDemo);
+  applyComparisonTraceSummaryDataset(comparisonDemo);
   if (compareFace) {
     compareFace.dataset.presenceBeforeTokenStates = "";
     compareFace.dataset.controllerFrameBeforeToken = "none";
     compareFace.dataset.controllerFrameBeforeTokenChannels = "";
     applyComparisonLeadTimeDataset(compareFace);
     applyComparisonDecisionTraceBeforeTokenDataset(compareFace);
+    applyComparisonTraceSummaryDataset(compareFace);
   }
+}
+
+function recordComparisonTraceSummary(offsetMs = null, snapshot = comparisonRuntime.getSnapshot()) {
+  if (!comparisonState.startedAt) return;
+  const evidenceMs = comparisonEvidenceOffsetMs(offsetMs);
+  comparisonTrace.record({
+    ...snapshot,
+    updatedAt: comparisonState.startedAt + evidenceMs,
+  });
+  applyComparisonTraceSummaryDataset(comparisonDemo);
+  applyComparisonTraceSummaryDataset(compareFace);
+}
+
+function sendComparisonSignal(signal, offsetMs = null) {
+  const snapshot = comparisonAdapter.send(signal);
+  recordComparisonTraceSummary(offsetMs, snapshot);
+  return snapshot;
 }
 
 function comparisonFrameReport(snapshot) {
@@ -3933,32 +3996,32 @@ function runComparisonDemo(event = null) {
   compareSpinnerIndicator.classList.add("is-visible");
   compareSpinnerTimeline.textContent = "0ms submit";
   comparePresenceTimeline.textContent = "0ms reading";
-  comparisonAdapter.send({
+  sendComparisonSignal({
     type: RuntimeSignal.USER_INPUT,
     text: message,
     source: "comparison",
-  });
-  comparisonAdapter.send({
+  }, 0);
+  sendComparisonSignal({
     type: RuntimeSignal.LOCAL_READ,
     text: message,
     completion: 0.28,
     source: "comparison",
-  });
+  }, 0);
   recordComparisonBeforeTokenEvidence(0);
 
   scheduleComparison(comparisonTiming.pause, () => {
-    comparisonAdapter.send({
+    sendComparisonSignal({
       type: RuntimeSignal.USER_PAUSE,
       text: message,
       completion: 0.46,
       source: "comparison",
-    });
+    }, comparisonTiming.pause);
     appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.pause}ms thinking`);
     recordComparisonBeforeTokenEvidence(comparisonTiming.pause);
   });
 
   scheduleComparison(comparisonTiming.streamOpen, () => {
-    comparisonAdapter.send({ type: RuntimeSignal.STREAM_OPEN, source: "comparison" });
+    sendComparisonSignal({ type: RuntimeSignal.STREAM_OPEN, source: "comparison" }, comparisonTiming.streamOpen);
     appendComparisonTimeline(compareSpinnerTimeline, `${comparisonTiming.streamOpen}ms stream open`);
     appendComparisonTimeline(comparePresenceTimeline, `${comparisonTiming.streamOpen}ms waiting`);
     recordComparisonBeforeTokenEvidence(comparisonTiming.streamOpen);
@@ -3966,7 +4029,7 @@ function runComparisonDemo(event = null) {
 
   scheduleComparison(comparisonTiming.firstToken, () => {
     recordComparisonBeforeTokenEvidence(comparisonTiming.firstToken);
-    comparisonAdapter.send({ type: RuntimeSignal.TOKEN, source: "comparison" });
+    sendComparisonSignal({ type: RuntimeSignal.TOKEN, source: "comparison" }, comparisonTiming.firstToken);
     compareSpinnerState.textContent = "streaming";
     compareSpinnerIndicator.classList.remove("is-visible");
     revealComparisonText(compareSpinnerResponse, 0.42);
@@ -3976,7 +4039,7 @@ function runComparisonDemo(event = null) {
   });
 
   scheduleComparison(comparisonTiming.done, () => {
-    comparisonAdapter.send({ type: RuntimeSignal.RESPONSE_COMPLETE, source: "comparison" });
+    sendComparisonSignal({ type: RuntimeSignal.RESPONSE_COMPLETE, source: "comparison" }, comparisonTiming.done);
     compareSpinnerState.textContent = "ready";
     compareSpinnerResponse.textContent = comparisonResponse;
     comparePresenceResponse.textContent = comparisonResponse;
