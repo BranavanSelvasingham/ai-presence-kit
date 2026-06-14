@@ -71,19 +71,29 @@ If a visual, network, registry, or browser check cannot be performed, report it 
 
 ## Release Gates
 
+For every major improvement:
+
+1. Run `npm run validate`.
+2. Run `npm run perf:core` and `npm run perf:face` when core, adapters, face, or trace behavior changed.
+3. Run `git diff --check`.
+4. Browser-smoke the reference, metrics, comparison, and React browser routes for visual or browser-facing changes.
+
 Before public npm release:
 
 1. Log in to npm with an account that controls the `@ai-presence` scope.
-2. Re-run `npm run release:check-names`.
-3. Run `npm run release:check-scope`.
-4. Bump root and workspace packages from `0.0.0` to the chosen release version.
+2. Run `npm run release:preflight`.
+3. Browser-smoke the reference, metrics, controller gallery, comparison, and React browser routes.
+4. Bump root and workspace packages to the chosen release version.
 5. Update `CHANGELOG.md`.
-6. Run `npm run validate`.
-7. Run `git diff --check`.
-8. Browser-smoke the reference, metrics, comparison, and React browser routes.
-9. Publish in dependency order: core, face, adapters, react.
+6. Re-run `npm run release:preflight`.
+7. Commit and tag the release.
+8. Publish in dependency order: core, face, adapters, react.
+9. Run `npm run release:consumer-smoke -- X.Y.Z`.
+10. Verify npm metadata, then push `main` and the release tag.
 
-See `docs/RELEASE_POLICY.md` for versioning details.
+`npm run release:check-names` is retained as historical first-release name-availability evidence; ongoing releases rely on `npm run release:check-scope` through the preflight gate.
+
+See `docs/RELEASE_POLICY.md` and `docs/RELEASE_RUNBOOK.md` for versioning details and exact commands.
 
 ## Orchestration Rules
 

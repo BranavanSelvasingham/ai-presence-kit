@@ -40,6 +40,7 @@
     const reactTraceRef = React.useRef(createPresenceTrace({ limit: 16 }));
     const [traceEvidence, setTraceEvidence] = React.useState(() => reactTraceSummaryEvidence(reactTraceRef.current));
     const timersRef = React.useRef([]);
+    const autorunStartedRef = React.useRef(false);
 
     const recordReactTraceSnapshot = React.useCallback((snapshot, elapsedMs) => {
       reactTraceRef.current.record({
@@ -109,6 +110,12 @@
         setRunning(false);
       }, 2080));
     }, [prompt, recordReactTraceSnapshot]);
+
+    React.useEffect(() => {
+      if (!shouldAutorunReactDemo() || autorunStartedRef.current) return;
+      autorunStartedRef.current = true;
+      timersRef.current.push(setTimeout(runTurn, 80));
+    }, [runTurn]);
 
     const resetTurn = React.useCallback(() => {
       clearTimers(timersRef.current);
@@ -295,6 +302,15 @@
   function clearTimers(timers) {
     for (const timer of timers) {
       clearTimeout(timer);
+    }
+  }
+
+  function shouldAutorunReactDemo() {
+    try {
+      const params = new URLSearchParams(globalScope.location?.search || "");
+      return params.get("autorun") === "1" || params.get("autorunReact") === "1";
+    } catch {
+      return false;
     }
   }
 

@@ -19,6 +19,14 @@ The combined repository gate is:
 npm run validate
 ```
 
+## Milestone Closeout
+
+After every meaningful milestone, close the loop with a pushed git commit. When package source, package README, package metadata, examples, release media, or public package behavior changed, also bump and publish the lockstep package family, then run:
+
+```bash
+npm run release:consumer-smoke -- X.Y.Z
+```
+
 ## When To Run What
 
 - Core state, runtime, package exports, TypeScript declarations: `npm test`, then `npm run validate`.
@@ -27,7 +35,8 @@ npm run validate
 - Adapter mappings: `npm run demo:adapters`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
 - Browser or visual behavior: run the relevant browser route and inspect the output directly.
-- Packaging or release work: `npm run validate`, `git diff --check`, browser smoke, then `npm run release:check-names`. Before publishing from an authenticated npm session, also run `npm run release:check-scope`.
+- Major improvement work: `npm run validate`, `git diff --check`, and browser smoke when visual or browser-facing behavior changed.
+- Packaging or release work: `npm run release:preflight`, browser smoke, publish in dependency order, then `npm run release:consumer-smoke -- X.Y.Z`.
 
 ## Package-Level Performance Smoke
 
@@ -48,32 +57,54 @@ This local benchmark covers shared presence snapshots across all canonical prese
 ```text
 http://127.0.0.1:8058/
 http://127.0.0.1:8058/?metrics=1&presence=expressive
+http://127.0.0.1:8058/?controllerGallery=1
 http://127.0.0.1:8058/?compare=1&autorunCompare=1
-http://127.0.0.1:8058/examples/react-browser.html
+http://127.0.0.1:8058/examples/react-browser.html?autorun=1
 ```
 
 Browser checks should confirm:
 
 - reference demo loads without console errors
 - metrics route shows canonical `Presence state`
+- controller gallery exposes transition-cue evidence for `submit`, `stream-open`, `token`, and `interrupt`
 - comparison route uses equal simulated latency on both sides
 - presence side exposes state before first token
 - React browser demo runs a simulated AI SDK turn and returns to `ready`
 
-## Release Name Check
-
-Package-name availability is time-sensitive. Re-run immediately before publishing:
+After visual changes that affect README evidence, refresh release screenshots while the local server is running:
 
 ```bash
-npm run release:check-names
+npm run release:capture-media
 ```
 
-An npm `404` only proves a package name is unpublished. It does not prove control of the `@ai-presence` npm scope.
+## Release Preflight
 
-## Release Scope Check
+Run before publishing a new package version:
 
-Scope control requires npm authentication and is not part of CI. Run after `npm login` and before publishing:
+```bash
+npm run release:preflight
+```
+
+This includes `npm run validate`, `npm run perf:core`, `npm run perf:face`, `npm run release:security`, `git diff --check`, and `npm run release:check-scope`.
+
+`npm run release:security` confirms local env/npm config files are ignored and untracked, scans tracked files for token-shaped secret material without printing values, and checks package dry-run tarballs for forbidden files.
+
+## Release Name And Scope Checks
+
+`npm run release:check-names` is retained for historical or new-package name availability checks. An npm `404` only proves a package name is unpublished. It does not prove control of the `@ai-presence` npm scope.
+
+Scope control requires npm authentication and is not part of CI. `npm run release:check-scope` runs inside `npm run release:preflight`; it can also be run directly after `npm login`:
 
 ```bash
 npm run release:check-scope
 ```
+
+## Post-Publish Consumer Smoke
+
+After npm accepts a release, verify fresh consumer install and both ESM/CommonJS entrypoints:
+
+```bash
+npm run release:consumer-smoke -- X.Y.Z
+```
+
+See `docs/RELEASE_RUNBOOK.md` for the full repeatable process.

@@ -1,6 +1,8 @@
 # Release Policy
 
-AI Presence Kit is pre-1.0. The first public npm release target is `0.1.0`.
+AI Presence Kit is a public `0.x` npm package family. The first public npm release was `v0.1.0` on 2026-06-14.
+
+Use `docs/RELEASE_RUNBOOK.md` as the repeatable release gate for every major improvement and every new publish.
 
 ## Package Names
 
@@ -13,7 +15,7 @@ Intended public package names:
 @ai-presence/react
 ```
 
-Registry check on 2026-05-30:
+Historical registry check on 2026-05-30 before the first public release:
 
 ```text
 @ai-presence/core -> npm E404, not published
@@ -22,7 +24,7 @@ Registry check on 2026-05-30:
 @ai-presence/react -> npm E404, not published
 ```
 
-Registry recheck on 2026-06-12:
+Historical registry recheck on 2026-06-12 before the first public release:
 
 ```text
 @ai-presence/core -> npm E404, not published
@@ -31,27 +33,27 @@ Registry recheck on 2026-06-12:
 @ai-presence/react -> npm E404, not published
 ```
 
-Run this again immediately before publishing:
+`release:check-names` was a first-public-release name-availability check:
 
 ```bash
 npm run release:check-names
 ```
 
-An npm `404` proves the package name is not published in the registry. It does not prove that the publisher controls the `@ai-presence` scope. Before publishing, create or confirm control of the npm user/org scope.
+An npm `404` proved a package name was not published in the registry. It does not prove that the publisher controls the `@ai-presence` scope. Now that `v0.1.0` is published, this command is no longer an ongoing release blocker for existing package names.
 
-After authenticating with npm, verify scope access:
+For every ongoing release, authenticate with npm and verify scope access:
 
 ```bash
 npm run release:check-scope
 ```
 
-This check intentionally is not part of CI because it requires npm credentials. It should pass before the first public publish.
+This check intentionally is not part of CI because it requires npm credentials. It is included in the local `npm run release:preflight` gate.
 
 ## Versioning
 
 Use lockstep package versions for the initial public phase. The four packages depend on the same core state contract, so publishing them together keeps adapters, renderers, and React bindings easier to reason about.
 
-Initial public release target:
+First public release:
 
 ```text
 0.1.0
@@ -84,9 +86,11 @@ Before a public release:
 1. Bump the root package and all workspace package versions to the release version.
 2. Bump internal workspace dependency versions to the same release version.
 3. Update `CHANGELOG.md`.
-4. Run `npm run validate`.
-5. Run `git diff --check`.
-6. Browser-smoke the reference route, comparison route, and React browser demo.
-7. Run `npm run release:check-names`.
-8. Run `npm run release:check-scope` from an authenticated npm session.
-9. Publish in dependency order: `core`, `face`, `adapters`, `react`.
+4. Run `npm run release:preflight`.
+5. Browser-smoke the reference, metrics, controller gallery, comparison, and React browser routes.
+6. Commit and tag the release.
+7. Publish in dependency order: `core`, `face`, `adapters`, `react`.
+8. Run `npm run release:consumer-smoke -- X.Y.Z`.
+9. Verify npm metadata, then push `main` and `vX.Y.Z`.
+
+See `docs/RELEASE_RUNBOOK.md` for the exact commands and stop conditions.

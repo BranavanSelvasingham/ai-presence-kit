@@ -66,11 +66,11 @@ See `docs/GOAL_LOOP.md` for the active build loop and next milestones.
 
 ## Demo
 
-![Spinner versus AI Presence Kit comparison](docs/media/presence-comparison.jpg)
+![AI Presence Kit main app](docs/media/main-app-release.png)
 
-The comparison harness runs the same simulated latency on both sides. The generic UI shows loading until the stream begins; the presence side exposes `reading`, `thinking`, and `waiting` before the first visible token. The route also records DOM timing evidence: `data-generic-first-token-ms="1400"`, `data-presence-first-state-ms="0"`, `data-presence-frame-before-token-ms="0"`, and `data-presence-decision-trace-lead-ms="1400"`.
+The default app opens on the reference face and the runtime controls that drive it: still, attentive, expressive, voice, speaker, local face-tracking, metrics, and compare. This is the public proof surface: the face stays renderer-owned while the underlying presence state, adapter signals, and controller decisions remain inspectable.
 
-![React browser demo for AI Presence Kit](docs/media/react-browser-demo.jpg)
+The comparison harness remains a validation route rather than the lead visual. It runs the same simulated latency on both sides and records DOM timing evidence: `data-generic-first-token-ms="1400"`, `data-presence-first-state-ms="0"`, `data-presence-frame-before-token-ms="0"`, and `data-presence-decision-trace-lead-ms="1400"`.
 
 The React browser demo runs the provider, snapshot hook, renderer slot, adapter path, and face expression mapping with actual React and ReactDOM. The actual renderer slot exposes six-channel trace DOM evidence: `data-face-decision-trace="complete"`, `data-face-decision-trace-channels="gaze blink brows mouth posture motion"`, `data-face-decision-trace-decisions="6"`, `data-face-decision-trace-warnings="0"`, `data-face-decision-trace-renderer-safe="true"`, and `data-face-latency-phase="before-output"` during the pre-output turn. It also mirrors renderer-agnostic trace-summary evidence through `data-react-trace-summary="complete"`, `data-react-trace-first-output-ms`, `data-react-trace-lead-ms`, and `data-react-trace-final-state`.
 It also mirrors transition context from the rendered SVG as `data-face-transition-context="thinking stream-open 0"`, `data-face-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-face-transition-controller-reads-event="true"`, and `data-face-transition-controller-reads-age="true"` so adapter-driven pre-output cues stay visible without recomputing face internals.

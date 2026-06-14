@@ -4,6 +4,31 @@
 
 No changes yet.
 
+## 0.1.1 - 2026-06-14
+
+### Added
+
+- Added a repeatable release runbook covering major-improvement gates, pre-publish gates, security checks, publish order, post-publish consumer smoke, and stop conditions.
+- Added `npm run release:preflight` for the local release gate across validation, core and face latency smokes, security/tarball checks, `git diff --check`, and authenticated npm scope verification.
+- Added `npm run release:security` to verify env/npm config files are ignored and untracked, scan tracked files for token-shaped secret material without printing values, and audit package dry-run tarballs for forbidden files.
+- Added `npm run release:consumer-smoke -- X.Y.Z` to verify fresh consumer installs can execute all four published package entrypoints through both ESM and CommonJS.
+- Added `npm run release:capture-media` to refresh the README release screenshot from the actual default app start screen.
+- Added deterministic React browser autorun support with `examples/react-browser.html?autorun=1` for before-output smoke evidence.
+
+### Changed
+
+- Replaced the README lead media with the actual default app surface instead of the comparison harness.
+- Clarified that the comparison route is validation evidence, not the primary product visual.
+- Updated release, validation, operating, and readiness docs so meaningful milestones close with validation, git commit/push, and package publish when package-facing content changes.
+- Hardened git ignore rules for `.env.*` and `.npmrc` while keeping `.env.example` trackable.
+
+### Validation
+
+- Passed `npm run release:capture-media`.
+- Passed `npm run validate`.
+- Passed `npm run release:security`.
+- Passed `npm run release:preflight`.
+
 ## 0.1.0 - 2026-06-14
 
 ### Added

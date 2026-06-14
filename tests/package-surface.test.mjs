@@ -14,10 +14,12 @@ for (const requiredFile of [
   "CORE_PILLARS.md",
   "docs/GOAL_LOOP.md",
   "docs/media/presence-comparison.jpg",
+  "docs/media/main-app-release.png",
   "docs/media/react-browser-demo.jpg",
   "docs/ORCHESTRATION_LOOP.md",
   "docs/RELEASE_POLICY.md",
   "docs/RELEASE_READINESS.md",
+  "docs/RELEASE_RUNBOOK.md",
   "OPERATING_MANUAL.md",
   "examples/adapter-demo.mjs",
   "tests/adapter-demo.test.mjs",
@@ -29,6 +31,10 @@ for (const requiredFile of [
   "scripts/check-package-names.mjs",
   "scripts/check-npm-scope.mjs",
   "scripts/pack-dry-run.mjs",
+  "scripts/capture-release-media.mjs",
+  "scripts/release-consumer-smoke.mjs",
+  "scripts/release-preflight.mjs",
+  "scripts/release-security-preflight.mjs",
   "scripts/benchmark-core-runtime.mjs",
   "scripts/benchmark-face-pipeline.mjs",
   "VALIDATION.md",
@@ -41,6 +47,10 @@ assert.equal(rootManifest.description, "Low-latency facial presence engine for A
 assert.match(rootManifest.scripts.check, /scripts\/pack-dry-run\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-package-names\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-npm-scope\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/release-security-preflight\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/release-preflight\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/release-consumer-smoke\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/capture-release-media\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-core-runtime\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
@@ -48,6 +58,10 @@ assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-run
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
+assert.equal(rootManifest.scripts["release:security"], "node scripts/release-security-preflight.mjs");
+assert.equal(rootManifest.scripts["release:preflight"], "node scripts/release-preflight.mjs");
+assert.equal(rootManifest.scripts["release:consumer-smoke"], "node scripts/release-consumer-smoke.mjs");
+assert.equal(rootManifest.scripts["release:capture-media"], "node scripts/capture-release-media.mjs");
 assert.match(rootManifest.scripts.validate, /npm run check/);
 assert.match(rootManifest.scripts.validate, /npm test/);
 assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
@@ -67,9 +81,25 @@ const releasePolicy = readFileSync(resolve(root, "docs/RELEASE_POLICY.md"), "utf
 assert.match(releasePolicy, /0\.1\.0/);
 assert.match(releasePolicy, /npm run release:check-names/);
 assert.match(releasePolicy, /npm run release:check-scope/);
+assert.match(releasePolicy, /npm run release:preflight/);
+assert.match(releasePolicy, /npm run release:consumer-smoke -- X\.Y\.Z/);
 assert.match(releasePolicy, /@ai-presence\/core -> npm E404/);
 assert.match(releasePolicy, /2026-06-12/);
 assert.match(releasePolicy, /scope/);
+
+const releaseRunbook = readFileSync(resolve(root, "docs/RELEASE_RUNBOOK.md"), "utf8");
+assert.match(releaseRunbook, /npm run release:preflight/);
+assert.match(releaseRunbook, /npm run release:security/);
+assert.match(releaseRunbook, /npm run release:consumer-smoke -- X\.Y\.Z/);
+assert.match(releaseRunbook, /npm run release:capture-media/);
+assert.match(releaseRunbook, /npm publish \.\/packages\/core --access public/);
+assert.match(releaseRunbook, /npm publish \.\/packages\/face --access public/);
+assert.match(releaseRunbook, /npm publish \.\/packages\/adapters --access public/);
+assert.match(releaseRunbook, /npm publish \.\/packages\/react --access public/);
+assert.match(releaseRunbook, /Do not paste API keys, npm tokens, or npm OTP values/);
+assert.match(releaseRunbook, /\.env/);
+assert.match(releaseRunbook, /tracked secret scan/);
+assert.match(releaseRunbook, /consumer smoke/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
 assert.match(releaseReadiness, /summarizePresenceTrace/);
@@ -125,8 +155,11 @@ assert.match(releaseReadiness, /npm run perf:face/);
 assert.match(releaseReadiness, /package-level latency evidence/);
 assert.match(releaseReadiness, /2026-06-12/);
 assert.match(releaseReadiness, /npm run release:check-scope/);
+assert.match(releaseReadiness, /npm run release:preflight/);
+assert.match(releaseReadiness, /npm run release:consumer-smoke -- X\.Y\.Z/);
 
 const validation = readFileSync(resolve(root, "VALIDATION.md"), "utf8");
+assert.match(validation, /npm run release:capture-media/);
 assert.match(validation, /npm run perf:core/);
 assert.match(validation, /createPresenceRuntime\(\)\.send/);
 assert.match(validation, /0\.35ms/);
@@ -136,6 +169,8 @@ assert.match(validation, /0\.25ms/);
 const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
 assert.match(operatingManual, /npm run release:check-names/);
 assert.match(operatingManual, /npm run release:check-scope/);
+assert.match(operatingManual, /npm run release:preflight/);
+assert.match(operatingManual, /npm run release:consumer-smoke -- X\.Y\.Z/);
 assert.match(operatingManual, /Browser-smoke the reference, metrics, comparison, and React browser routes/);
 
 const goalLoop = readFileSync(resolve(root, "docs/GOAL_LOOP.md"), "utf8");
@@ -231,6 +266,17 @@ for (const mediaFile of [
   assert.ok(bytes.length > 10_000, `${mediaFile} is unexpectedly small`);
   assert.equal(bytes[0], 0xff, `${mediaFile} is not a JPEG`);
   assert.equal(bytes[1], 0xd8, `${mediaFile} is not a JPEG`);
+}
+
+for (const mediaFile of [
+  "docs/media/main-app-release.png",
+]) {
+  const bytes = readFileSync(resolve(root, mediaFile));
+  assert.ok(bytes.length > 10_000, `${mediaFile} is unexpectedly small`);
+  assert.equal(bytes[0], 0x89, `${mediaFile} is not a PNG`);
+  assert.equal(bytes[1], 0x50, `${mediaFile} is not a PNG`);
+  assert.equal(bytes[2], 0x4e, `${mediaFile} is not a PNG`);
+  assert.equal(bytes[3], 0x47, `${mediaFile} is not a PNG`);
 }
 
 const packages = [
@@ -450,6 +496,9 @@ assert.match(faceTypes, /FaceControllerDecisionTrace/);
 assert.match(faceTypes, /faceControllerDecisionTraceForFrame/);
 
 const rootReadme = readFileSync(resolve(root, "README.md"), "utf8");
+assert.match(rootReadme, /main-app-release\.png/);
+assert.doesNotMatch(rootReadme, /presence-comparison-release\.png/);
+assert.doesNotMatch(rootReadme, /react-before-output-release\.png/);
 assert.match(rootReadme, /summarizePresenceTrace/);
 assert.match(rootReadme, /firstOutputMs/);
 assert.match(rootReadme, /interruptMs/);

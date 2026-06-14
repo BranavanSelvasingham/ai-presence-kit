@@ -66,4 +66,4 @@ function PresenceSurface() {
 
 The hook defaults to `Date.now()` so it shares the same epoch as presence runtime snapshots. Pass `{ now }` in tests or deterministic renderers.
 
-The local browser example at `examples/react-browser.html` uses actual React and ReactDOM UMD builds to exercise the provider, renderer slot component, AI SDK adapter, and face renderer mapping.
+The local browser example at `examples/react-browser.html` uses actual React and ReactDOM UMD builds to exercise the provider, renderer slot component, AI SDK adapter, and face renderer mapping. Open `examples/react-browser.html?autorun=1` for deterministic before-output evidence in browser smoke tests and release media checks.

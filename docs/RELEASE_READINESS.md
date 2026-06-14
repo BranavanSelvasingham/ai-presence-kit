@@ -1,6 +1,6 @@
 # Release Readiness
 
-AI Presence Kit is still pre-release, but the repository now has the shape of a public package family.
+AI Presence Kit is a public `0.x` package family. `v0.1.0` was published on 2026-06-14, and the repository now has repeatable gates for major improvements and future releases.
 
 ## Public Package Surface
 
@@ -112,8 +112,15 @@ npm run release:check-names
 npm run release:check-scope
 ```
 
-The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished. See `docs/RELEASE_POLICY.md`.
+The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished before the first public release. `release:check-names` is now historical/first-release evidence for the existing package names; ongoing releases use `npm run release:preflight`.
 
-## Remaining Before Public Release
+Repeatable release gate:
 
-- Create or confirm control of the npm `@ai-presence` scope, then pass `npm run release:check-scope` from an authenticated npm session before publishing.
+```bash
+npm run release:preflight
+npm run release:consumer-smoke -- X.Y.Z
+```
+
+`npm run release:preflight` combines package validation, core and face latency gates, security/tarball preflight, `git diff --check`, and authenticated npm scope verification. `npm run release:consumer-smoke -- X.Y.Z` verifies a fresh consumer can install and execute all four published package entrypoints after npm publish.
+
+See `docs/RELEASE_RUNBOOK.md` for the full recurring process, including browser-smoke routes, npm publish order, post-publish metadata checks, and stop conditions.
