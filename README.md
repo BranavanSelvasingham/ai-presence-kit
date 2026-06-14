@@ -266,6 +266,7 @@ Individual validation steps:
 
 ```bash
 npm run check
+npm run perf:core
 npm run perf:face
 npm test
 npm run demo:adapters
@@ -274,6 +275,8 @@ npm run pack:dry-run
 ```
 
 `npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`.
+
+`npm run perf:core` runs a local package-level smoke benchmark for the renderer-agnostic runtime path. It drives `createPresenceRuntime().send(...)`, Vercel AI SDK and generic chat adapters, `createPresenceTrace().record(...)`, and `summarizePresenceTrace(...)` through completed traces with `thinking` and `waiting` before the first `token`, final `ready`, `hasOutput=true`, and `complete=true`. It is local core/adapters/trace latency evidence, not a browser latency probe, OpenAI call, face-renderer benchmark, or release-blocking CI gate.
 
 `npm run perf:face` runs a local package-level smoke benchmark for the face pipeline. It creates shared presence snapshots across all canonical states, measures `faceControllerFrameForPresence` -> `faceControllerDecisionTraceForFrame`, then measures full `renderPresenceFaceSvg` output. It fails if complete six-channel renderer-safe trace evidence is missing, warning-bearing, or over the conservative average budgets: `0.25ms` for frame+trace and `0.75ms` for SVG renderer evidence. This is local face-pipeline evidence, not a browser latency probe, OpenAI call, or release-blocking CI gate.
 
@@ -391,6 +394,7 @@ Core latency measures:
 - Interrupted response/speech work canceled on new input.
 - Compact event trace for the current input/turn.
 - Optional three-run latency probe for local read, speculation, stream open, first token, and completion.
+- Local package-level core runtime, adapter, trace-recording, and trace-summary average from `npm run perf:core`.
 - Local package-level face controller frame+decision-trace and SVG renderer averages from `npm run perf:face`.
 - Early TTS request and first-audio timing when Speaker is enabled.
 - Attention, arousal, and commit signals from the local reflex layer.

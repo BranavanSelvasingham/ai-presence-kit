@@ -68,7 +68,13 @@ npm run demo:react
 npm run pack:dry-run
 ```
 
-Recommended local face-pipeline performance smoke for controller and SVG renderer latency work:
+Recommended local package-level performance smokes:
+
+```bash
+npm run perf:core
+```
+
+`npm run perf:core` measures the renderer-agnostic package path before the face renderer: core runtime sends, Vercel AI SDK and generic chat adapters, trace recording, and `summarizePresenceTrace` over completed traces. It is local package-level core/adapters/trace-summary latency evidence, not a browser smoke route, OpenAI/network probe, or authenticated release check.
 
 ```bash
 npm run perf:face

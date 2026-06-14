@@ -22,6 +22,7 @@ npm run validate
 ## When To Run What
 
 - Core state, runtime, package exports, TypeScript declarations: `npm test`, then `npm run validate`.
+- Core runtime, adapters, trace recording, and trace-summary latency evidence: `npm run perf:core`, then `npm run check`.
 - Face controller or SVG renderer latency and decision-trace performance evidence: `npm run perf:face`, then `npm run check`.
 - Adapter mappings: `npm run demo:adapters`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
@@ -29,6 +30,12 @@ npm run validate
 - Packaging or release work: `npm run validate`, `git diff --check`, browser smoke, then `npm run release:check-names`. Before publishing from an authenticated npm session, also run `npm run release:check-scope`.
 
 ## Package-Level Performance Smoke
+
+```bash
+npm run perf:core
+```
+
+This local benchmark covers the renderer-agnostic runtime path before the SVG face renderer. It drives `createPresenceRuntime().send(...)`, Vercel AI SDK and generic chat adapters, `createPresenceTrace().record(...)`, and `summarizePresenceTrace(...)` through completed traces with before-output `thinking` and `waiting`, first output timing, final `ready`, `hasOutput=true`, and `complete=true`. It enforces a conservative `0.35ms` average completed-trace budget. It is not a browser route, network probe, OpenAI latency probe, face-renderer benchmark, or part of the default `npm run validate` gate.
 
 ```bash
 npm run perf:face

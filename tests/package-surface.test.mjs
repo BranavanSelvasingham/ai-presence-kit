@@ -29,6 +29,7 @@ for (const requiredFile of [
   "scripts/check-package-names.mjs",
   "scripts/check-npm-scope.mjs",
   "scripts/pack-dry-run.mjs",
+  "scripts/benchmark-core-runtime.mjs",
   "scripts/benchmark-face-pipeline.mjs",
   "VALIDATION.md",
 ]) {
@@ -40,8 +41,10 @@ assert.equal(rootManifest.description, "Low-latency facial presence engine for A
 assert.match(rootManifest.scripts.check, /scripts\/pack-dry-run\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-package-names\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-npm-scope\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/benchmark-core-runtime\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
+assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-runtime.mjs");
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
@@ -70,6 +73,8 @@ assert.match(releasePolicy, /scope/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
 assert.match(releaseReadiness, /summarizePresenceTrace/);
+assert.match(releaseReadiness, /npm run perf:core/);
+assert.match(releaseReadiness, /renderer-agnostic package path before the face renderer/);
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
 assert.match(releaseReadiness, /faceControllerDecisionTraceForFrame/);
 assert.match(releaseReadiness, /faceControllerCoherenceForFrame|coherence evidence/);
@@ -120,6 +125,9 @@ assert.match(releaseReadiness, /2026-06-12/);
 assert.match(releaseReadiness, /npm run release:check-scope/);
 
 const validation = readFileSync(resolve(root, "VALIDATION.md"), "utf8");
+assert.match(validation, /npm run perf:core/);
+assert.match(validation, /createPresenceRuntime\(\)\.send/);
+assert.match(validation, /0\.35ms/);
 assert.match(validation, /npm run perf:face/);
 assert.match(validation, /0\.25ms/);
 
@@ -150,6 +158,8 @@ assert.match(goalLoop, /data-react-trace-complete/);
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 assert.match(changelog, /parallel face controller decisions/);
 assert.match(changelog, /summarizePresenceTrace/);
+assert.match(changelog, /npm run perf:core/);
+assert.match(changelog, /core-runtime benchmark validation/);
 assert.match(changelog, /faceControllerDecisionTraceForFrame/);
 assert.match(changelog, /renderPresenceFaceSvg/);
 assert.match(changelog, /motionScale/);
@@ -188,6 +198,15 @@ assert.match(adapterDemo, /summarizePresenceTrace/);
 assert.match(adapterDemo, /traceSummary=/);
 assert.match(adapterDemo, /firstOutputMs=/);
 assert.match(adapterDemo, /leadMs=/);
+
+const coreRuntimeBenchmark = readFileSync(resolve(root, "scripts/benchmark-core-runtime.mjs"), "utf8");
+assert.match(coreRuntimeBenchmark, /createPresenceRuntime/);
+assert.match(coreRuntimeBenchmark, /createPresenceTrace/);
+assert.match(coreRuntimeBenchmark, /summarizePresenceTrace/);
+assert.match(coreRuntimeBenchmark, /createVercelAISDKAdapter/);
+assert.match(coreRuntimeBenchmark, /createChatEventAdapter/);
+assert.match(coreRuntimeBenchmark, /summary=complete/);
+assert.doesNotMatch(coreRuntimeBenchmark, /@ai-presence\/face|packages\/face/);
 
 const adaptersReadme = readFileSync(resolve(root, "packages/adapters/README.md"), "utf8");
 assert.match(adaptersReadme, /reference face frame evidence/);
@@ -431,6 +450,8 @@ assert.match(rootReadme, /data-face-transition-controller-reads="gaze blink brow
 assert.match(rootReadme, /data-face-transition-controller-reads-event="true"/);
 assert.match(rootReadme, /data-face-transition-controller-reads-age="true"/);
 assert.match(rootReadme, /npm run demo:adapters/);
+assert.match(rootReadme, /npm run perf:core/);
+assert.match(rootReadme, /renderer-agnostic runtime path/);
 assert.match(rootReadme, /npm run perf:face/);
 assert.match(rootReadme, /0\.25ms/);
 assert.match(rootReadme, /reference face frame evidence/);
