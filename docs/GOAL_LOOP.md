@@ -164,6 +164,7 @@ Build:
 - Renderer-agnostic trace summary helper for before-output and first-output timing evidence. Current API: `summarizePresenceTrace`.
 - Adapter/demo output that exposes event-to-state timing, first-output timing, and presence-before-output lead time.
 - Browser comparison evidence that mirrors `summarizePresenceTrace` output onto the comparison root and SVG face through `data-presence-trace-*`.
+- React browser evidence that mirrors `summarizePresenceTrace` output onto the actual React + adapter + SVG route through `data-react-trace-*`.
 - Documentation that explains trace summaries as integration evidence, not renderer behavior.
 
 Validate:
@@ -172,3 +173,4 @@ Validate:
 - Package-surface tests for CommonJS and ESM exports.
 - Adapter demo output that shows pre-token state transitions and compact summary fields such as `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, and `complete`.
 - Comparison route smoke evidence now includes helper-derived `data-presence-trace-summary="complete"`, `data-presence-trace-first-output-ms`, `data-presence-trace-lead-ms`, `data-presence-trace-final-state`, `data-presence-trace-has-output`, and `data-presence-trace-complete` on the browser proof surface.
+- React browser smoke evidence now includes helper-derived `data-react-trace-summary="complete"`, `data-react-trace-first-output-ms`, `data-react-trace-lead-ms`, `data-react-trace-final-state`, `data-react-trace-has-output`, and `data-react-trace-complete` on the actual React proof surface.
