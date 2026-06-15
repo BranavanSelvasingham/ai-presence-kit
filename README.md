@@ -89,6 +89,8 @@ It also mirrors transition context from the rendered SVG as `data-face-transitio
 
 The React composer-lane route reuses the same provider, renderer slot, and Vercel AI SDK adapter path without loading `@ai-presence/face`. It shows the real-app adoption pattern in browser DOM: before assistant text appears, the lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms`.
 
+The vanilla status-surface route loads only `@ai-presence/core` and `@ai-presence/adapters` browser globals. It proves the same before-output handoff without React or the reference face package: before assistant text appears, the plain DOM surface exposes `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, `data-assistant-text-empty="true"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms`.
+
 The controller gallery route (`?controllerGallery=1`) exposes transition-cue proof for fresh `submit`, `stream-open`, `token`, and `interrupt` events. Its DOM evidence includes `data-transition-events="submit stream-open token interrupt"`, `data-transition-decision-trace="complete"`, and `data-transition-controller-reads="gaze blink brows mouth posture motion"` so all six controller decisions are inspectable against recent transition context.
 
 ## Package Shape
@@ -351,7 +353,7 @@ For repeatable local browser evidence across the documented routes, run:
 npm run browser:smoke
 ```
 
-This starts `server.mjs` on a temporary local port with OpenAI disabled, drives local headless Chrome through the Chrome DevTools Protocol, verifies rendered DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes, then stops the server. It is a local release gate, not part of CI or the default `npm run validate` gate.
+This starts `server.mjs` on a temporary local port with OpenAI disabled, drives local headless Chrome through the Chrome DevTools Protocol, verifies rendered DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes, then stops the server. It is a local release gate, not part of CI or the default `npm run validate` gate.
 
 For visual QA without touching the default first screen, the app accepts quiet view-only query params:
 
@@ -384,6 +386,14 @@ http://127.0.0.1:8058/examples/react-browser-composer-lane.html
 ```
 
 It uses the same React bindings and adapter path but does not load the face package. The browser-smoke gate confirms `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
+
+The framework-free browser status-surface route is available at:
+
+```text
+http://127.0.0.1:8058/examples/vanilla-status-surface.html
+```
+
+It loads `@ai-presence/core` and `@ai-presence/adapters` directly from browser globals, without React or `@ai-presence/face`. The browser-smoke gate confirms `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, `data-assistant-text-empty="true"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
 
 Expected `.env` keys:
 
@@ -543,7 +553,7 @@ Validation notes:
 
 Current adoption slice:
 
-- The real-app adoption slice is represented by `examples/composer-lane-presence.mjs` and `examples/react-browser-composer-lane.html`: a framework-free consumer plus a React/browser route that use package-shaped core/adapters/React APIs and prove before-output trace evidence without depending on the reference SVG face.
+- The real-app adoption slice is represented by `examples/composer-lane-presence.mjs`, `examples/react-browser-composer-lane.html`, and `examples/vanilla-status-surface.html`: framework-free and React/browser routes that use package-shaped core/adapters APIs and prove before-output trace evidence without depending on the reference SVG face.
 - The assistant lifecycle adoption slice is represented by `createAssistantLifecycleAdapter` and `examples/assistant-lifecycle-presence.mjs`: a framework-package-free thread/run/message lifecycle path that proves an open assistant run and message shell can show `waiting` before visible text.
 - The named assistant-ui adoption proof is represented by `examples/assistant-ui-external-store-presence.mjs`: a no-dependency ExternalStoreRuntime route that maps documented `onNew`, `isRunning`, and assistant message `status.type` values into the assistant lifecycle adapter and proves the same before-output trace evidence.
 - The release consumer smoke now repeats the OpenAI Responses adapter path, assistant lifecycle adapter path, assistant-ui ExternalStoreRuntime route, and composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the runtime adapter and status/composer/progress/timeline handoff are publishable package surface rather than repo-local source.

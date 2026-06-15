@@ -49,9 +49,10 @@ http://127.0.0.1:8058/?controllerGallery=1
 http://127.0.0.1:8058/?compare=1&autorunCompare=1
 http://127.0.0.1:8058/examples/react-browser.html?autorun=1
 http://127.0.0.1:8058/examples/react-browser-composer-lane.html?autorun=1
+http://127.0.0.1:8058/examples/vanilla-status-surface.html?autorun=1
 ```
 
-Record the command output for the attributes listed in `docs/RELEASE_READINESS.md`, especially before-output timing, complete trace summaries, six-channel controller reads, and renderer-safe decision traces.
+Record the command output for the attributes listed in `docs/RELEASE_READINESS.md`, especially before-output timing, complete trace summaries, six-channel controller reads, renderer-safe decision traces, and face-free renderer-agnostic browser adoption evidence.
 
 To refresh the README release screenshot after visual changes, start the local server and run:
 

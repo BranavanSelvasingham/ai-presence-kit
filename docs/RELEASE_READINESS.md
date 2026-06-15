@@ -35,6 +35,7 @@ http://127.0.0.1:8058/?metrics=1&presence=expressive
 http://127.0.0.1:8058/?compare=1&autorunCompare=1
 http://127.0.0.1:8058/examples/react-browser.html
 http://127.0.0.1:8058/examples/react-browser-composer-lane.html
+http://127.0.0.1:8058/examples/vanilla-status-surface.html
 ```
 
 Command-line demos:
@@ -133,6 +134,7 @@ The browser-smoke command verifies:
 - React browser demo confirms the same renderer slot drives a non-face status surface through `data-nonface-renderer="status-surface"`, `data-nonface-state="waiting"`, `data-nonface-phase="before-output"`, `data-nonface-attention="response"`, `data-nonface-event="stream-open"`, `data-nonface-frame-time`, and `data-nonface-before-output="true"` before response text appears.
 - React browser demo confirms the renderer slot mirrors adapter-driven transition context through `data-face-transition-context` beginning with `thinking stream-open`, `data-face-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-face-transition-controller-reads-event="true"`, and `data-face-transition-controller-reads-age="true"`.
 - React browser composer-lane route omits the face package while reusing `@ai-presence/core`, `@ai-presence/adapters`, and `@ai-presence/react`, then confirms `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
+- Vanilla status-surface route omits React and the face package while reusing `@ai-presence/core` and `@ai-presence/adapters`, then confirms `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, `data-assistant-text-empty="true"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
 - README media exists for the A/B comparison and React browser demo.
 
 GitHub Actions runs `npm ci` and `npm run validate` on pushes to `main` and pull requests.

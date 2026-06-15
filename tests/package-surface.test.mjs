@@ -40,6 +40,7 @@ for (const requiredFile of [
   "examples/react-browser-demo.js",
   "examples/react-browser-composer-lane.html",
   "examples/react-browser.html",
+  "examples/vanilla-status-surface.html",
   "examples/react-presence-demo.js",
   "package-lock.json",
   "scripts/check-package-names.mjs",
@@ -137,6 +138,7 @@ assert.match(releasePolicy, /npm run release:publish -- X\.Y\.Z/);
 assert.match(releasePolicy, /@ai-presence\/core -> npm E404/);
 assert.match(releasePolicy, /2026-06-12/);
 assert.match(releasePolicy, /scope/);
+assert.match(releasePolicy, /vanilla status-surface routes/);
 
 const releaseRunbook = readFileSync(resolve(root, "docs/RELEASE_RUNBOOK.md"), "utf8");
 assert.match(releaseRunbook, /Fresh-Eyes Gate/);
@@ -145,6 +147,8 @@ assert.match(releaseRunbook, /npm run browser:smoke/);
 assert.match(releaseRunbook, /temporary port with OpenAI disabled/);
 assert.match(releaseRunbook, /not part of CI or the default `npm run validate` gate/);
 assert.match(releaseRunbook, /react-browser-composer-lane\.html\?autorun=1/);
+assert.match(releaseRunbook, /vanilla-status-surface\.html\?autorun=1/);
+assert.match(releaseRunbook, /face-free renderer-agnostic browser adoption evidence/);
 assert.match(releaseRunbook, /npm run release:preflight/);
 assert.match(releaseRunbook, /npm run release:security/);
 assert.match(releaseRunbook, /npm run release:publish -- X\.Y\.Z/);
@@ -218,6 +222,10 @@ assert.match(releaseReadiness, /framework=assistant-ui/);
 assert.match(releaseReadiness, /route=ExternalStoreRuntime/);
 assert.match(releaseReadiness, /data-renderer="status-surface"/);
 assert.match(releaseReadiness, /data-renderer="composer-lane"/);
+assert.match(releaseReadiness, /vanilla-status-surface\.html/);
+assert.match(releaseReadiness, /Vanilla status-surface route omits React and the face package/);
+assert.match(releaseReadiness, /data-presence-attention="response"/);
+assert.match(releaseReadiness, /data-presence-event="stream-open"/);
 assert.match(releaseReadiness, /data-assistant-output-empty="true"/);
 assert.match(releaseReadiness, /data-presence-state="waiting"/);
 assert.match(releaseReadiness, /data-presence-phase="before-output"/);
@@ -565,6 +573,8 @@ assert.match(validation, /data-presence-phase/);
 assert.match(validation, /data-composer-lock/);
 assert.match(validation, /assistant output empty/);
 assert.match(validation, /react-browser-composer-lane\.html\?autorun=1/);
+assert.match(validation, /vanilla-status-surface\.html\?autorun=1/);
+assert.match(validation, /Vanilla status-surface route omits React and the face package/);
 assert.match(validation, /data-stream-open-ms="420ms"/);
 assert.match(validation, /data-first-output-ms="none"/);
 assert.match(validation, /data-nonface-renderer="status-surface"/);
@@ -596,17 +606,30 @@ assert.match(browserSmoke, /data-generic-first-token-ms/);
 assert.match(browserSmoke, /data-react-trace-summary/);
 assert.match(browserSmoke, /data-nonface-renderer/);
 assert.match(browserSmoke, /data-renderer/);
+assert.match(browserSmoke, /vanilla-status-surface/);
+assert.match(browserSmoke, /data-vanilla-response/);
 assert.match(browserSmoke, /browser smoke ok/);
 assert.doesNotMatch(browserSmoke, /playwright|puppeteer/i);
 
+const vanillaStatusSurfaceHtml = readFileSync(resolve(root, "examples/vanilla-status-surface.html"), "utf8");
+assert.match(vanillaStatusSurfaceHtml, /AIPresenceCore/);
+assert.match(vanillaStatusSurfaceHtml, /AIPresenceAdapters/);
+assert.match(vanillaStatusSurfaceHtml, /data-renderer="status-surface"/);
+assert.match(vanillaStatusSurfaceHtml, /data-presence-phase="before-output"/);
+assert.match(vanillaStatusSurfaceHtml, /data-vanilla-response/);
+assert.doesNotMatch(vanillaStatusSurfaceHtml, /<script src="\/packages\/face\//);
+assert.doesNotMatch(vanillaStatusSurfaceHtml, /<script src="\/packages\/react\//);
+
 const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
+assert.match(operatingManual, /renderer-agnostic presence state layer for AI interfaces/);
+assert.doesNotMatch(operatingManual, /low-latency facial presence engine/);
 assert.match(operatingManual, /npm run release:check-names/);
 assert.match(operatingManual, /npm run release:check-scope/);
 assert.match(operatingManual, /npm run release:public-gate/);
 assert.match(operatingManual, /npm run release:preflight/);
 assert.match(operatingManual, /npm run release:publish -- X\.Y\.Z/);
 assert.match(operatingManual, /npm run browser:smoke/);
-assert.match(operatingManual, /reference, metrics\/controller, controller gallery, comparison, React browser, and face-free composer-lane routes/);
+assert.match(operatingManual, /reference, metrics\/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes/);
 
 const goalLoop = readFileSync(resolve(root, "docs/GOAL_LOOP.md"), "utf8");
 assert.match(goalLoop, /2026-06-12/);
@@ -618,6 +641,7 @@ assert.match(goalLoop, /createOpenAIResponsesAdapter/);
 assert.match(goalLoop, /createAssistantLifecycleAdapter/);
 assert.match(goalLoop, /assistant-ui ExternalStoreRuntime proof/);
 assert.match(goalLoop, /npm run browser:smoke/);
+assert.match(goalLoop, /vanilla status-surface routes/);
 assert.match(goalLoop, /Published-package consumer smoke now covers generic chat, OpenAI Responses, assistant lifecycle, assistant-ui ExternalStoreRuntime, and composer-lane adoption paths/);
 assert.doesNotMatch(goalLoop, /Minimal assistant-ui or adjacent app-framework adapter as the next adoption check/);
 assert.match(goalLoop, /firstOutputMs/);
@@ -1164,6 +1188,7 @@ assert.match(rootReadme, /examples\/composer-lane-presence\.mjs/);
 assert.match(rootReadme, /examples\/assistant-lifecycle-presence\.mjs/);
 assert.match(rootReadme, /examples\/assistant-ui-external-store-presence\.mjs/);
 assert.match(rootReadme, /examples\/react-browser-composer-lane\.html/);
+assert.match(rootReadme, /examples\/vanilla-status-surface\.html/);
 assert.match(rootReadme, /npm run browser:smoke/);
 assert.match(rootReadme, /local release gate, not part of CI or the default `npm run validate` gate/);
 assert.match(rootReadme, /OpenAI Responses adapter usage/);
@@ -1192,7 +1217,9 @@ assert.match(rootReadme, /real-app-style composer lane proof/);
 assert.match(rootReadme, /data-renderer="status-surface"/);
 assert.match(rootReadme, /data-renderer="composer-lane"/);
 assert.match(rootReadme, /face-free React composer-lane route/);
+assert.match(rootReadme, /framework-free browser status-surface route/);
 assert.match(rootReadme, /without loading `@ai-presence\/face`/);
+assert.match(rootReadme, /without React or `@ai-presence\/face`/);
 assert.match(rootReadme, /data-stream-open-ms="420ms"/);
 assert.match(rootReadme, /data-first-output-ms="none"/);
 assert.match(rootReadme, /positive `data-lead-ms`/);
