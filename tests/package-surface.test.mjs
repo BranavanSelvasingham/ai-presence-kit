@@ -26,6 +26,8 @@ for (const requiredFile of [
   "OPERATING_MANUAL.md",
   "examples/adapter-demo.mjs",
   "tests/adapter-demo.test.mjs",
+  "examples/quickstart-presence.mjs",
+  "tests/quickstart-presence.test.mjs",
   "examples/react-browser.css",
   "examples/react-browser-demo.js",
   "examples/react-browser.html",
@@ -60,9 +62,11 @@ assert.match(rootManifest.scripts.check, /scripts\/release-consumer-smoke\.mjs/)
 assert.match(rootManifest.scripts.check, /scripts\/capture-release-media\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-core-runtime\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/);
+assert.match(rootManifest.scripts.check, /examples\/quickstart-presence\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
 assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-runtime.mjs");
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
+assert.equal(rootManifest.scripts["demo:quickstart"], "node examples/quickstart-presence.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
 assert.equal(rootManifest.scripts["release:public-gate"], "node scripts/release-public-readiness.mjs");
@@ -74,9 +78,11 @@ assert.equal(rootManifest.scripts["release:capture-media"], "node scripts/captur
 assert.match(rootManifest.scripts.validate, /npm run check/);
 assert.match(rootManifest.scripts.validate, /npm test/);
 assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
+assert.match(rootManifest.scripts.validate, /npm run demo:quickstart/);
 assert.match(rootManifest.scripts.validate, /npm run demo:react/);
 assert.match(rootManifest.scripts.validate, /npm run pack:dry-run/);
 assert.match(rootManifest.scripts.test, /tests\/adapter-demo\.test\.mjs/);
+assert.match(rootManifest.scripts.test, /tests\/quickstart-presence\.test\.mjs/);
 
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
@@ -186,6 +192,10 @@ const integrationQuickstart = readFileSync(resolve(root, "docs/INTEGRATION_QUICK
 assert.match(integrationQuickstart, /renderer-agnostic presence state layer/);
 assert.match(integrationQuickstart, /observable presence-before-output evidence/);
 assert.match(integrationQuickstart, /not emotion detection or private emotion inference/i);
+assert.match(integrationQuickstart, /node examples\/quickstart-presence\.mjs/);
+assert.match(integrationQuickstart, /statePath/);
+assert.match(integrationQuickstart, /eventPath/);
+assert.match(integrationQuickstart, /leadMs/);
 assert.match(integrationQuickstart, /npm install @ai-presence\/core @ai-presence\/adapters/);
 assert.match(integrationQuickstart, /npm install @ai-presence\/react @ai-presence\/face/);
 assert.match(integrationQuickstart, /PresenceEvent/);
@@ -310,6 +320,24 @@ assert.match(adapterDemo, /summarizePresenceTrace/);
 assert.match(adapterDemo, /traceSummary=/);
 assert.match(adapterDemo, /firstOutputMs=/);
 assert.match(adapterDemo, /leadMs=/);
+
+const quickstartPresence = readFileSync(resolve(root, "examples/quickstart-presence.mjs"), "utf8");
+assert.match(quickstartPresence, /@ai-presence\/core/);
+assert.match(quickstartPresence, /@ai-presence\/adapters/);
+assert.match(quickstartPresence, /createPresenceRuntime/);
+assert.match(quickstartPresence, /createPresenceTrace/);
+assert.match(quickstartPresence, /presenceControlInputsForSnapshot/);
+assert.match(quickstartPresence, /summarizePresenceTrace/);
+assert.match(quickstartPresence, /createChatEventAdapter/);
+assert.match(quickstartPresence, /statePath=/);
+assert.match(quickstartPresence, /eventPath=/);
+assert.match(quickstartPresence, /firstOutputMs=/);
+assert.match(quickstartPresence, /leadMs=/);
+assert.match(quickstartPresence, /finalState=/);
+assert.match(quickstartPresence, /hasOutput=/);
+assert.match(quickstartPresence, /complete=/);
+assert.match(quickstartPresence, /interrupted=/);
+assert.doesNotMatch(quickstartPresence, /emotion[- ]detection|private emotion|private inference/i);
 
 const coreRuntimeBenchmark = readFileSync(resolve(root, "scripts/benchmark-core-runtime.mjs"), "utf8");
 assert.match(coreRuntimeBenchmark, /createPresenceRuntime/);
@@ -573,6 +601,8 @@ assert.match(rootReadme, /Collaborating/);
 assert.match(rootReadme, /AI interfaces, expressive systems, interaction design, SVG\/rendering, or low-latency UI behavior/);
 assert.match(rootReadme, /docs\/INTEGRATION_QUICKSTART\.md/);
 assert.match(rootReadme, /minimal copyable path from published packages/);
+assert.match(rootReadme, /examples\/quickstart-presence\.mjs/);
+assert.match(rootReadme, /npm run demo:quickstart/);
 assert.match(rootReadme, /main-app-release\.png/);
 assert.doesNotMatch(rootReadme, /presence-comparison-release\.png/);
 assert.doesNotMatch(rootReadme, /react-before-output-release\.png/);

@@ -168,7 +168,7 @@ Intended public packages:
 @ai-presence/adapters
 ```
 
-First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff.
+First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For a no-network local proof, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence.
 
 Minimal core usage:
 
@@ -286,9 +286,12 @@ npm run perf:core
 npm run perf:face
 npm test
 npm run demo:adapters
+npm run demo:quickstart
 npm run demo:react
 npm run pack:dry-run
 ```
+
+`npm run demo:quickstart` runs the no-network adoption proof from `examples/quickstart-presence.mjs`, mapping generic chat lifecycle events through `@ai-presence/adapters` and printing `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 `npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
 

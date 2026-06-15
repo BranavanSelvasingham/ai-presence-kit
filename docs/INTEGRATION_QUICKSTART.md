@@ -4,6 +4,8 @@ Use this when you already have an AI chat or runtime and want a minimal path fro
 
 AI Presence Kit is a renderer-agnostic presence state layer. It maps runtime facts such as user input, submit, stream open, first token, complete, interruption, and error into interaction posture: reading, waiting, thinking, streaming, speaking, interrupted, ready, and error. It is not emotion detection or private emotion inference.
 
+From this repo, run the no-network proof with `node examples/quickstart-presence.mjs`; it prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted` trace evidence for the same generic chat lifecycle.
+
 ## Install
 
 ```bash
