@@ -40,6 +40,7 @@ http://127.0.0.1:8058/?metrics=1&presence=expressive
 http://127.0.0.1:8058/?controllerGallery=1
 http://127.0.0.1:8058/?compare=1&autorunCompare=1
 http://127.0.0.1:8058/examples/react-browser.html?autorun=1
+http://127.0.0.1:8058/examples/react-browser-composer-lane.html?autorun=1
 ```
 
 Record evidence for the attributes listed in `docs/RELEASE_READINESS.md`, especially before-output timing, complete trace summaries, six-channel controller reads, and renderer-safe decision traces.
