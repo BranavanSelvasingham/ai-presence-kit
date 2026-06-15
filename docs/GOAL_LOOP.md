@@ -91,8 +91,10 @@ Status: completed in the current prototype.
 Build:
 
 - Vercel AI SDK stream adapter.
+- OpenAI Responses event adapter.
 - OpenAI Realtime event adapter.
-- Minimal assistant-ui or generic chat adapter.
+- Generic chat adapter.
+- Minimal assistant-ui or adjacent app-framework adapter as the next adoption check.
 
 Validate:
 
@@ -185,7 +187,7 @@ Build:
 
 - Make first-time comprehension durable: why this exists, what the package does, what it is not, and where to help.
 - Keep `CONTRIBUTING.md`, README, release docs, examples, and screenshots aligned after every public-facing milestone.
-- Turn real AI-runtime integration gaps into narrow adapter or example arcs.
+- Turn real AI-runtime integration gaps into narrow adapter or example arcs, prioritizing adoption surfaces that can prove before-output trace evidence without importing the reference face.
 - Keep release and npm-token handling repeatable through `npm run release:publish -- X.Y.Z`.
 
 Validate:
