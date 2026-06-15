@@ -66,6 +66,8 @@ assert.equal(typeof core.summarizePresenceTrace, "function");
 
 assert.equal(typeof adapters.createChatEventAdapter, "function");
 assert.equal(typeof adapters.createVercelAISDKAdapter, "function");
+assert.equal(typeof adapters.createOpenAIResponsesAdapter, "function");
+assert.equal(typeof adapters.openAIResponsesEventToRuntimeSignal, "function");
 assert.equal(typeof adapters.createOpenAIRealtimeAdapter, "function");
 
 let nowMs = 0;
@@ -139,6 +141,78 @@ console.log([
   "esm consumer smoke ok",
   "statePath=" + statePath,
   "eventPath=" + eventPath,
+  "firstOutputMs=" + formatMs(summary.firstOutputMs),
+  "leadMs=" + formatMs(summary.presenceBeforeOutputMs),
+  "finalState=" + (summary.finalState || "none"),
+  "hasOutput=" + summary.hasOutput,
+  "complete=" + summary.complete,
+  "interrupted=" + summary.interrupted,
+].join(" "));
+`,
+  );
+
+  writeFileSync(
+    join(tempDir, "responses-smoke.mjs"),
+    `import assert from "node:assert/strict";
+import {
+  PresenceEvent,
+  createPresenceRuntime,
+  createPresenceTrace,
+  summarizePresenceTrace,
+} from "@ai-presence/core";
+import {
+  createOpenAIResponsesAdapter,
+  openAIResponsesEventToRuntimeSignal,
+} from "@ai-presence/adapters";
+
+let nowMs = 0;
+const presence = createPresenceRuntime({ now: () => nowMs });
+const trace = createPresenceTrace({ limit: 12 });
+const detachTrace = trace.attach(presence, { includeInitial: false });
+const responses = createOpenAIResponsesAdapter(presence);
+
+function sendAt(atMs, event) {
+  nowMs = atMs;
+  return responses.handleEvent(event);
+}
+
+assert.equal(
+  openAIResponsesEventToRuntimeSignal({ type: "response.output_text.delta", delta: "Hello" }).detail.text,
+  "Hello",
+);
+
+sendAt(0, { type: "response.created", response: { id: "resp_consumer_smoke" } });
+sendAt(420, { type: "response.output_item.added", item: { type: "message" } });
+sendAt(980, { type: "response.output_text.delta", delta: "Installed packages prove this path." });
+sendAt(1260, { type: "response.completed" });
+
+detachTrace();
+
+const entries = trace.getEntries();
+const summary = summarizePresenceTrace(trace);
+const statePath = entries.map((entry) => entry.state).join(">");
+const eventPath = entries.map((entry) => entry.event).join(">");
+
+assert.equal(statePath, "thinking>waiting>streaming>ready");
+assert.equal(eventPath, "submit>stream-open>token>response-complete");
+assert.equal(summary.streamOpenMs, 420);
+assert.equal(summary.firstOutputMs, 980);
+assert.equal(summary.firstOutputEvent, PresenceEvent.TOKEN);
+assert.equal(summary.presenceBeforeOutputMs, 980);
+assert.equal(summary.finalState, "ready");
+assert.equal(summary.hasOutput, true);
+assert.equal(summary.complete, true);
+assert.equal(summary.interrupted, false);
+
+function formatMs(value) {
+  return Number.isFinite(Number(value)) ? String(Math.round(Number(value))) + "ms" : "none";
+}
+
+console.log([
+  "responses consumer smoke ok",
+  "statePath=" + statePath,
+  "eventPath=" + eventPath,
+  "streamOpenMs=" + formatMs(summary.streamOpenMs),
   "firstOutputMs=" + formatMs(summary.firstOutputMs),
   "leadMs=" + formatMs(summary.presenceBeforeOutputMs),
   "finalState=" + (summary.finalState || "none"),
@@ -365,6 +439,7 @@ runtime.send(core.PresenceEvent.SUBMIT);
 assert.equal(runtime.getSnapshot().state, core.PresenceState.THINKING);
 assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { now: 1000, timeMs: 1000 }).svg, /data-presence-state="thinking"/);
 assert.equal(typeof adapters.createChatEventAdapter, "function");
+assert.equal(typeof adapters.createOpenAIResponsesAdapter, "function");
 assert.equal(typeof reactPresence.createPresenceReactBindings(React, { runtime }).PresenceRendererSlot, "function");
 
 console.log("cjs consumer smoke ok");
@@ -405,6 +480,7 @@ writeSmokeFiles();
 console.log(`consumer smoke temp dir: ${tempDir}`);
 run("npm", ["install", "--ignore-scripts", "--no-audit", "--fund=false", ...installTargets]);
 run("node", ["esm-smoke.mjs"]);
+run("node", ["responses-smoke.mjs"]);
 run("node", ["composer-lane-smoke.mjs"]);
 run("node", ["cjs-smoke.cjs"]);
 assertInstalledVersions();
