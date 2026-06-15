@@ -123,13 +123,17 @@ packages/react/src/presence-react.d.ts
 Node/CommonJS consumers can use `require`. ESM consumers can import from the package export map:
 
 ```js
-import { PresenceEvent, createPresenceRuntime } from "@ai-presence/core";
-import { createVercelAISDKAdapter } from "@ai-presence/adapters";
+import { createPresenceRuntime } from "@ai-presence/core";
+import { createOpenAIResponsesAdapter } from "@ai-presence/adapters";
 import { faceExpressionForPresence, renderPresenceFaceSvg } from "@ai-presence/face";
 import { createPresenceReactBindings } from "@ai-presence/react";
 
 const presence = createPresenceRuntime();
-presence.send(PresenceEvent.SUBMIT);
+const responsesPresence = createOpenAIResponsesAdapter(presence);
+
+responsesPresence.handleEvent({ type: "response.created" });
+responsesPresence.handleEvent({ type: "response.output_item.added" });
+responsesPresence.handleEvent({ type: "response.output_text.delta", delta: "Hello" });
 
 const expression = faceExpressionForPresence(presence.getSnapshot());
 const renderedFace = renderPresenceFaceSvg(presence.getSnapshot(), { timeMs: Date.now() });
@@ -195,7 +199,18 @@ adapter.send({ type: AIPresenceAdapters.RuntimeSignal.TOKEN });
 adapter.send({ type: AIPresenceAdapters.RuntimeSignal.RESPONSE_COMPLETE });
 ```
 
-Framework adapter usage:
+OpenAI Responses adapter usage:
+
+```js
+const responsesPresence = AIPresenceAdapters.createOpenAIResponsesAdapter(presence);
+
+responsesPresence.handleEvent({ type: "response.created" });
+responsesPresence.handleEvent({ type: "response.output_item.added" });
+responsesPresence.handleEvent({ type: "response.output_text.delta", delta: "Hello" });
+responsesPresence.handleEvent({ type: "response.completed" });
+```
+
+Vercel AI SDK-style adapter usage:
 
 ```js
 const aiSdkPresence = AIPresenceAdapters.createVercelAISDKAdapter(presence);
