@@ -171,6 +171,11 @@
           },
           React.createElement("p", { className: "eyebrow" }, "AI Presence Kit"),
           React.createElement("h1", null, "React runtime"),
+          React.createElement(NonFaceRendererSurface, {
+            controlInputs,
+            frameTimeMs,
+            snapshot,
+          }),
           React.createElement(FaceRendererSlot, { snapshot, frameTimeMs }),
           React.createElement(
             "dl",
@@ -184,6 +189,27 @@
           React.createElement("output", { className: "renderer-slot", "data-renderer-slot": "" }, `slot:${snapshot.state}`),
         );
       },
+    );
+  }
+
+  function NonFaceRendererSurface({ snapshot, controlInputs, frameTimeMs }) {
+    const beforeOutput = controlInputs.latencyPhase === "before-output";
+
+    return React.createElement(
+      "output",
+      {
+        className: "nonface-status-surface",
+        "data-nonface-renderer": "status-surface",
+        "data-nonface-state": snapshot.state,
+        "data-nonface-phase": controlInputs.latencyPhase,
+        "data-nonface-attention": controlInputs.attentionTarget,
+        "data-nonface-event": snapshot.event,
+        "data-nonface-frame-time": String(frameTimeMs),
+        "data-nonface-before-output": String(beforeOutput),
+      },
+      React.createElement("span", { className: "nonface-status-dot", "aria-hidden": "true" }),
+      React.createElement("span", { className: "nonface-status-state" }, snapshot.state),
+      React.createElement("span", { className: "nonface-status-phase" }, controlInputs.latencyPhase),
     );
   }
 

@@ -76,6 +76,7 @@ Browser checks should confirm:
 - comparison route uses equal simulated latency on both sides
 - presence side exposes state before first token
 - React browser demo runs a simulated AI SDK turn and returns to `ready`
+- React browser demo exposes a non-face status surface through `data-nonface-renderer="status-surface"`, `data-nonface-state="waiting"`, `data-nonface-phase="before-output"`, and `data-nonface-before-output="true"` before response text appears
 
 After visual changes that affect README evidence, refresh release screenshots while the local server is running:
 

@@ -103,6 +103,46 @@ h1 {
   place-items: center;
 }
 
+.nonface-status-surface {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin: 18px 0 4px;
+  border: 1px solid rgba(28, 38, 32, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.nonface-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--green);
+  box-shadow: 0 0 0 4px rgba(49, 95, 77, 0.12);
+}
+
+.nonface-status-surface[data-nonface-phase="before-output"] .nonface-status-dot {
+  background: #8a6f2b;
+  box-shadow: 0 0 0 4px rgba(138, 111, 43, 0.16);
+}
+
+.nonface-status-state {
+  min-width: 0;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.nonface-status-phase {
+  justify-self: end;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .presence-readout {
   display: grid;
   gap: 8px;
@@ -124,6 +164,9 @@ dt {
 dd {
   margin: 0;
   font-weight: 700;
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .renderer-slot {
@@ -213,5 +256,25 @@ button:disabled {
 
   h1 {
     font-size: clamp(2rem, 13vw, 3.4rem);
+  }
+
+  .nonface-status-surface {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .nonface-status-phase {
+    grid-column: 2;
+    justify-self: start;
+    white-space: normal;
+  }
+
+  .presence-readout div {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  dd {
+    text-align: left;
   }
 }
