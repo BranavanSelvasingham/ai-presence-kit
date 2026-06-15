@@ -2,16 +2,25 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { PresenceEvent, PresenceState, createPresenceRuntime } = require("../packages/core/src/presence-core.js");
 const {
+  PresenceEvent,
+  PresenceState,
+  createPresenceRuntime,
+  createPresenceTrace,
+  summarizePresenceTrace,
+} = require("../packages/core/src/presence-core.js");
+const {
+  OPENAI_RESPONSES_EVENT_MAP,
   RuntimeSignal,
   VercelAIStatus,
   chatEventToRuntimeSignal,
   createChatEventAdapter,
+  createOpenAIResponsesAdapter,
   createOpenAIRealtimeAdapter,
   createRuntimeSignalAdapter,
   createVercelAISDKAdapter,
   lastAssistantText,
+  openAIResponsesEventToRuntimeSignal,
   openAIRealtimeEventToRuntimeSignal,
   presenceEventForRuntimeSignal,
   vercelAIStatusToRuntimeSignal,
@@ -105,6 +114,119 @@ assert.equal(
   openAIRealtimeEventToRuntimeSignal({ type: "response.done" }).type,
   RuntimeSignal.RESPONSE_COMPLETE,
 );
+
+assert.equal(OPENAI_RESPONSES_EVENT_MAP["response.created"], RuntimeSignal.MODEL_WAITING);
+
+assert.equal(
+  openAIResponsesEventToRuntimeSignal({ type: "response.created", response: { id: "resp_1" } }).type,
+  RuntimeSignal.MODEL_WAITING,
+);
+
+assert.deepEqual(
+  openAIResponsesEventToRuntimeSignal({ type: "response.output_text.delta", delta: "Hello" }),
+  {
+    type: RuntimeSignal.TOKEN,
+    detail: {
+      type: "response.output_text.delta",
+      delta: "Hello",
+      eventType: "response.output_text.delta",
+      text: "Hello",
+    },
+  },
+);
+
+assert.deepEqual(
+  openAIResponsesEventToRuntimeSignal({
+    type: "response.function_call_arguments.delta",
+    arguments: "{\"city\"",
+  }),
+  {
+    type: RuntimeSignal.TOKEN,
+    detail: {
+      type: "response.function_call_arguments.delta",
+      arguments: "{\"city\"",
+      eventType: "response.function_call_arguments.delta",
+      delta: "{\"city\"",
+      text: "{\"city\"",
+    },
+  },
+);
+
+assert.equal(
+  openAIResponsesEventToRuntimeSignal({ type: "response.function_call_arguments.done" }).type,
+  RuntimeSignal.RESPONSE_COMPLETE,
+);
+
+assert.equal(
+  openAIResponsesEventToRuntimeSignal({ type: "response.completed" }).type,
+  RuntimeSignal.RESPONSE_COMPLETE,
+);
+
+assert.equal(
+  openAIResponsesEventToRuntimeSignal({ type: "response.failed", error: { message: "stream failed" } }).type,
+  RuntimeSignal.ERROR,
+);
+
+assert.equal(
+  openAIResponsesEventToRuntimeSignal({ type: "error", message: "transport failed" }).detail.message,
+  "transport failed",
+);
+
+assert.deepEqual(
+  openAIResponsesEventToRuntimeSignal({ type: "response.incomplete" }),
+  {
+    type: RuntimeSignal.INTERRUPT,
+    detail: {
+      type: "response.incomplete",
+      eventType: "response.incomplete",
+      reason: "incomplete",
+    },
+  },
+);
+
+let responsesTime = 0;
+const responsesRuntime = createPresenceRuntime({
+  initialState: PresenceState.IDLE,
+  now: () => {
+    responsesTime += 24;
+    return responsesTime;
+  },
+});
+const responsesTrace = createPresenceTrace({ limit: 8 });
+responsesTrace.attach(responsesRuntime, { includeInitial: false });
+const responsesAdapter = createOpenAIResponsesAdapter(responsesRuntime);
+responsesAdapter.handleEvent({ type: "response.created", response: { id: "resp_1" } });
+assert.equal(responsesRuntime.getSnapshot().state, PresenceState.THINKING);
+responsesAdapter.handleEvent({ type: "response.output_item.added", item: { type: "message" } });
+assert.equal(responsesRuntime.getSnapshot().state, PresenceState.WAITING);
+responsesAdapter.handleEvent({ type: "response.output_text.delta", delta: "Visible output" });
+assert.equal(responsesRuntime.getSnapshot().state, PresenceState.STREAMING);
+responsesAdapter.handleEvent({ type: "response.completed" });
+assert.equal(responsesRuntime.getSnapshot().state, PresenceState.READY);
+const responsesSummary = summarizePresenceTrace(responsesTrace);
+assert.deepEqual(responsesSummary.events, [
+  PresenceEvent.SUBMIT,
+  PresenceEvent.STREAM_OPEN,
+  PresenceEvent.TOKEN,
+  PresenceEvent.RESPONSE_COMPLETE,
+]);
+assert.ok(responsesSummary.presenceBeforeOutputMs > 0);
+assert.equal(responsesSummary.finalState, PresenceState.READY);
+assert.equal(responsesSummary.hasOutput, true);
+assert.equal(responsesSummary.complete, true);
+assert.equal(responsesSummary.interrupted, false);
+
+const responsesErrorRuntime = createPresenceRuntime({ initialState: PresenceState.IDLE });
+const responsesErrorAdapter = createOpenAIResponsesAdapter(responsesErrorRuntime);
+responsesErrorAdapter.handleEvent({ type: "response.created" });
+responsesErrorAdapter.handleEvent({ type: "response.failed", error: { message: "failed" } });
+assert.equal(responsesErrorRuntime.getSnapshot().state, PresenceState.ERROR);
+
+const responsesIncompleteRuntime = createPresenceRuntime({ initialState: PresenceState.IDLE });
+const responsesIncompleteAdapter = createOpenAIResponsesAdapter(responsesIncompleteRuntime);
+responsesIncompleteAdapter.handleEvent({ type: "response.created" });
+responsesIncompleteAdapter.handleEvent({ type: "response.incomplete", incomplete_details: { reason: "max_output_tokens" } });
+assert.equal(responsesIncompleteRuntime.getSnapshot().state, PresenceState.INTERRUPTED);
 
 const realtimeRuntime = createPresenceRuntime({ initialState: PresenceState.IDLE });
 const realtimeAdapter = createOpenAIRealtimeAdapter(realtimeRuntime);

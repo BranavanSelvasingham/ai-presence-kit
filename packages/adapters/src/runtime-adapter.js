@@ -73,6 +73,22 @@
     error: RuntimeSignal.ERROR,
   });
 
+  const OPENAI_RESPONSES_EVENT_MAP = Object.freeze({
+    "response.created": RuntimeSignal.MODEL_WAITING,
+    "response.in_progress": RuntimeSignal.STREAM_OPEN,
+    "response.output_item.added": RuntimeSignal.STREAM_OPEN,
+    "response.content_part.added": RuntimeSignal.STREAM_OPEN,
+    "response.output_text.delta": RuntimeSignal.TOKEN,
+    "response.function_call_arguments.delta": RuntimeSignal.TOKEN,
+    "response.output_text.done": RuntimeSignal.RESPONSE_COMPLETE,
+    "response.function_call_arguments.done": RuntimeSignal.RESPONSE_COMPLETE,
+    "response.completed": RuntimeSignal.RESPONSE_COMPLETE,
+    "response.done": RuntimeSignal.RESPONSE_COMPLETE,
+    "response.failed": RuntimeSignal.ERROR,
+    "response.incomplete": RuntimeSignal.INTERRUPT,
+    error: RuntimeSignal.ERROR,
+  });
+
   function resolveCore(scope) {
     if (scope?.AIPresenceCore) return scope.AIPresenceCore;
     if (typeof require === "function") {
@@ -234,12 +250,58 @@
     return { type: signalType, detail };
   }
 
+  function textFromOpenAIResponsesEvent(event = {}) {
+    if (!event || typeof event !== "object") return "";
+    for (const key of ["delta", "text", "arguments_delta", "arguments", "content"]) {
+      if (typeof event[key] === "string") return event[key];
+    }
+    if (typeof event.part?.text === "string") return event.part.text;
+    if (typeof event.item?.arguments === "string") return event.item.arguments;
+    return "";
+  }
+
+  function openAIResponsesEventToRuntimeSignal(event = {}) {
+    const type = typeof event === "string" ? event : event.type;
+    const signalType = OPENAI_RESPONSES_EVENT_MAP[type] || RuntimeSignal.RESET;
+    const detail = typeof event === "string" ? { eventType: event } : { ...event, eventType: type };
+
+    if (type?.endsWith(".delta")) {
+      const delta = textFromOpenAIResponsesEvent(event);
+      detail.delta = typeof detail.delta === "string" ? detail.delta : delta;
+      if (delta && typeof detail.text !== "string") detail.text = delta;
+    }
+
+    if (type === "response.incomplete") {
+      detail.reason = detail.reason
+        || detail.incomplete_details?.reason
+        || detail.response?.incomplete_details?.reason
+        || "incomplete";
+    }
+
+    if (type === "response.failed" || type === "error") {
+      const message = detail.message || detail.error?.message || detail.response?.error?.message;
+      if (message) detail.message = message;
+    }
+
+    return { type: signalType, detail };
+  }
+
   function createOpenAIRealtimeAdapter(presenceRuntime, options = {}) {
     const adapter = createRuntimeSignalAdapter(presenceRuntime, options);
 
     return Object.freeze({
       handleEvent(event) {
         return adapter.send(openAIRealtimeEventToRuntimeSignal(event));
+      },
+    });
+  }
+
+  function createOpenAIResponsesAdapter(presenceRuntime, options = {}) {
+    const adapter = createRuntimeSignalAdapter(presenceRuntime, options);
+
+    return Object.freeze({
+      handleEvent(event) {
+        return adapter.send(openAIResponsesEventToRuntimeSignal(event));
       },
     });
   }
@@ -316,6 +378,7 @@
   }
 
   const api = Object.freeze({
+    OPENAI_RESPONSES_EVENT_MAP,
     VercelAIStatus,
     OPENAI_REALTIME_EVENT_MAP,
     RuntimeSignal,
@@ -323,14 +386,17 @@
     applyRuntimeSignal,
     chatEventToRuntimeSignal,
     createChatEventAdapter,
+    createOpenAIResponsesAdapter,
     createOpenAIRealtimeAdapter,
     createRuntimeSignalAdapter,
     createVercelAISDKAdapter,
     isRuntimeSignal,
     lastAssistantText,
     normalizeRuntimeSignal,
+    openAIResponsesEventToRuntimeSignal,
     openAIRealtimeEventToRuntimeSignal,
     presenceEventForRuntimeSignal,
+    textFromOpenAIResponsesEvent,
     textFromMessage,
     vercelAIStatusToRuntimeSignal,
   });

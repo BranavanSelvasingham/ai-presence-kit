@@ -121,6 +121,38 @@ chatPresence.handleEvent({ type: "done" });
 
 Use `"interrupt"` for user cancellation and `"error"` for failed turns.
 
+## OpenAI Responses Streaming Mapping
+
+If your app already consumes OpenAI Responses streaming events, use `createOpenAIResponsesAdapter` to map those typed event objects into the same runtime. This is only an event adapter: it does not import the OpenAI SDK, call the network, or read environment config.
+
+```js
+import { createOpenAIResponsesAdapter } from "@ai-presence/adapters";
+
+const responsesPresence = createOpenAIResponsesAdapter(presence);
+
+responsesPresence.handleEvent({ type: "response.created" });
+responsesPresence.handleEvent({ type: "response.output_item.added" });
+responsesPresence.handleEvent({
+  type: "response.output_text.delta",
+  delta: "Start with the smallest useful adapter.",
+});
+responsesPresence.handleEvent({ type: "response.completed" });
+```
+
+The adapter maps:
+
+```text
+response.created -> thinking
+response.in_progress / response.output_item.added / response.content_part.added -> waiting
+response.output_text.delta -> streaming
+response.function_call_arguments.delta -> streaming
+response.output_text.done / response.function_call_arguments.done / response.completed -> ready
+response.failed / error -> error
+response.incomplete -> interrupted
+```
+
+That keeps the stream-open posture visible before the first `response.output_text.delta`; text and function-call argument deltas are copied into the runtime signal detail as `delta` and `text` when present.
+
 ## Vercel AI SDK-Style Mapping
 
 `createVercelAISDKAdapter` does not import framework packages. Pass the plain status and message shape from your chat layer.

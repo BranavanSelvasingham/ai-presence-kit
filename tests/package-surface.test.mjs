@@ -330,6 +330,12 @@ assert.match(integrationQuickstart, /user input -> user-typing/);
 assert.match(integrationQuickstart, /stream open -> waiting/);
 assert.match(integrationQuickstart, /first token -> streaming/);
 assert.match(integrationQuickstart, /createChatEventAdapter/);
+assert.match(integrationQuickstart, /createOpenAIResponsesAdapter/);
+assert.match(integrationQuickstart, /response\.created -> thinking/);
+assert.match(integrationQuickstart, /response\.output_text\.delta -> streaming/);
+assert.match(integrationQuickstart, /response\.function_call_arguments\.delta -> streaming/);
+assert.match(integrationQuickstart, /response\.failed \/ error -> error/);
+assert.match(integrationQuickstart, /response\.incomplete -> interrupted/);
 assert.match(integrationQuickstart, /createVercelAISDKAdapter/);
 assert.match(integrationQuickstart, /streaming with no assistant content -> waiting/);
 assert.match(integrationQuickstart, /streaming with assistant content -> streaming/);
@@ -546,6 +552,12 @@ assert.match(coreRuntimeBenchmark, /summary=complete/);
 assert.doesNotMatch(coreRuntimeBenchmark, /@ai-presence\/face|packages\/face/);
 
 const adaptersReadme = readFileSync(resolve(root, "packages/adapters/README.md"), "utf8");
+assert.match(adaptersReadme, /createOpenAIResponsesAdapter/);
+assert.match(adaptersReadme, /response\.created -> model-waiting -> thinking/);
+assert.match(adaptersReadme, /response\.output_text\.delta -> token -> streaming/);
+assert.match(adaptersReadme, /response\.function_call_arguments\.delta -> token -> streaming/);
+assert.match(adaptersReadme, /response\.failed \/ error -> error -> error/);
+assert.match(adaptersReadme, /response\.incomplete -> interrupt -> interrupted/);
 assert.match(adaptersReadme, /reference face frame evidence/);
 assert.match(adaptersReadme, /decision-trace evidence/);
 assert.match(adaptersReadme, /channels=gaze,blink,brows,mouth,posture,motion/);
@@ -616,7 +628,13 @@ const packages = [
     name: "@ai-presence/adapters",
     description: "Runtime signal adapters for AI Presence Kit.",
     types: "src/runtime-adapter.d.ts",
-    exports: ["createVercelAISDKAdapter", "createOpenAIRealtimeAdapter", "createChatEventAdapter"],
+    exports: [
+      "createVercelAISDKAdapter",
+      "createOpenAIResponsesAdapter",
+      "createOpenAIRealtimeAdapter",
+      "createChatEventAdapter",
+      "openAIResponsesEventToRuntimeSignal",
+    ],
   },
   {
     dir: "packages/react",

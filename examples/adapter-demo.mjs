@@ -9,6 +9,7 @@ const {
 } = require("../packages/core/src/presence-core.js");
 const {
   createChatEventAdapter,
+  createOpenAIResponsesAdapter,
   createOpenAIRealtimeAdapter,
   createVercelAISDKAdapter,
 } = require("../packages/adapters/src/runtime-adapter.js");
@@ -133,6 +134,13 @@ realtimeAdapter.handleEvent({ type: "input_audio_buffer.speech_stopped" });
 realtimeAdapter.handleEvent({ type: "response.output_audio.delta", delta: "..." });
 realtimeAdapter.handleEvent({ type: "response.done" });
 
+const responses = collect("responses");
+const responsesAdapter = createOpenAIResponsesAdapter(responses.runtime, responses.options);
+responsesAdapter.handleEvent({ type: "response.created", response: { id: "resp_adapter_demo" } });
+responsesAdapter.handleEvent({ type: "response.output_item.added", item: { type: "message" } });
+responsesAdapter.handleEvent({ type: "response.output_text.delta", delta: "Presence moves before text." });
+responsesAdapter.handleEvent({ type: "response.completed" });
+
 const chat = collect("chat");
 const chatAdapter = createChatEventAdapter(chat.runtime, chat.options);
 chatAdapter.handleEvent({ type: "submit", text: "Hello" });
@@ -150,6 +158,7 @@ interruptedAdapter.handleEvent({ type: "interrupt", reason: "user-started-new-tu
 console.log([
   ...renderTrace(vercel),
   ...renderTrace(realtime),
+  ...renderTrace(responses),
   ...renderTrace(chat),
   ...renderTrace(interrupted),
 ].join("\n"));
