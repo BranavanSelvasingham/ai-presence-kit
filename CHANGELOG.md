@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-06-15
+
+### Added
+
+- Added local browser-smoke release-gate coverage for reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes.
+- Added vanilla status-surface browser and installed-package consumer smoke proofs for a framework-free, face-free renderer consuming `@ai-presence/core` and `@ai-presence/adapters` before output.
+- Added a no-dependency Vercel AI SDK `useChat` named-runtime proof plus installed-package consumer smoke coverage for submitted, streaming, ready, error, and abort paths.
+
+### Changed
+
+- Expanded installed-package consumer smoke coverage across current package-facing adoption routes, including assistant-ui ExternalStoreRuntime, vanilla status-surface, Vercel AI SDK, composer-lane, OpenAI Responses, and assistant lifecycle paths.
+- Hardened release publishing with bounded npm registry metadata propagation retries before final exact/latest metadata checks and consumer smoke.
+- Aligned README, validation, release readiness/runbook, and contributor guidance around renderer-agnostic adoption evidence, public release thresholds, and the browser-smoke release gate.
+
+### Validation
+
+- Added package-surface and public-readiness checks for browser smoke, vanilla status-surface, Vercel AI SDK, installed-package consumer smoke, and release publish propagation behavior.
+
 ## 0.1.4 - 2026-06-15
 
 ### Added
