@@ -2,7 +2,7 @@
 
 ## Product Contract
 
-AI Presence Kit is a low-latency facial presence engine for AI interfaces.
+AI Presence Kit is a renderer-agnostic presence state layer for AI interfaces, with a reference facial controller system.
 
 The face is not a fixed avatar or pose switcher. It is a set of parallel micro-decision systems reacting to runtime state.
 
@@ -77,14 +77,14 @@ For every major improvement:
 2. Run `npm run perf:core` and `npm run perf:face` when core, adapters, face, or trace behavior changed.
 3. Run `npm run release:public-gate` when README, screenshots, docs, examples, or collaborator-facing language changed.
 4. Run `git diff --check`.
-5. Run `npm run browser:smoke` for visual, browser-facing, or release-gate changes. It covers the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes.
+5. Run `npm run browser:smoke` for visual, browser-facing, or release-gate changes. It covers the reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes.
 
 Before public npm release:
 
 1. Log in to npm with an account that controls the `@ai-presence` scope.
 2. Run `npm run release:public-gate` when public or collaborator-facing surfaces changed.
 3. Run `npm run release:preflight`.
-4. Run `npm run browser:smoke` to verify the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes.
+4. Run `npm run browser:smoke` to verify the reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes.
 5. Bump root and workspace packages to the chosen release version.
 6. Update `CHANGELOG.md`.
 7. Re-run `npm run release:preflight`.

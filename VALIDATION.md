@@ -109,6 +109,7 @@ http://127.0.0.1:8058/?controllerGallery=1
 http://127.0.0.1:8058/?compare=1&autorunCompare=1
 http://127.0.0.1:8058/examples/react-browser.html?autorun=1
 http://127.0.0.1:8058/examples/react-browser-composer-lane.html?autorun=1
+http://127.0.0.1:8058/examples/vanilla-status-surface.html?autorun=1
 ```
 
 Browser checks should confirm:
@@ -121,6 +122,7 @@ Browser checks should confirm:
 - React browser demo runs a simulated AI SDK turn and returns to `ready`
 - React browser demo exposes a non-face status surface through `data-nonface-renderer="status-surface"`, `data-nonface-state="waiting"`, `data-nonface-phase="before-output"`, and `data-nonface-before-output="true"` before response text appears
 - React browser composer-lane route omits the face package and exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears
+- Vanilla status-surface route omits React and the face package while exposing `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, `data-assistant-text-empty="true"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears
 
 After visual changes that affect README evidence, refresh release screenshots while the local server is running:
 

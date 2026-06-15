@@ -56,6 +56,12 @@ const routes = [
     budgetMs: 760,
     assert: assertReactComposerLaneRoute,
   },
+  {
+    label: "vanilla-status-surface",
+    path: "/examples/vanilla-status-surface.html?autorun=1",
+    budgetMs: 760,
+    assert: assertVanillaStatusSurfaceRoute,
+  },
 ];
 
 async function main() {
@@ -765,6 +771,42 @@ function assertReactComposerLaneRoute(dom) {
     `streamOpen=${attr(surface, "data-stream-open-ms")}`,
     `firstOutput=${attr(surface, "data-first-output-ms")}`,
     `lead=${attr(surface, "data-lead-ms")}`,
+    "facePackage=omitted",
+  ].join(" ");
+}
+
+function assertVanillaStatusSurfaceRoute(dom) {
+  const surface = requireTagWithAttrs(dom, {
+    "data-renderer": "status-surface",
+    "data-presence-state": "waiting",
+  }, "vanilla status-surface before-output surface");
+  const response = requireElementByAttr(dom, "data-vanilla-response", "", "vanilla status-surface response before first token");
+
+  if (dom.includes("/packages/face/") || dom.includes("/packages/react/") || dom.includes("data-face-") || dom.includes("data-react-")) {
+    throw new Error("vanilla-status-surface: route should not load React or face package evidence.");
+  }
+
+  requireAttr(surface, "data-presence-phase", "before-output", "vanilla status phase");
+  requireAttr(surface, "data-presence-attention", "response", "vanilla status attention");
+  requireAttr(surface, "data-presence-event", "stream-open", "vanilla status event");
+  requireAttr(surface, "data-presence-before-output", "true", "vanilla status before output");
+  requireAttr(surface, "data-assistant-text-empty", "true", "vanilla status assistant text empty");
+  requireAttr(surface, "data-stream-open-ms", "420ms", "vanilla status stream open");
+  requireAttr(surface, "data-first-output-ms", "none", "vanilla status first output pending");
+  requirePositiveAttr(surface, "data-lead-ms", "vanilla status lead time");
+  requireAttr(surface, "data-final-state", "waiting", "vanilla status current final state");
+  requireAttr(surface, "data-has-output", "false", "vanilla status has output before token");
+  requireAttr(surface, "data-complete", "false", "vanilla status complete before token");
+  requireAttr(surface, "data-interrupted", "false", "vanilla status interrupted");
+  requireElementText(response, "", "vanilla status response before first token");
+
+  return [
+    `renderer=${attr(surface, "data-renderer")}`,
+    `state=${attr(surface, "data-presence-state")}/${attr(surface, "data-presence-phase")}`,
+    `streamOpen=${attr(surface, "data-stream-open-ms")}`,
+    `firstOutput=${attr(surface, "data-first-output-ms")}`,
+    `lead=${attr(surface, "data-lead-ms")}`,
+    "react=omitted",
     "facePackage=omitted",
   ].join(" ");
 }

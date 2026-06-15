@@ -182,7 +182,7 @@ Validate:
 - Adapter demo output that shows pre-token state transitions and compact summary fields such as `firstOutputMs`, `leadMs`, `interruptMs`, `interrupted`, `finalState`, `hasOutput`, and `complete`.
 - Comparison route smoke evidence now includes helper-derived `data-presence-trace-summary="complete"`, `data-presence-trace-first-output-ms`, `data-presence-trace-lead-ms`, `data-presence-trace-final-state`, `data-presence-trace-has-output`, and `data-presence-trace-complete` on the browser proof surface.
 - React browser smoke evidence now includes helper-derived `data-react-trace-summary="complete"`, `data-react-trace-first-output-ms`, `data-react-trace-lead-ms`, `data-react-trace-final-state`, `data-react-trace-has-output`, and `data-react-trace-complete` on the actual React proof surface.
-- The repeatable local browser gate now runs as `npm run browser:smoke` and checks rendered DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes.
+- The repeatable local browser gate now runs as `npm run browser:smoke` and checks rendered DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes.
 - Published-package consumer smoke now covers generic chat, OpenAI Responses, assistant lifecycle, assistant-ui ExternalStoreRuntime, and composer-lane adoption paths from installed packages.
 
 ## Loop 7: Collaborator And Adoption Path
