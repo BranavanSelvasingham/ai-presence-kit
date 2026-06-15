@@ -45,6 +45,7 @@ for (const requiredFile of [
   "scripts/check-package-names.mjs",
   "scripts/check-npm-scope.mjs",
   "scripts/pack-dry-run.mjs",
+  "scripts/browser-smoke.mjs",
   "scripts/capture-release-media.mjs",
   "scripts/release-consumer-smoke.mjs",
   "scripts/release-public-readiness.mjs",
@@ -69,6 +70,7 @@ assert.match(rootManifest.scripts.check, /scripts\/release-preflight\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/release-publish\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/release-consumer-smoke\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/capture-release-media\.mjs/);
+assert.match(rootManifest.scripts.check, /scripts\/browser-smoke\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-core-runtime\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/quickstart-presence\.mjs/);
@@ -92,6 +94,7 @@ assert.equal(rootManifest.scripts["release:preflight"], "node scripts/release-pr
 assert.equal(rootManifest.scripts["release:publish"], "node scripts/release-publish.mjs");
 assert.equal(rootManifest.scripts["release:consumer-smoke"], "node scripts/release-consumer-smoke.mjs");
 assert.equal(rootManifest.scripts["release:capture-media"], "node scripts/capture-release-media.mjs");
+assert.equal(rootManifest.scripts["browser:smoke"], "node scripts/browser-smoke.mjs");
 assert.match(rootManifest.scripts.validate, /npm run check/);
 assert.match(rootManifest.scripts.validate, /npm test/);
 assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
@@ -102,6 +105,7 @@ assert.match(rootManifest.scripts.validate, /npm run demo:assistant-lifecycle/);
 assert.match(rootManifest.scripts.validate, /npm run demo:assistant-ui-external-store/);
 assert.match(rootManifest.scripts.validate, /npm run demo:react/);
 assert.match(rootManifest.scripts.validate, /npm run pack:dry-run/);
+assert.doesNotMatch(rootManifest.scripts.validate, /browser:smoke/);
 assert.match(rootManifest.scripts.test, /tests\/adapter-demo\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/quickstart-presence\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/status-surface-presence\.test\.mjs/);
@@ -131,6 +135,9 @@ assert.match(releasePolicy, /scope/);
 const releaseRunbook = readFileSync(resolve(root, "docs/RELEASE_RUNBOOK.md"), "utf8");
 assert.match(releaseRunbook, /Fresh-Eyes Gate/);
 assert.match(releaseRunbook, /npm run release:public-gate/);
+assert.match(releaseRunbook, /npm run browser:smoke/);
+assert.match(releaseRunbook, /temporary port with OpenAI disabled/);
+assert.match(releaseRunbook, /not part of CI or the default `npm run validate` gate/);
 assert.match(releaseRunbook, /react-browser-composer-lane\.html\?autorun=1/);
 assert.match(releaseRunbook, /npm run release:preflight/);
 assert.match(releaseRunbook, /npm run release:security/);
@@ -184,6 +191,9 @@ assert.match(releaseReadiness, /summarizePresenceTrace/);
 assert.match(releaseReadiness, /interruptMs/);
 assert.match(releaseReadiness, /interrupted/);
 assert.match(releaseReadiness, /npm run perf:core/);
+assert.match(releaseReadiness, /npm run browser:smoke/);
+assert.match(releaseReadiness, /temporary local port with OpenAI disabled/);
+assert.match(releaseReadiness, /not part of GitHub Actions or the default `npm run validate` gate/);
 assert.match(releaseReadiness, /npm run demo:quickstart/);
 assert.match(releaseReadiness, /npm run demo:status-surface/);
 assert.match(releaseReadiness, /npm run demo:composer-lane/);
@@ -260,7 +270,7 @@ assert.match(releaseReadiness, /data-face-decision-trace-decisions="6"/);
 assert.match(releaseReadiness, /data-face-decision-trace-warnings="0"/);
 assert.match(releaseReadiness, /data-face-decision-trace-renderer-safe="true"/);
 assert.match(releaseReadiness, /data-face-latency-phase="before-output"/);
-assert.match(releaseReadiness, /data-face-transition-context="thinking stream-open 0"/);
+assert.match(releaseReadiness, /data-face-transition-context` beginning with `thinking stream-open`/);
 assert.match(releaseReadiness, /data-face-transition-controller-reads="gaze blink brows mouth posture motion"/);
 assert.match(releaseReadiness, /data-face-transition-controller-reads-event="true"/);
 assert.match(releaseReadiness, /data-face-transition-controller-reads-age="true"/);
@@ -523,6 +533,12 @@ assert.match(contributing, /npm run release:public-gate/);
 
 const validation = readFileSync(resolve(root, "VALIDATION.md"), "utf8");
 assert.match(validation, /npm run release:capture-media/);
+assert.match(validation, /npm run browser:smoke/);
+assert.match(validation, /temporary local port with OpenAI disabled/);
+assert.match(validation, /Chrome DevTools Protocol/);
+assert.match(validation, /browser console exceptions or errors/);
+assert.match(validation, /not part of `npm run validate` or CI/);
+assert.match(validation, /CHROME_PATH/);
 assert.match(validation, /npm run perf:core/);
 assert.match(validation, /createPresenceRuntime\(\)\.send/);
 assert.match(validation, /0\.35ms/);
@@ -555,6 +571,25 @@ assert.match(validation, /presenceBeforeOutputMs/);
 assert.match(validation, /composer-lane adoption path/);
 assert.match(validation, /Assistant Lifecycle Smoke/);
 assert.match(validation, /from installed package APIs only/);
+
+const browserSmoke = readFileSync(resolve(root, "scripts/browser-smoke.mjs"), "utf8");
+assert.match(browserSmoke, /CHROME_PATH/);
+assert.match(browserSmoke, /server\.mjs/);
+assert.match(browserSmoke, /OPENAI_API_KEY: ""/);
+assert.match(browserSmoke, /--remote-debugging-port/);
+assert.match(browserSmoke, /Runtime\.evaluate/);
+assert.match(browserSmoke, /document\.documentElement\.outerHTML/);
+assert.match(browserSmoke, /Runtime\.exceptionThrown/);
+assert.match(browserSmoke, /Runtime\.consoleAPICalled/);
+assert.match(browserSmoke, /data-live-response-configured/);
+assert.match(browserSmoke, /data-controller-decision-trace/);
+assert.match(browserSmoke, /data-transition-events/);
+assert.match(browserSmoke, /data-generic-first-token-ms/);
+assert.match(browserSmoke, /data-react-trace-summary/);
+assert.match(browserSmoke, /data-nonface-renderer/);
+assert.match(browserSmoke, /data-renderer/);
+assert.match(browserSmoke, /browser smoke ok/);
+assert.doesNotMatch(browserSmoke, /playwright|puppeteer/i);
 
 const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
 assert.match(operatingManual, /npm run release:check-names/);

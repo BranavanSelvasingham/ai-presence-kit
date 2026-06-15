@@ -43,8 +43,8 @@ npm run release:publish -- X.Y.Z
 - Adapter mappings: `npm run demo:adapters`, `npm run demo:assistant-lifecycle`, `npm run demo:assistant-ui-external-store`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
 - Browser or visual behavior: run the relevant browser route and inspect the output directly.
-- Major improvement work: `npm run validate`, `npm run release:public-gate` for public-facing changes, `git diff --check`, and browser smoke when visual or browser-facing behavior changed.
-- Packaging or release work: `npm run release:preflight`, browser smoke, `npm run release:publish -- X.Y.Z`, then push the release tag after npm verification passes.
+- Major improvement work: `npm run validate`, `npm run release:public-gate` for public-facing changes, `git diff --check`, and `npm run browser:smoke` when visual, browser-facing, or release-gate behavior changed.
+- Packaging or release work: `npm run release:preflight`, `npm run browser:smoke`, `npm run release:publish -- X.Y.Z`, then push the release tag after npm verification passes.
 
 ## Package-Level Performance Smoke
 
@@ -93,6 +93,14 @@ npm run demo:assistant-ui-external-store
 This local no-browser smoke drives a documented assistant-ui ExternalStoreRuntime route through `createAssistantLifecycleAdapter` without importing assistant-ui. It should print `surface=assistant-ui-external-store`, `framework=assistant-ui`, `route=ExternalStoreRuntime`, `statePath`, `eventPath`, `frameworkEventPath`, `frameworkStatusPath`, before-output `waiting`, `isRunning=true`, assistant message `status.type="running"`, assistant output empty, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
 
 ## Browser Smoke Routes
+
+Use the repeatable local browser smoke gate:
+
+```bash
+npm run browser:smoke
+```
+
+This starts `server.mjs` on a temporary local port with OpenAI disabled, drives the local Chrome executable through the Chrome DevTools Protocol with route-specific waits, fails on browser console exceptions or errors, verifies browser-rendered DOM evidence, prints concise per-route evidence lines, and stops the server. It is a local release gate, not part of `npm run validate` or CI. If Chrome is not available at `CHROME_PATH` or the default macOS path, the command fails with the browser visibility gap to close.
 
 ```text
 http://127.0.0.1:8058/

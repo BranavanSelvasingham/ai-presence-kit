@@ -32,7 +32,15 @@ npm run perf:core
 npm run perf:face
 ```
 
-Browser-smoke visual or runtime-facing changes on:
+Browser-smoke visual, browser-facing, or release-gate changes with:
+
+```bash
+npm run browser:smoke
+```
+
+This local gate starts `server.mjs` on a temporary port with OpenAI disabled, drives local headless Chrome through the Chrome DevTools Protocol, fails on browser console exceptions or errors, checks the documented DOM evidence, prints one concise evidence line per route class, and stops the server. It is not part of CI or the default `npm run validate` gate.
+
+The command covers:
 
 ```text
 http://127.0.0.1:8058/
@@ -43,7 +51,7 @@ http://127.0.0.1:8058/examples/react-browser.html?autorun=1
 http://127.0.0.1:8058/examples/react-browser-composer-lane.html?autorun=1
 ```
 
-Record evidence for the attributes listed in `docs/RELEASE_READINESS.md`, especially before-output timing, complete trace summaries, six-channel controller reads, and renderer-safe decision traces.
+Record the command output for the attributes listed in `docs/RELEASE_READINESS.md`, especially before-output timing, complete trace summaries, six-channel controller reads, and renderer-safe decision traces.
 
 To refresh the README release screenshot after visual changes, start the local server and run:
 
