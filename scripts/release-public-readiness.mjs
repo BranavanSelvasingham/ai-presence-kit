@@ -40,6 +40,7 @@ assert.match(contributing, /interaction posture/);
 assert.match(contributing, /not emotion detection/i);
 assert.match(contributing, /npm run validate/);
 assert.match(contributing, /npm run release:public-gate/);
+assert.match(contributing, /npm run browser:smoke/);
 
 const publicGate = readText("docs/PUBLIC_RELEASE_GATE.md");
 assert.match(publicGate, /Fresh-Eyes Gate/);

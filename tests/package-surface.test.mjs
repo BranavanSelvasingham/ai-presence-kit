@@ -536,6 +536,8 @@ assert.match(contributing, /interaction posture/);
 assert.match(contributing, /not emotion detection/i);
 assert.match(contributing, /npm run validate/);
 assert.match(contributing, /npm run release:public-gate/);
+assert.match(contributing, /npm run browser:smoke/);
+assert.match(contributing, /Browser or visual changes need direct browser\/screenshot inspection/);
 
 const validation = readFileSync(resolve(root, "VALIDATION.md"), "utf8");
 assert.match(validation, /npm run release:capture-media/);

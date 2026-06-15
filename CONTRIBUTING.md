@@ -36,6 +36,11 @@ npm run perf:face
 ```
 
 Browser or visual changes need direct browser/screenshot inspection of the affected route before claiming readiness.
+For the documented local browser routes, use the repeatable browser gate:
+
+```bash
+npm run browser:smoke
+```
 
 ## Release And Security Notes
 
