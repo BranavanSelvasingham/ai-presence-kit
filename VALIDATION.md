@@ -107,7 +107,7 @@ npm run release:check-scope
 
 ## Post-Publish Consumer Smoke
 
-`npm run release:publish -- X.Y.Z` performs this automatically. After a manual npm publish, verify fresh consumer install and both ESM/CommonJS entrypoints:
+`npm run release:publish -- X.Y.Z` performs this automatically. After a manual npm publish, verify fresh consumer install, both ESM/CommonJS entrypoints, and the installed `@ai-presence/core` plus `@ai-presence/adapters` generic chat quickstart trace:
 
 ```bash
 npm run release:consumer-smoke -- X.Y.Z

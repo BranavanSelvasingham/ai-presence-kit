@@ -148,7 +148,7 @@ If npm asks for a one-time password or passkey confirmation, complete it outside
 
 ## Post-Publish Gate
 
-`npm run release:publish -- X.Y.Z` performs this gate automatically. If publishing manually, after npm accepts all packages, wait for registry metadata to propagate, then verify a fresh consumer can install and execute both ESM and CommonJS entrypoints:
+`npm run release:publish -- X.Y.Z` performs this gate automatically. If publishing manually, after npm accepts all packages, wait for registry metadata to propagate, then verify a fresh consumer can install all four packages, execute both ESM and CommonJS entrypoints, and prove a generic chat lifecycle creates renderer-agnostic before-output trace evidence through installed `@ai-presence/core` and `@ai-presence/adapters`:
 
 ```bash
 npm run release:consumer-smoke -- X.Y.Z
@@ -183,4 +183,4 @@ Stop and fix before publishing or pushing if any of these are true:
 - package dry-run tarballs include env files, npm config, app/server files, lockfiles, `.git`, or `node_modules`
 - npm scope access fails
 - post-publish metadata is not visible
-- consumer smoke cannot install or execute all four package entrypoints
+- consumer smoke cannot install all four packages, execute all four package entrypoints, or prove the installed generic chat quickstart trace
