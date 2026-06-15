@@ -597,7 +597,8 @@ assert.match(operatingManual, /npm run release:check-scope/);
 assert.match(operatingManual, /npm run release:public-gate/);
 assert.match(operatingManual, /npm run release:preflight/);
 assert.match(operatingManual, /npm run release:publish -- X\.Y\.Z/);
-assert.match(operatingManual, /Browser-smoke the reference, metrics, comparison, and React browser routes/);
+assert.match(operatingManual, /npm run browser:smoke/);
+assert.match(operatingManual, /reference, metrics\/controller, controller gallery, comparison, React browser, and face-free composer-lane routes/);
 
 const goalLoop = readFileSync(resolve(root, "docs/GOAL_LOOP.md"), "utf8");
 assert.match(goalLoop, /2026-06-12/);

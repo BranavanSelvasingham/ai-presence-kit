@@ -77,14 +77,14 @@ For every major improvement:
 2. Run `npm run perf:core` and `npm run perf:face` when core, adapters, face, or trace behavior changed.
 3. Run `npm run release:public-gate` when README, screenshots, docs, examples, or collaborator-facing language changed.
 4. Run `git diff --check`.
-5. Browser-smoke the reference, metrics, comparison, and React browser routes for visual or browser-facing changes.
+5. Run `npm run browser:smoke` for visual, browser-facing, or release-gate changes. It covers the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes.
 
 Before public npm release:
 
 1. Log in to npm with an account that controls the `@ai-presence` scope.
 2. Run `npm run release:public-gate` when public or collaborator-facing surfaces changed.
 3. Run `npm run release:preflight`.
-4. Browser-smoke the reference, metrics, controller gallery, comparison, and React browser routes.
+4. Run `npm run browser:smoke` to verify the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes.
 5. Bump root and workspace packages to the chosen release version.
 6. Update `CHANGELOG.md`.
 7. Re-run `npm run release:preflight`.
