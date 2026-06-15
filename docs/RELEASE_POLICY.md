@@ -88,7 +88,7 @@ Before a public release:
 3. Update `CHANGELOG.md`.
 4. Run `npm run release:public-gate` when first-time visitor or collaborator-facing surfaces changed.
 5. Run `npm run release:preflight`.
-6. Browser-smoke the reference, metrics, controller gallery, comparison, and React browser routes.
+6. Run `npm run browser:smoke` to verify the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes.
 7. Commit and tag the release.
 8. Publish with `npm run release:publish -- X.Y.Z`.
 9. Verify npm metadata, then push `main` and `vX.Y.Z`.
