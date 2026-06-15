@@ -4,7 +4,7 @@ Use this when you already have an AI chat or runtime and want a minimal path fro
 
 AI Presence Kit is a renderer-agnostic presence state layer. It maps runtime facts such as user input, submit, stream open, first token, complete, interruption, and error into interaction posture: reading, waiting, thinking, streaming, speaking, interrupted, ready, and error. It is not emotion detection or private emotion inference.
 
-From this repo, run the no-network proof with `node examples/quickstart-presence.mjs`; it prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted` trace evidence for the same generic chat lifecycle. To see a framework-free non-face renderer consume the same handoff, run `node examples/status-surface-presence.mjs`; it prints `renderer=status-surface`, `phasePath`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`. To see a real-app-style composer lane, run `node examples/composer-lane-presence.mjs`; it prints `renderer=composer-lane`, status/progress/timeline evidence, and the same before-output summary without importing the SVG face renderer.
+From this repo, run the no-network proof with `node examples/quickstart-presence.mjs`; it prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted` trace evidence for the same generic chat lifecycle. To see a framework-free non-face renderer consume the same handoff, run `node examples/status-surface-presence.mjs`; it prints `renderer=status-surface`, `phasePath`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`. To see a real-app-style composer lane, run `node examples/composer-lane-presence.mjs`; it prints `renderer=composer-lane`, status/progress/timeline evidence, and the same before-output summary without importing the SVG face renderer. To see an assistant app lifecycle shape, run `node examples/assistant-lifecycle-presence.mjs`; it prints thread/run/message evidence with `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 ## Install
 
@@ -120,6 +120,59 @@ chatPresence.handleEvent({ type: "done" });
 ```
 
 Use `"interrupt"` for user cancellation and `"error"` for failed turns.
+
+## Map An Assistant App Lifecycle
+
+If your app framework exposes threads, runs, assistant message shells, and text deltas, use `createAssistantLifecycleAdapter`. It stays framework-package-free and accepts plain objects, so wrap your actual callbacks into the lifecycle names you control.
+
+```js
+import { createAssistantLifecycleAdapter } from "@ai-presence/adapters";
+
+const assistantPresence = createAssistantLifecycleAdapter(presence);
+
+assistantPresence.handleEvent({
+  type: "run-created",
+  threadId,
+  runId,
+});
+
+assistantPresence.handleEvent({
+  type: "message-created",
+  threadId,
+  runId,
+  messageId,
+});
+
+assistantPresence.handleEvent({
+  type: "text-delta",
+  threadId,
+  runId,
+  messageId,
+  delta: "Start with a narrow lifecycle proof.",
+});
+
+assistantPresence.handleEvent({
+  type: "run-completed",
+  threadId,
+  runId,
+});
+```
+
+The adapter maps:
+
+```text
+composer-input -> user-typing
+composer-pause -> reading or thinking
+run-created / run-started / submitted / running -> thinking
+message-created / content-block-start / stream-open -> waiting
+streaming with no assistant content -> waiting
+text-delta / message-delta / output -> streaming
+run-completed / message-completed / ready -> ready
+run-cancelled / abort / interrupt -> interrupted
+run-failed / error -> error
+```
+
+This captures the assistant-app wedge where the run and assistant message exist before visible assistant text exists.
 
 ## OpenAI Responses Streaming Mapping
 
@@ -240,6 +293,8 @@ function renderPresenceSurface() {
 The framework-free status-surface proof in `examples/status-surface-presence.mjs` uses the same values without React or the SVG face. Its renderer model is just a plain object with `data-renderer="status-surface"`, `data-presence-state`, `data-presence-phase`, `data-presence-attention`, `data-presence-event`, and `data-presence-before-output`.
 
 The real-app-style composer lane proof in `examples/composer-lane-presence.mjs` simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates. It uses the same package-shaped handoff to render `data-renderer="composer-lane"`, `data-presence-state`, `data-presence-phase`, `data-composer-lock`, `data-assistant-text-empty`, and `data-progress-step` so an app can replace passive waiting while assistant text is still empty.
+
+The assistant lifecycle proof in `examples/assistant-lifecycle-presence.mjs` simulates a thread/run/message lifecycle. Its plain object surface exposes `data-surface="assistant-lifecycle"`, `data-run-id`, `data-message-id`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-output-empty="true"`, and `data-presence-before-output="true"` while assistant text is still empty.
 
 For React, use `@ai-presence/react` to subscribe and pass the same renderer-agnostic payload into your surface. The SVG face is optional proof, not a required product dependency.
 

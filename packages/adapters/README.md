@@ -7,6 +7,7 @@ Adapters should stay upstream of any renderer. Their job is to translate signals
 Current adapters:
 
 - `createRuntimeSignalAdapter`: generic signal-to-presence bridge.
+- `createAssistantLifecycleAdapter`: maps framework-style thread/run/message lifecycle objects to presence.
 - `createVercelAISDKAdapter`: maps AI SDK chat statuses and callbacks to presence.
 - `createOpenAIResponsesAdapter`: maps OpenAI Responses streaming event objects to presence.
 - `createOpenAIRealtimeAdapter`: maps OpenAI Realtime server events to presence.
@@ -51,6 +52,37 @@ error -> error -> error
 ```
 
 This preserves the important distinction from the AI SDK docs and troubleshooting notes: `streaming` can begin before user-visible assistant text exists, so the presence state should be `waiting` until content arrives.
+
+## Assistant Lifecycle
+
+`createAssistantLifecycleAdapter` is a framework-package-free bridge for assistant app shapes that already have threads, runs, messages, and streaming text deltas. It does not claim an exact external package event contract. Pass plain lifecycle objects from your app layer, or wrap framework callbacks into these names:
+
+```js
+import { createAssistantLifecycleAdapter } from "@ai-presence/adapters";
+
+const assistantPresence = createAssistantLifecycleAdapter(presenceRuntime);
+
+assistantPresence.handleEvent({ type: "run-created", threadId, runId });
+assistantPresence.handleEvent({ type: "message-created", threadId, runId, messageId });
+assistantPresence.handleEvent({ type: "text-delta", threadId, runId, messageId, delta: "Hello" });
+assistantPresence.handleEvent({ type: "run-completed", threadId, runId });
+```
+
+Adapter mapping:
+
+```text
+composer-input -> user-input -> user-typing
+composer-pause -> user-pause -> reading/thinking
+run-created / run-started / submitted / running -> model-waiting -> thinking
+message-created / content-block-start / stream-open -> stream-open -> waiting
+streaming with no assistant content -> stream-open -> waiting
+text-delta / message-delta / output -> token -> streaming
+run-completed / message-completed / ready -> response-complete -> ready
+run-cancelled / abort / interrupt -> interrupt -> interrupted
+run-failed / error -> error -> error
+```
+
+Run `node examples/assistant-lifecycle-presence.mjs` for the no-network proof. It simulates a thread/run opening and an assistant message shell existing before text arrives, then prints `statePath`, `eventPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 ## OpenAI Responses
 

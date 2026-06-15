@@ -32,6 +32,8 @@ for (const requiredFile of [
   "tests/status-surface-presence.test.mjs",
   "examples/composer-lane-presence.mjs",
   "tests/composer-lane-presence.test.mjs",
+  "examples/assistant-lifecycle-presence.mjs",
+  "tests/assistant-lifecycle-presence.test.mjs",
   "examples/react-browser.css",
   "examples/react-browser-demo.js",
   "examples/react-browser-composer-lane.html",
@@ -70,12 +72,14 @@ assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/
 assert.match(rootManifest.scripts.check, /examples\/quickstart-presence\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/status-surface-presence\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/composer-lane-presence\.mjs/);
+assert.match(rootManifest.scripts.check, /examples\/assistant-lifecycle-presence\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
 assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-runtime.mjs");
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
 assert.equal(rootManifest.scripts["demo:quickstart"], "node examples/quickstart-presence.mjs");
 assert.equal(rootManifest.scripts["demo:status-surface"], "node examples/status-surface-presence.mjs");
 assert.equal(rootManifest.scripts["demo:composer-lane"], "node examples/composer-lane-presence.mjs");
+assert.equal(rootManifest.scripts["demo:assistant-lifecycle"], "node examples/assistant-lifecycle-presence.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
 assert.equal(rootManifest.scripts["release:public-gate"], "node scripts/release-public-readiness.mjs");
@@ -90,12 +94,14 @@ assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
 assert.match(rootManifest.scripts.validate, /npm run demo:quickstart/);
 assert.match(rootManifest.scripts.validate, /npm run demo:status-surface/);
 assert.match(rootManifest.scripts.validate, /npm run demo:composer-lane/);
+assert.match(rootManifest.scripts.validate, /npm run demo:assistant-lifecycle/);
 assert.match(rootManifest.scripts.validate, /npm run demo:react/);
 assert.match(rootManifest.scripts.validate, /npm run pack:dry-run/);
 assert.match(rootManifest.scripts.test, /tests\/adapter-demo\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/quickstart-presence\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/status-surface-presence\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/composer-lane-presence\.test\.mjs/);
+assert.match(rootManifest.scripts.test, /tests\/assistant-lifecycle-presence\.test\.mjs/);
 
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
@@ -152,13 +158,17 @@ assert.match(releaseReadiness, /npm run perf:core/);
 assert.match(releaseReadiness, /npm run demo:quickstart/);
 assert.match(releaseReadiness, /npm run demo:status-surface/);
 assert.match(releaseReadiness, /npm run demo:composer-lane/);
+assert.match(releaseReadiness, /npm run demo:assistant-lifecycle/);
 assert.match(releaseReadiness, /no-network adoption proof/);
 assert.match(releaseReadiness, /framework-free non-face consumer proof/);
 assert.match(releaseReadiness, /real-app-style composer lane proof/);
+assert.match(releaseReadiness, /assistant app lifecycle proof/);
 assert.match(releaseReadiness, /renderer=status-surface/);
 assert.match(releaseReadiness, /renderer=composer-lane/);
+assert.match(releaseReadiness, /surface=assistant-lifecycle/);
 assert.match(releaseReadiness, /data-renderer="status-surface"/);
 assert.match(releaseReadiness, /data-renderer="composer-lane"/);
+assert.match(releaseReadiness, /data-assistant-output-empty="true"/);
 assert.match(releaseReadiness, /data-presence-state="waiting"/);
 assert.match(releaseReadiness, /data-presence-phase="before-output"/);
 assert.match(releaseReadiness, /data-presence-before-output="true"/);
@@ -327,12 +337,15 @@ assert.match(integrationQuickstart, /not emotion detection or private emotion in
 assert.match(integrationQuickstart, /node examples\/quickstart-presence\.mjs/);
 assert.match(integrationQuickstart, /node examples\/status-surface-presence\.mjs/);
 assert.match(integrationQuickstart, /node examples\/composer-lane-presence\.mjs/);
+assert.match(integrationQuickstart, /node examples\/assistant-lifecycle-presence\.mjs/);
 assert.match(integrationQuickstart, /statePath/);
 assert.match(integrationQuickstart, /eventPath/);
 assert.match(integrationQuickstart, /renderer=status-surface/);
 assert.match(integrationQuickstart, /renderer=composer-lane/);
+assert.match(integrationQuickstart, /surface="assistant-lifecycle"|surface=assistant-lifecycle|data-surface="assistant-lifecycle"/);
 assert.match(integrationQuickstart, /data-renderer="status-surface"/);
 assert.match(integrationQuickstart, /data-renderer="composer-lane"/);
+assert.match(integrationQuickstart, /data-assistant-output-empty/);
 assert.match(integrationQuickstart, /data-presence-before-output/);
 assert.match(integrationQuickstart, /data-composer-lock/);
 assert.match(integrationQuickstart, /data-assistant-text-empty/);
@@ -357,6 +370,10 @@ assert.match(integrationQuickstart, /user input -> user-typing/);
 assert.match(integrationQuickstart, /stream open -> waiting/);
 assert.match(integrationQuickstart, /first token -> streaming/);
 assert.match(integrationQuickstart, /createChatEventAdapter/);
+assert.match(integrationQuickstart, /createAssistantLifecycleAdapter/);
+assert.match(integrationQuickstart, /run-created .*-> thinking/);
+assert.match(integrationQuickstart, /message-created .*-> waiting/);
+assert.match(integrationQuickstart, /text-delta .*-> streaming/);
 assert.match(integrationQuickstart, /createOpenAIResponsesAdapter/);
 assert.match(integrationQuickstart, /response\.created -> thinking/);
 assert.match(integrationQuickstart, /response\.output_text\.delta -> streaming/);
@@ -393,10 +410,13 @@ assert.match(validation, /createPresenceRuntime\(\)\.send/);
 assert.match(validation, /0\.35ms/);
 assert.match(validation, /npm run demo:status-surface/);
 assert.match(validation, /npm run demo:composer-lane/);
+assert.match(validation, /npm run demo:assistant-lifecycle/);
 assert.match(validation, /renderer=status-surface/);
 assert.match(validation, /renderer=composer-lane/);
+assert.match(validation, /surface=assistant-lifecycle/);
 assert.match(validation, /data-presence-phase/);
 assert.match(validation, /data-composer-lock/);
+assert.match(validation, /assistant output empty/);
 assert.match(validation, /react-browser-composer-lane\.html\?autorun=1/);
 assert.match(validation, /data-stream-open-ms="420ms"/);
 assert.match(validation, /data-first-output-ms="none"/);
@@ -406,6 +426,7 @@ assert.match(validation, /npm run perf:face/);
 assert.match(validation, /0\.25ms/);
 assert.match(validation, /generic chat quickstart trace/);
 assert.match(validation, /composer-lane adoption path/);
+assert.match(validation, /Assistant Lifecycle Smoke/);
 assert.match(validation, /from installed package APIs only/);
 
 const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
@@ -471,6 +492,8 @@ const adapterDemo = readFileSync(resolve(root, "examples/adapter-demo.mjs"), "ut
 assert.match(adapterDemo, /faceControllerFrameForPresence/);
 assert.match(adapterDemo, /faceControllerDecisionTraceForFrame/);
 assert.match(adapterDemo, /FACE_CONTROL_CHANNELS/);
+assert.match(adapterDemo, /createAssistantLifecycleAdapter/);
+assert.match(adapterDemo, /assistant-lifecycle/);
 assert.match(adapterDemo, /channels=/);
 assert.match(adapterDemo, /trace=/);
 assert.match(adapterDemo, /decisions=/);
@@ -569,6 +592,43 @@ assert.doesNotMatch(composerLanePresence, /@ai-presence\/face|packages\/face|ren
 assert.doesNotMatch(composerLanePresence, /@ai-presence\/react|react-dom|ReactDOM|createPresenceReactBindings/);
 assert.doesNotMatch(composerLanePresence, /emotion[- ]detection|private emotion|private inference/i);
 
+const assistantLifecyclePresence = readFileSync(resolve(root, "examples/assistant-lifecycle-presence.mjs"), "utf8");
+assert.match(assistantLifecyclePresence, /@ai-presence\/core/);
+assert.match(assistantLifecyclePresence, /@ai-presence\/adapters/);
+assert.match(assistantLifecyclePresence, /createPresenceRuntime/);
+assert.match(assistantLifecyclePresence, /createPresenceTrace/);
+assert.match(assistantLifecyclePresence, /presenceControlInputsForSnapshot/);
+assert.match(assistantLifecyclePresence, /summarizePresenceTrace/);
+assert.match(assistantLifecyclePresence, /createAssistantLifecycleAdapter/);
+assert.match(assistantLifecyclePresence, /run-created/);
+assert.match(assistantLifecyclePresence, /message-created/);
+assert.match(assistantLifecyclePresence, /text-delta/);
+assert.match(assistantLifecyclePresence, /run-completed/);
+assert.match(assistantLifecyclePresence, /data-surface/);
+assert.match(assistantLifecyclePresence, /data-thread-id/);
+assert.match(assistantLifecyclePresence, /data-run-id/);
+assert.match(assistantLifecyclePresence, /data-message-id/);
+assert.match(assistantLifecyclePresence, /data-presence-state/);
+assert.match(assistantLifecyclePresence, /data-presence-phase/);
+assert.match(assistantLifecyclePresence, /data-assistant-output-empty/);
+assert.match(assistantLifecyclePresence, /data-presence-before-output/);
+assert.match(assistantLifecyclePresence, /surface=assistant-lifecycle/);
+assert.match(assistantLifecyclePresence, /statePath=/);
+assert.match(assistantLifecyclePresence, /eventPath=/);
+assert.match(assistantLifecyclePresence, /frameworkEventPath=/);
+assert.match(assistantLifecyclePresence, /streamOpenMs=/);
+assert.match(assistantLifecyclePresence, /firstOutputMs=/);
+assert.match(assistantLifecyclePresence, /leadMs=/);
+assert.match(assistantLifecyclePresence, /presenceBeforeOutputMs=/);
+assert.match(assistantLifecyclePresence, /finalState=/);
+assert.match(assistantLifecyclePresence, /hasOutput=/);
+assert.match(assistantLifecyclePresence, /complete=/);
+assert.match(assistantLifecyclePresence, /interrupted=/);
+assert.doesNotMatch(assistantLifecyclePresence, /assistant-ui|@assistant-ui|langchain|@langchain|openai|@openai/i);
+assert.doesNotMatch(assistantLifecyclePresence, /@ai-presence\/face|packages\/face|renderPresenceFaceSvg|faceExpressionForPresence|<svg|svg/i);
+assert.doesNotMatch(assistantLifecyclePresence, /@ai-presence\/react|react-dom|ReactDOM|createPresenceReactBindings/);
+assert.doesNotMatch(assistantLifecyclePresence, /emotion[- ]detection|private emotion|private inference/i);
+
 const coreRuntimeBenchmark = readFileSync(resolve(root, "scripts/benchmark-core-runtime.mjs"), "utf8");
 assert.match(coreRuntimeBenchmark, /createPresenceRuntime/);
 assert.match(coreRuntimeBenchmark, /createPresenceTrace/);
@@ -579,6 +639,13 @@ assert.match(coreRuntimeBenchmark, /summary=complete/);
 assert.doesNotMatch(coreRuntimeBenchmark, /@ai-presence\/face|packages\/face/);
 
 const adaptersReadme = readFileSync(resolve(root, "packages/adapters/README.md"), "utf8");
+assert.match(adaptersReadme, /createAssistantLifecycleAdapter/);
+assert.match(adaptersReadme, /run-created \/ run-started \/ submitted \/ running -> model-waiting -> thinking/);
+assert.match(adaptersReadme, /message-created \/ content-block-start \/ stream-open -> stream-open -> waiting/);
+assert.match(adaptersReadme, /text-delta \/ message-delta \/ output -> token -> streaming/);
+assert.match(adaptersReadme, /run-completed \/ message-completed \/ ready -> response-complete -> ready/);
+assert.match(adaptersReadme, /node examples\/assistant-lifecycle-presence\.mjs/);
+assert.match(adaptersReadme, /presenceBeforeOutputMs/);
 assert.match(adaptersReadme, /createOpenAIResponsesAdapter/);
 assert.match(adaptersReadme, /response\.created -> model-waiting -> thinking/);
 assert.match(adaptersReadme, /response\.output_text\.delta -> token -> streaming/);
@@ -592,6 +659,14 @@ assert.match(adaptersReadme, /trace=complete/);
 assert.match(adaptersReadme, /transition=thinking:stream-open\+0ms/);
 assert.match(adaptersReadme, /transitionReads=6\/6/);
 assert.match(adaptersReadme, /reads=state,transitionEvent,transitionAgeMs/);
+
+const adapterTypes = readFileSync(resolve(root, "packages/adapters/src/runtime-adapter.d.ts"), "utf8");
+assert.match(adapterTypes, /AssistantLifecycleStatus/);
+assert.match(adapterTypes, /AssistantLifecycleEvent/);
+assert.match(adapterTypes, /AssistantLifecycleAdapter/);
+assert.match(adapterTypes, /assistantLifecycleEventToRuntimeSignal/);
+assert.match(adapterTypes, /createAssistantLifecycleAdapter/);
+assert.match(adapterTypes, /textFromAssistantLifecycleEvent/);
 
 for (const mediaFile of [
   "docs/media/presence-comparison.jpg",
@@ -656,10 +731,12 @@ const packages = [
     description: "Runtime signal adapters for AI Presence Kit.",
     types: "src/runtime-adapter.d.ts",
     exports: [
+      "createAssistantLifecycleAdapter",
       "createVercelAISDKAdapter",
       "createOpenAIResponsesAdapter",
       "createOpenAIRealtimeAdapter",
       "createChatEventAdapter",
+      "assistantLifecycleEventToRuntimeSignal",
       "openAIResponsesEventToRuntimeSignal",
     ],
   },
@@ -846,6 +923,7 @@ assert.match(rootReadme, /minimal copyable path from published packages/);
 assert.match(rootReadme, /examples\/quickstart-presence\.mjs/);
 assert.match(rootReadme, /examples\/status-surface-presence\.mjs/);
 assert.match(rootReadme, /examples\/composer-lane-presence\.mjs/);
+assert.match(rootReadme, /examples\/assistant-lifecycle-presence\.mjs/);
 assert.match(rootReadme, /examples\/react-browser-composer-lane\.html/);
 assert.match(rootReadme, /OpenAI Responses adapter usage/);
 assert.match(rootReadme, /createOpenAIResponsesAdapter/);
@@ -855,8 +933,13 @@ assert.match(rootReadme, /response\.completed/);
 assert.match(rootReadme, /npm run demo:quickstart/);
 assert.match(rootReadme, /npm run demo:status-surface/);
 assert.match(rootReadme, /npm run demo:composer-lane/);
-assert.match(rootReadme, /Vercel AI SDK, OpenAI Responses, OpenAI Realtime, and generic chat transitions/);
-assert.match(rootReadme, /four starter adapter paths/);
+assert.match(rootReadme, /npm run demo:assistant-lifecycle/);
+assert.match(rootReadme, /Vercel AI SDK, assistant lifecycle, OpenAI Responses, OpenAI Realtime, and generic chat transitions/);
+assert.match(rootReadme, /five starter adapter paths/);
+assert.match(rootReadme, /createAssistantLifecycleAdapter/);
+assert.match(rootReadme, /surface=assistant-lifecycle/);
+assert.match(rootReadme, /thread\/run\/message lifecycle/i);
+assert.match(rootReadme, /data-assistant-output-empty="true"/);
 assert.match(rootReadme, /release consumer smoke now repeats both the OpenAI Responses adapter path and the composer-lane pattern/i);
 assert.doesNotMatch(rootReadme, /three starter adapter paths/);
 assert.match(rootReadme, /framework-free non-face consumer proof/);

@@ -27,6 +27,22 @@ export declare const VercelAIStatus: Readonly<{
 
 export type VercelAIStatusValue = typeof VercelAIStatus[keyof typeof VercelAIStatus];
 
+export declare const AssistantLifecycleStatus: Readonly<{
+  SUBMITTED: "submitted";
+  QUEUED: "queued";
+  RUNNING: "running";
+  STREAMING: "streaming";
+  READY: "ready";
+  COMPLETED: "completed";
+  CANCELLED: "cancelled";
+  CANCELED: "canceled";
+  ERROR: "error";
+  FAILED: "failed";
+}>;
+
+export type AssistantLifecycleStatusValue =
+  typeof AssistantLifecycleStatus[keyof typeof AssistantLifecycleStatus];
+
 export interface RuntimeSignalObject {
   type: RuntimeSignalValue;
   detail?: Record<string, unknown>;
@@ -67,6 +83,33 @@ export interface EventAdapter {
   handleEvent(event: string | Record<string, unknown>): PresenceSnapshot;
 }
 
+export interface AssistantLifecycleEvent {
+  type?: string;
+  event?: string;
+  status?: AssistantLifecycleStatusValue | string;
+  threadId?: string;
+  runId?: string;
+  messageId?: string;
+  delta?: unknown;
+  text?: unknown;
+  content?: unknown;
+  assistantText?: unknown;
+  message?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface AssistantLifecycleAdapter extends EventAdapter {
+  update(event: string | AssistantLifecycleEvent): PresenceSnapshot;
+  onInput(text: string, detail?: Record<string, unknown>): PresenceSnapshot;
+  onPause(text: string, detail?: Record<string, unknown>): PresenceSnapshot;
+  onRunStart(detail?: Record<string, unknown>): PresenceSnapshot;
+  onStreamOpen(detail?: Record<string, unknown>): PresenceSnapshot;
+  onOutput(delta: string, detail?: Record<string, unknown>): PresenceSnapshot;
+  onComplete(detail?: Record<string, unknown>): PresenceSnapshot;
+  onInterrupt(detail?: Record<string, unknown>): PresenceSnapshot;
+  onError(error: unknown, detail?: Record<string, unknown>): PresenceSnapshot;
+}
+
 export declare const RUNTIME_SIGNALS: readonly RuntimeSignalValue[];
 export declare const OPENAI_REALTIME_EVENT_MAP: Readonly<Record<string, RuntimeSignalValue>>;
 export declare const OPENAI_RESPONSES_EVENT_MAP: Readonly<Record<string, RuntimeSignalValue>>;
@@ -75,7 +118,14 @@ export declare function applyRuntimeSignal(
   presenceRuntime: PresenceRuntime,
   signal: RuntimeSignalValue | RuntimeSignalObject,
 ): PresenceSnapshot;
+export declare function assistantLifecycleEventToRuntimeSignal(
+  event?: string | AssistantLifecycleEvent,
+): NormalizedRuntimeSignal;
 export declare function chatEventToRuntimeSignal(event?: string | Record<string, unknown>): NormalizedRuntimeSignal;
+export declare function createAssistantLifecycleAdapter(
+  presenceRuntime: PresenceRuntime,
+  options?: AdapterOptions,
+): AssistantLifecycleAdapter;
 export declare function createChatEventAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): EventAdapter;
 export declare function createOpenAIResponsesAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): EventAdapter;
 export declare function createOpenAIRealtimeAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): EventAdapter;
@@ -90,6 +140,7 @@ export declare function presenceEventForRuntimeSignal(signal: RuntimeSignalValue
   event: PresenceEventValue;
   detail: Record<string, unknown>;
 };
+export declare function textFromAssistantLifecycleEvent(event?: string | AssistantLifecycleEvent): string;
 export declare function textFromOpenAIResponsesEvent(event?: string | Record<string, unknown>): string;
 export declare function textFromMessage(message: Record<string, unknown>): string;
 export declare function vercelAIStatusToRuntimeSignal(chatState?: VercelChatState | VercelAIStatusValue): NormalizedRuntimeSignal;

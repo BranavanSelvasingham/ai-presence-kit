@@ -10,10 +10,13 @@ const {
   summarizePresenceTrace,
 } = require("../packages/core/src/presence-core.js");
 const {
+  AssistantLifecycleStatus,
   OPENAI_RESPONSES_EVENT_MAP,
   RuntimeSignal,
   VercelAIStatus,
+  assistantLifecycleEventToRuntimeSignal,
   chatEventToRuntimeSignal,
+  createAssistantLifecycleAdapter,
   createChatEventAdapter,
   createOpenAIResponsesAdapter,
   createOpenAIRealtimeAdapter,
@@ -23,6 +26,7 @@ const {
   openAIResponsesEventToRuntimeSignal,
   openAIRealtimeEventToRuntimeSignal,
   presenceEventForRuntimeSignal,
+  textFromAssistantLifecycleEvent,
   vercelAIStatusToRuntimeSignal,
 } = require("../packages/adapters/src/runtime-adapter.js");
 
@@ -86,6 +90,68 @@ assert.equal(
   RuntimeSignal.TOKEN,
 );
 
+assert.equal(
+  textFromAssistantLifecycleEvent({ message: { role: "assistant", parts: [{ type: "text", text: "Hello" }] } }),
+  "Hello",
+);
+
+assert.equal(
+  assistantLifecycleEventToRuntimeSignal({ type: "run-created", threadId: "thread_1", runId: "run_1" }).type,
+  RuntimeSignal.MODEL_WAITING,
+);
+
+assert.equal(
+  assistantLifecycleEventToRuntimeSignal({
+    type: "message-created",
+    threadId: "thread_1",
+    runId: "run_1",
+    messageId: "msg_1",
+  }).type,
+  RuntimeSignal.STREAM_OPEN,
+);
+
+assert.deepEqual(
+  assistantLifecycleEventToRuntimeSignal({
+    type: "text-delta",
+    threadId: "thread_1",
+    runId: "run_1",
+    messageId: "msg_1",
+    delta: "Hi",
+  }),
+  {
+    type: RuntimeSignal.TOKEN,
+    detail: {
+      type: "text-delta",
+      threadId: "thread_1",
+      runId: "run_1",
+      messageId: "msg_1",
+      delta: "Hi",
+      eventType: "text-delta",
+      text: "Hi",
+    },
+  },
+);
+
+assert.equal(
+  assistantLifecycleEventToRuntimeSignal({ status: AssistantLifecycleStatus.STREAMING, assistantText: "" }).type,
+  RuntimeSignal.STREAM_OPEN,
+);
+
+assert.equal(
+  assistantLifecycleEventToRuntimeSignal({ status: AssistantLifecycleStatus.STREAMING, assistantText: "Visible" }).type,
+  RuntimeSignal.TOKEN,
+);
+
+assert.equal(
+  assistantLifecycleEventToRuntimeSignal({ type: "run-completed" }).type,
+  RuntimeSignal.RESPONSE_COMPLETE,
+);
+
+assert.equal(
+  assistantLifecycleEventToRuntimeSignal({ type: "run-cancelled", reason: "user" }).type,
+  RuntimeSignal.INTERRUPT,
+);
+
 const vercelRuntime = createPresenceRuntime({ initialState: PresenceState.IDLE });
 const vercelAdapter = createVercelAISDKAdapter(vercelRuntime);
 vercelAdapter.onSubmit("Hello");
@@ -99,6 +165,51 @@ vercelAdapter.update({
 assert.equal(vercelRuntime.getSnapshot().state, PresenceState.STREAMING);
 vercelAdapter.onFinish({ finishReason: "stop" });
 assert.equal(vercelRuntime.getSnapshot().state, PresenceState.READY);
+
+let assistantLifecycleTime = 0;
+const assistantLifecycleRuntime = createPresenceRuntime({
+  initialState: PresenceState.IDLE,
+  now: () => {
+    assistantLifecycleTime += 24;
+    return assistantLifecycleTime;
+  },
+});
+const assistantLifecycleTrace = createPresenceTrace({ limit: 8 });
+assistantLifecycleTrace.attach(assistantLifecycleRuntime, { includeInitial: false });
+const assistantLifecycleAdapter = createAssistantLifecycleAdapter(assistantLifecycleRuntime);
+assistantLifecycleAdapter.handleEvent({ type: "run-created", threadId: "thread_1", runId: "run_1" });
+assert.equal(assistantLifecycleRuntime.getSnapshot().state, PresenceState.THINKING);
+assistantLifecycleAdapter.handleEvent({
+  type: "message-created",
+  threadId: "thread_1",
+  runId: "run_1",
+  messageId: "msg_1",
+});
+assert.equal(assistantLifecycleRuntime.getSnapshot().state, PresenceState.WAITING);
+assistantLifecycleAdapter.handleEvent({
+  type: "text-delta",
+  threadId: "thread_1",
+  runId: "run_1",
+  messageId: "msg_1",
+  delta: "Visible output",
+});
+assert.equal(assistantLifecycleRuntime.getSnapshot().state, PresenceState.STREAMING);
+assistantLifecycleAdapter.handleEvent({ type: "run-completed", threadId: "thread_1", runId: "run_1" });
+assert.equal(assistantLifecycleRuntime.getSnapshot().state, PresenceState.READY);
+const assistantLifecycleSummary = summarizePresenceTrace(assistantLifecycleTrace);
+assert.deepEqual(assistantLifecycleSummary.events, [
+  PresenceEvent.SUBMIT,
+  PresenceEvent.STREAM_OPEN,
+  PresenceEvent.TOKEN,
+  PresenceEvent.RESPONSE_COMPLETE,
+]);
+assert.ok(assistantLifecycleSummary.presenceBeforeOutputMs > 0);
+assert.equal(assistantLifecycleSummary.streamOpenMs, 24);
+assert.equal(assistantLifecycleSummary.firstOutputMs, 48);
+assert.equal(assistantLifecycleSummary.finalState, PresenceState.READY);
+assert.equal(assistantLifecycleSummary.hasOutput, true);
+assert.equal(assistantLifecycleSummary.complete, true);
+assert.equal(assistantLifecycleSummary.interrupted, false);
 
 assert.equal(
   openAIRealtimeEventToRuntimeSignal({ type: "input_audio_buffer.speech_started" }).type,

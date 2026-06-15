@@ -79,6 +79,17 @@ assert.deepEqual(face.FACE_CONTROL_CHANNELS, ["gaze", "blink", "brows", "mouth",
 const adapter = adapters.createRuntimeSignalAdapter(runtime);
 adapter.send({ type: adapters.RuntimeSignal.STREAM_OPEN });
 assert.equal(runtime.getSnapshot().state, core.PresenceState.WAITING);
+assert.equal(typeof adapters.createAssistantLifecycleAdapter, "function");
+const assistantRuntime = core.createPresenceRuntime();
+const assistantAdapter = adapters.createAssistantLifecycleAdapter(assistantRuntime);
+assistantAdapter.handleEvent({ type: "run-created", threadId: "thread_esm", runId: "run_esm" });
+assistantAdapter.handleEvent({
+  type: "message-created",
+  threadId: "thread_esm",
+  runId: "run_esm",
+  messageId: "msg_esm",
+});
+assert.equal(assistantRuntime.getSnapshot().state, core.PresenceState.WAITING);
 
 assert.equal(typeof react.createPresenceReactBindings, "function");
 assert.equal(react.default.createPresenceReactBindings, react.createPresenceReactBindings);
@@ -127,7 +138,7 @@ try {
     [
       'import { PresenceEvent, PresenceState, createPresenceRuntime, createPresenceTrace } from "@ai-presence/core";',
       'import { presenceControlInputsForSnapshot, summarizePresenceTrace } from "@ai-presence/core";',
-      'import { RuntimeSignal, createRuntimeSignalAdapter } from "@ai-presence/adapters";',
+      'import { RuntimeSignal, createAssistantLifecycleAdapter, createRuntimeSignalAdapter } from "@ai-presence/adapters";',
       'import { FaceExpression, faceControllerCoherenceForFrame, faceControllerDecisionTraceForFrame, faceControllerDecisionsForPresence, faceControllerFrameForPresence, faceControlsForPresence, faceExpressionForPresence, renderPresenceFaceSvg } from "@ai-presence/face";',
       'import { createPresenceReactBindings } from "@ai-presence/react";',
       "const runtime = createPresenceRuntime();",
@@ -135,6 +146,11 @@ try {
       "trace.attach(runtime);",
       "runtime.send(PresenceEvent.SUBMIT);",
       "createRuntimeSignalAdapter(runtime).send({ type: RuntimeSignal.TOKEN });",
+      "const assistantRuntime = createPresenceRuntime();",
+      "const assistant = createAssistantLifecycleAdapter(assistantRuntime);",
+      "assistant.handleEvent({ type: 'run-created', threadId: 'thread_1', runId: 'run_1' });",
+      "assistant.handleEvent({ type: 'message-created', threadId: 'thread_1', runId: 'run_1', messageId: 'msg_1' });",
+      "if (assistantRuntime.getSnapshot().state !== PresenceState.WAITING) throw new Error('assistant lifecycle mismatch');",
       "if (runtime.getSnapshot().state !== PresenceState.STREAMING) throw new Error('state mismatch');",
       "if (trace.getEntries().at(-1).state !== PresenceState.STREAMING) throw new Error('trace mismatch');",
       "const summary = summarizePresenceTrace(trace);",
