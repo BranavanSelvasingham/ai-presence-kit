@@ -4,7 +4,7 @@ Use this when you already have an AI chat or runtime and want a minimal path fro
 
 AI Presence Kit is a renderer-agnostic presence state layer. It maps runtime facts such as user input, submit, stream open, first token, complete, interruption, and error into interaction posture: reading, waiting, thinking, streaming, speaking, interrupted, ready, and error. It is not emotion detection or private emotion inference.
 
-From this repo, run the no-network proof with `node examples/quickstart-presence.mjs`; it prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted` trace evidence for the same generic chat lifecycle. To see a framework-free non-face renderer consume the same handoff, run `node examples/status-surface-presence.mjs`; it prints `renderer=status-surface`, `phasePath`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`. To see a real-app-style composer lane, run `node examples/composer-lane-presence.mjs`; it prints `renderer=composer-lane`, status/progress/timeline evidence, and the same before-output summary without importing the SVG face renderer. To see an assistant app lifecycle shape, run `node examples/assistant-lifecycle-presence.mjs`; it prints thread/run/message evidence with `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`. To see a named assistant-ui route, run `node examples/assistant-ui-external-store-presence.mjs`; it maps the documented ExternalStoreRuntime `onNew`, `isRunning`, and assistant message `status.type` path into the same adapter evidence.
+From this repo, run the no-network proof with `node examples/quickstart-presence.mjs`; it prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted` trace evidence for the same generic chat lifecycle. To see a framework-free non-face renderer consume the same handoff, run `node examples/status-surface-presence.mjs`; it prints `renderer=status-surface`, `phasePath`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`. To see a real-app-style composer lane, run `node examples/composer-lane-presence.mjs`; it prints `renderer=composer-lane`, status/progress/timeline evidence, and the same before-output summary without importing the SVG face renderer. To see a named Vercel AI SDK route, run `node examples/vercel-ai-sdk-presence.mjs`; it maps the documented `useChat` `status`, `messages`, assistant `parts`, `onFinish.isAbort`, and `onError` shape into `framework=vercel-ai-sdk` before-output evidence. To see an assistant app lifecycle shape, run `node examples/assistant-lifecycle-presence.mjs`; it prints thread/run/message evidence with `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`. To see a named assistant-ui route, run `node examples/assistant-ui-external-store-presence.mjs`; it maps the documented ExternalStoreRuntime `onNew`, `isRunning`, and assistant message `status.type` path into the same adapter evidence.
 
 ## Install
 
@@ -206,7 +206,16 @@ response.incomplete -> interrupted
 
 That keeps the stream-open posture visible before the first `response.output_text.delta`; text and function-call argument deltas are copied into the runtime signal detail as `delta` and `text` when present.
 
-## Vercel AI SDK-Style Mapping
+## Vercel AI SDK Mapping
+
+Primary AI SDK docs checked for this route:
+
+```text
+https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat
+https://ai-sdk.dev/docs/ai-sdk-ui/chatbot
+```
+
+The current `useChat` reference documents `status` as `submitted`, `streaming`, `ready`, or `error`; `messages` as `UIMessage[]`; message `role` as `system`, `user`, or `assistant`; message `parts` as the UI rendering path; `onFinish.isAbort`; `onFinish.isError`; and `onError`. The chatbot guide renders text from `message.parts` when `part.type === "text"`.
 
 `createVercelAISDKAdapter` does not import framework packages. Pass the plain status and message shape from your chat layer.
 
@@ -250,7 +259,15 @@ error -> error
 aborted finish -> interrupted
 ```
 
-This keeps the difference between "stream is open" and "the first visible assistant token exists".
+This keeps the difference between "the response stream is active" and "the first visible assistant token exists".
+
+Run the named no-network proof:
+
+```bash
+node examples/vercel-ai-sdk-presence.mjs
+```
+
+It prints `framework=vercel-ai-sdk`, `statePath`, `eventPath`, `statusPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, `interrupted=false`, plus `abortState=interrupted` and `errorState=error`.
 
 ## Prove Presence Before Output
 
@@ -292,7 +309,9 @@ function renderPresenceSurface() {
 
 The framework-free status-surface proof in `examples/status-surface-presence.mjs` uses the same values without React or the SVG face. Its renderer model is just a plain object with `data-renderer="status-surface"`, `data-presence-state`, `data-presence-phase`, `data-presence-attention`, `data-presence-event`, and `data-presence-before-output`.
 
-The real-app-style composer lane proof in `examples/composer-lane-presence.mjs` simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates. It uses the same package-shaped handoff to render `data-renderer="composer-lane"`, `data-presence-state`, `data-presence-phase`, `data-composer-lock`, `data-assistant-text-empty`, and `data-progress-step` so an app can replace passive waiting while assistant text is still empty.
+The named Vercel AI SDK proof in `examples/vercel-ai-sdk-presence.mjs` simulates documented `submitted`, `streaming`, `ready`, `error`, `messages`, assistant text `parts`, and aborted finish shapes. Its plain surface exposes `data-framework="vercel-ai-sdk"`, `data-status="streaming"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-text-empty="true"`, `data-presence-before-output="true"`, and `data-first-output-ms="none"` while the stream is active but assistant text is still empty.
+
+The real-app-style composer lane proof in `examples/composer-lane-presence.mjs` uses the same Vercel AI SDK adapter path for `submitted`, `streaming`, and `ready` updates. It maps the package-shaped handoff to `data-renderer="composer-lane"`, `data-presence-state`, `data-presence-phase`, `data-composer-lock`, `data-assistant-text-empty`, and `data-progress-step` so an app can replace passive waiting while assistant text is still empty.
 
 The assistant lifecycle proof in `examples/assistant-lifecycle-presence.mjs` simulates a thread/run/message lifecycle. Its plain object surface exposes `data-surface="assistant-lifecycle"`, `data-run-id`, `data-message-id`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-output-empty="true"`, and `data-presence-before-output="true"` while assistant text is still empty.
 

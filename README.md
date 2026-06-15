@@ -176,7 +176,7 @@ Intended public packages:
 @ai-presence/adapters
 ```
 
-First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence, `node examples/assistant-lifecycle-presence.mjs` to see a thread/run/message lifecycle surface expose the open run before assistant text exists, or `node examples/assistant-ui-external-store-presence.mjs` to see a documented assistant-ui ExternalStoreRuntime route map `onNew`, `isRunning`, and assistant message `status.type` into the same before-output proof.
+First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence, `node examples/vercel-ai-sdk-presence.mjs` to see the documented Vercel AI SDK `useChat` status/message shape become `framework=vercel-ai-sdk` before-output evidence, `node examples/assistant-lifecycle-presence.mjs` to see a thread/run/message lifecycle surface expose the open run before assistant text exists, or `node examples/assistant-ui-external-store-presence.mjs` to see a documented assistant-ui ExternalStoreRuntime route map `onNew`, `isRunning`, and assistant message `status.type` into the same before-output proof.
 
 Minimal core usage:
 
@@ -212,7 +212,7 @@ responsesPresence.handleEvent({ type: "response.output_text.delta", delta: "Hell
 responsesPresence.handleEvent({ type: "response.completed" });
 ```
 
-Vercel AI SDK-style adapter usage:
+Vercel AI SDK adapter usage:
 
 ```js
 const aiSdkPresence = AIPresenceAdapters.createVercelAISDKAdapter(presence);
@@ -320,6 +320,7 @@ npm run demo:quickstart
 npm run demo:status-surface
 npm run demo:react
 npm run demo:composer-lane
+npm run demo:vercel-ai-sdk
 npm run demo:assistant-lifecycle
 npm run demo:assistant-ui-external-store
 npm run pack:dry-run
@@ -329,7 +330,9 @@ npm run pack:dry-run
 
 `npm run demo:status-surface` runs a framework-free non-face consumer proof from `examples/status-surface-presence.mjs`. It maps the same adapter-driven lifecycle into a plain status surface with `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, and `data-presence-before-output="true"` before the first output.
 
-`npm run demo:composer-lane` runs a real-app-style composer lane proof from `examples/composer-lane-presence.mjs`. It simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates, then maps the renderer-agnostic snapshot and trace summary into a status bar, locked message composer, progress lane, and trace timeline. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` without importing the SVG face renderer.
+`npm run demo:composer-lane` runs a real-app-style composer lane proof from `examples/composer-lane-presence.mjs`. It uses the Vercel AI SDK adapter path for `submitted`, `streaming`, and `ready` updates, then maps the renderer-agnostic snapshot and trace summary into a status bar, locked message composer, progress lane, and trace timeline. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` without importing the SVG face renderer.
+
+`npm run demo:vercel-ai-sdk` runs a named-runtime proof from `examples/vercel-ai-sdk-presence.mjs`. It follows primary AI SDK docs for `useChat` `status`, `messages`, assistant text `parts`, `onFinish.isAbort`, and `onError` without importing Vercel packages, then maps `submitted`, `streaming`, `ready`, `error`, and aborted finish into `createVercelAISDKAdapter`. It prints `framework=vercel-ai-sdk`, `statusPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, `interrupted=false`, `abortState=interrupted`, and `errorState=error`.
 
 `npm run demo:assistant-lifecycle` runs an assistant app lifecycle proof from `examples/assistant-lifecycle-presence.mjs`. It simulates a thread/run/message opening before visible assistant text, then prints `surface=assistant-lifecycle`, `statePath`, `eventPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output surface exposes `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-output-empty="true"`, and `data-presence-before-output="true"`.
 
@@ -554,11 +557,12 @@ Validation notes:
 Current adoption slice:
 
 - The real-app adoption slice is represented by `examples/composer-lane-presence.mjs`, `examples/react-browser-composer-lane.html`, and `examples/vanilla-status-surface.html`: framework-free and React/browser routes that use package-shaped core/adapters APIs and prove before-output trace evidence without depending on the reference SVG face.
+- The named Vercel AI SDK adoption proof is represented by `examples/vercel-ai-sdk-presence.mjs`: a no-dependency `useChat` status/message route that maps documented `submitted`, `streaming`, `ready`, `error`, assistant text `parts`, and aborted finish into `createVercelAISDKAdapter`.
 - The assistant lifecycle adoption slice is represented by `createAssistantLifecycleAdapter` and `examples/assistant-lifecycle-presence.mjs`: a framework-package-free thread/run/message lifecycle path that proves an open assistant run and message shell can show `waiting` before visible text.
 - The named assistant-ui adoption proof is represented by `examples/assistant-ui-external-store-presence.mjs`: a no-dependency ExternalStoreRuntime route that maps documented `onNew`, `isRunning`, and assistant message `status.type` values into the assistant lifecycle adapter and proves the same before-output trace evidence.
 - The release consumer smoke now repeats the OpenAI Responses adapter path, assistant lifecycle adapter path, assistant-ui ExternalStoreRuntime route, vanilla status-surface pattern, and composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the runtime adapter, status-surface, composer/progress, and timeline handoffs are publishable package surface rather than repo-local source.
 
 Next iteration:
 
-- Validate the same renderer-agnostic adapter and assistant lifecycle pattern against a named framework route when exact current event names can be verified from primary docs.
+- Keep validating named framework routes only when exact current lifecycle names can be verified from primary docs, preserving no-dependency adapter proofs and before-output trace evidence.
 - Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.
