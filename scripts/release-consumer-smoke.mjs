@@ -225,6 +225,158 @@ console.log([
   );
 
   writeFileSync(
+    join(tempDir, "vanilla-status-surface-smoke.mjs"),
+    `import assert from "node:assert/strict";
+import {
+  PresenceEvent,
+  createPresenceRuntime,
+  createPresenceTrace,
+  presenceControlInputsForSnapshot,
+  summarizePresenceTrace,
+} from "@ai-presence/core";
+import { createChatEventAdapter } from "@ai-presence/adapters";
+
+const draft = "Show a plain status surface before output.";
+let nowMs = 0;
+let assistantText = "";
+const presence = createPresenceRuntime({ now: () => nowMs });
+const trace = createPresenceTrace({ limit: 18 });
+const detachTrace = trace.attach(presence, { includeInitial: false });
+const chatPresence = createChatEventAdapter(presence);
+const frames = [];
+
+function formatMs(value) {
+  return Number.isFinite(Number(value)) ? String(Math.round(Number(value))) + "ms" : "none";
+}
+
+function statusSurfaceForPresence(snapshot, controlInputs, summary, state, atMs) {
+  const assistantTextEmpty = state.assistantText.length === 0;
+  const beforeOutput = controlInputs.latencyPhase === "before-output"
+    && assistantTextEmpty
+    && !summary.hasOutput;
+  const activeLeadMs = beforeOutput && Number.isFinite(Number(summary.streamOpenMs))
+    ? Math.max(0, atMs - Number(summary.streamOpenMs))
+    : summary.presenceBeforeOutputMs;
+
+  return Object.freeze({
+    renderer: "status-surface",
+    attributes: Object.freeze({
+      "data-renderer": "status-surface",
+      "data-presence-state": snapshot.state,
+      "data-presence-phase": controlInputs.latencyPhase,
+      "data-presence-attention": controlInputs.attentionTarget,
+      "data-presence-event": snapshot.event,
+      "data-presence-before-output": String(beforeOutput),
+      "data-assistant-text-empty": String(assistantTextEmpty),
+      "data-stream-open-ms": formatMs(summary.streamOpenMs),
+      "data-first-output-ms": beforeOutput ? "none" : formatMs(summary.firstOutputMs),
+      "data-lead-ms": formatMs(activeLeadMs),
+      "data-final-state": summary.finalState || snapshot.state,
+      "data-has-output": String(summary.hasOutput),
+      "data-complete": String(summary.complete),
+      "data-interrupted": String(summary.interrupted),
+    }),
+  });
+}
+
+function captureFrame(atMs, snapshot) {
+  nowMs = atMs;
+  const controlInputs = presenceControlInputsForSnapshot(snapshot, { trace, now: atMs });
+  const summary = summarizePresenceTrace(trace);
+  const surface = statusSurfaceForPresence(snapshot, controlInputs, summary, {
+    assistantText,
+  }, atMs);
+
+  frames.push({
+    atMs,
+    state: snapshot.state,
+    event: snapshot.event,
+    phase: controlInputs.latencyPhase,
+    surface,
+  });
+}
+
+function sendAt(atMs, event, nextAssistantText = assistantText) {
+  nowMs = atMs;
+  assistantText = nextAssistantText;
+  captureFrame(atMs, chatPresence.handleEvent(event));
+}
+
+sendAt(0, { type: "input", text: draft });
+sendAt(140, { type: "pause", text: draft, completion: 0.42 });
+sendAt(260, { type: "submit", text: draft });
+sendAt(520, { type: "stream-open" }, "");
+captureFrame(760, presence.getSnapshot());
+sendAt(900, { type: "token", text: "Plain status stayed visible before this text." }, "Plain status stayed visible before this text.");
+sendAt(1240, { type: "done" }, assistantText);
+
+detachTrace();
+
+const entries = trace.getEntries();
+const summary = summarizePresenceTrace(trace);
+const firstOutputMs = Number(summary.firstOutputMs);
+const beforeOutputFrame = frames.find((frame) => {
+  const attributes = frame.surface.attributes;
+
+  return frame.atMs < firstOutputMs
+    && frame.surface.renderer === "status-surface"
+    && attributes["data-renderer"] === "status-surface"
+    && attributes["data-presence-state"] === "waiting"
+    && attributes["data-presence-phase"] === "before-output"
+    && attributes["data-presence-attention"] === "response"
+    && attributes["data-presence-event"] === "stream-open"
+    && attributes["data-presence-before-output"] === "true"
+    && attributes["data-assistant-text-empty"] === "true"
+    && attributes["data-stream-open-ms"] === "520ms"
+    && attributes["data-first-output-ms"] === "none"
+    && Number.parseInt(attributes["data-lead-ms"], 10) > 0;
+});
+
+const statePath = entries.map((entry) => entry.state).join(">");
+const eventPath = entries.map((entry) => entry.event).join(">");
+const phasePath = frames.map((frame) => frame.phase).join(">");
+
+assert.equal(statePath, "user-typing>thinking>thinking>waiting>streaming>ready");
+assert.equal(eventPath, "user-input>user-pause>submit>stream-open>token>response-complete");
+assert.equal(phasePath, "input>before-output>before-output>before-output>before-output>output>recovery");
+assert.equal(summary.firstOutputEvent, PresenceEvent.TOKEN);
+assert.equal(summary.streamOpenMs, 520);
+assert.equal(summary.firstOutputMs, 900);
+assert.equal(summary.presenceBeforeOutputMs, 900);
+assert.equal(summary.finalState, "ready");
+assert.equal(summary.hasOutput, true);
+assert.equal(summary.complete, true);
+assert.equal(summary.interrupted, false);
+assert.ok(beforeOutputFrame);
+
+console.log([
+  "vanilla status-surface consumer smoke ok",
+  "renderer=status-surface",
+  "beforeOutput=true",
+  "statePath=" + statePath,
+  "eventPath=" + eventPath,
+  "phasePath=" + phasePath,
+  "surfaceState=" + beforeOutputFrame.surface.attributes["data-presence-state"],
+  "surfacePhase=" + beforeOutputFrame.surface.attributes["data-presence-phase"],
+  "surfaceAttention=" + beforeOutputFrame.surface.attributes["data-presence-attention"],
+  "surfaceEvent=" + beforeOutputFrame.surface.attributes["data-presence-event"],
+  "assistantTextEmpty=" + beforeOutputFrame.surface.attributes["data-assistant-text-empty"],
+  "surfaceStreamOpenMs=" + beforeOutputFrame.surface.attributes["data-stream-open-ms"],
+  "surfaceFirstOutputMs=" + beforeOutputFrame.surface.attributes["data-first-output-ms"],
+  "surfaceLeadMs=" + beforeOutputFrame.surface.attributes["data-lead-ms"],
+  "streamOpenMs=" + formatMs(summary.streamOpenMs),
+  "firstOutputMs=" + formatMs(summary.firstOutputMs),
+  "leadMs=" + formatMs(summary.presenceBeforeOutputMs),
+  "presenceBeforeOutputMs=" + formatMs(summary.presenceBeforeOutputMs),
+  "finalState=" + (summary.finalState || "none"),
+  "hasOutput=" + summary.hasOutput,
+  "complete=" + summary.complete,
+  "interrupted=" + summary.interrupted,
+].join(" "));
+`,
+  );
+
+  writeFileSync(
     join(tempDir, "composer-lane-smoke.mjs"),
     `import assert from "node:assert/strict";
 import {
@@ -965,6 +1117,7 @@ console.log(`consumer smoke temp dir: ${tempDir}`);
 run("npm", ["install", "--ignore-scripts", "--no-audit", "--fund=false", ...installTargets]);
 run("node", ["esm-smoke.mjs"]);
 run("node", ["responses-smoke.mjs"]);
+run("node", ["vanilla-status-surface-smoke.mjs"]);
 run("node", ["composer-lane-smoke.mjs"]);
 run("node", ["assistant-lifecycle-smoke.mjs"]);
 run("node", ["assistant-ui-external-store-smoke.mjs"]);
