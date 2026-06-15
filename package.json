@@ -1,6 +1,6 @@
 {
   "name": "ai-presence-kit",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Low-latency facial presence engine for AI interfaces.",
   "workspaces": [

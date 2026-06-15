@@ -1,6 +1,6 @@
 # Release Readiness
 
-AI Presence Kit is a public `0.x` package family. `v0.1.2` is published, and the repository now has repeatable gates for major improvements and future releases.
+AI Presence Kit is a public `0.x` package family. `v0.1.3` is published, and the repository now has repeatable gates for major improvements and future releases.
 
 ## Public Package Surface
 
@@ -132,7 +132,7 @@ npm run release:check-names
 npm run release:check-scope
 ```
 
-The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished before the first public release. Public npm metadata for all four packages was verified at `0.1.2` on 2026-06-15. `release:check-names` is now historical/first-release evidence for the existing package names; ongoing releases use `npm run release:preflight`.
+The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished before the first public release. Public npm metadata for all four packages was verified at `0.1.3` on 2026-06-15. `release:check-names` is now historical/first-release evidence for the existing package names; ongoing releases use `npm run release:preflight`.
 
 Repeatable release gate:
 
@@ -143,6 +143,6 @@ npm run release:publish -- X.Y.Z
 npm run release:consumer-smoke -- X.Y.Z
 ```
 
-`npm run release:public-gate` checks the first-time visitor and collaborator-readiness surface. `npm run release:preflight` combines package validation, core and face latency gates, public-readiness checks, security/tarball preflight, `git diff --check`, and authenticated npm scope verification. `npm run release:publish -- X.Y.Z` publishes with token-safe npm config, verifies npm metadata, and runs `npm run release:consumer-smoke -- X.Y.Z`. The consumer smoke verifies a fresh consumer can install all four published packages, execute their ESM/CommonJS entrypoints, use installed `@ai-presence/core` plus `@ai-presence/adapters` to turn a generic chat lifecycle into `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted` before-output trace evidence, prove the OpenAI Responses adapter path with `response.created`, `response.output_item.added`, `response.output_text.delta`, and `response.completed` events, and prove the composer-lane adoption path from installed package APIs with `renderer=composer-lane`, before-output `waiting`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
+`npm run release:public-gate` checks the first-time visitor and collaborator-readiness surface. `npm run release:preflight` combines package validation, core and face latency gates, public-readiness checks, security/tarball preflight, `git diff --check`, and authenticated npm scope verification. `npm run release:publish -- X.Y.Z` publishes with token-safe npm config, verifies npm metadata, and runs `npm run release:consumer-smoke -- X.Y.Z`. The consumer smoke verifies a fresh consumer can install all four published packages, execute their ESM/CommonJS entrypoints, use installed `@ai-presence/core` plus `@ai-presence/adapters` to turn a generic chat lifecycle into `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted` before-output trace evidence, prove the OpenAI Responses adapter path with `response.created`, `response.output_item.added`, `response.output_text.delta`, and `response.completed` events, prove the assistant lifecycle adapter path with `composer-input`, `composer-pause`, `run-created`, `message-created`, `text-delta`, and `run-completed` events plus `surface=assistant-lifecycle`, `frameworkEventPath`, and `assistantOutputEmpty=true`, and prove the composer-lane adoption path from installed package APIs with `renderer=composer-lane`, before-output `waiting`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
 
 See `docs/RELEASE_RUNBOOK.md` for the full recurring process, including browser-smoke routes, npm publish order, post-publish metadata checks, and stop conditions.

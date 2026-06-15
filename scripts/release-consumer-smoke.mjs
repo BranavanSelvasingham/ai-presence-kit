@@ -65,6 +65,7 @@ assert.equal(typeof core.presenceControlInputsForSnapshot, "function");
 assert.equal(typeof core.summarizePresenceTrace, "function");
 
 assert.equal(typeof adapters.createChatEventAdapter, "function");
+assert.equal(typeof adapters.createAssistantLifecycleAdapter, "function");
 assert.equal(typeof adapters.createVercelAISDKAdapter, "function");
 assert.equal(typeof adapters.createOpenAIResponsesAdapter, "function");
 assert.equal(typeof adapters.openAIResponsesEventToRuntimeSignal, "function");
@@ -425,6 +426,179 @@ console.log([
   );
 
   writeFileSync(
+    join(tempDir, "assistant-lifecycle-smoke.mjs"),
+    `import assert from "node:assert/strict";
+import {
+  PresenceEvent,
+  createPresenceRuntime,
+  createPresenceTrace,
+  presenceControlInputsForSnapshot,
+  summarizePresenceTrace,
+} from "@ai-presence/core";
+import {
+  assistantLifecycleEventToRuntimeSignal,
+  createAssistantLifecycleAdapter,
+} from "@ai-presence/adapters";
+
+const threadId = "thread_consumer_smoke";
+const runId = "run_consumer_smoke";
+const messageId = "msg_consumer_smoke";
+let nowMs = 0;
+const presence = createPresenceRuntime({ now: () => nowMs });
+const trace = createPresenceTrace({ limit: 18 });
+const detachTrace = trace.attach(presence, { includeInitial: false });
+const assistantLifecycle = createAssistantLifecycleAdapter(presence);
+const frames = [];
+
+const surfaceState = {
+  threadId,
+  runId: null,
+  messageId: null,
+  assistantText: "",
+  lifecycle: "idle",
+};
+
+function formatMs(value) {
+  return Number.isFinite(Number(value)) ? String(Math.round(Number(value))) + "ms" : "none";
+}
+
+function surfaceForSnapshot(snapshot, controlInputs, summary, state) {
+  const assistantTextEmpty = state.assistantText.length === 0;
+  const beforeOutput = controlInputs.latencyPhase === "before-output"
+    && assistantTextEmpty
+    && !summary.hasOutput;
+
+  return Object.freeze({
+    surface: "assistant-lifecycle",
+    attributes: Object.freeze({
+      "data-surface": "assistant-lifecycle",
+      "data-thread-id": state.threadId,
+      "data-run-id": state.runId || "none",
+      "data-message-id": state.messageId || "none",
+      "data-lifecycle": state.lifecycle,
+      "data-presence-state": snapshot.state,
+      "data-presence-phase": controlInputs.latencyPhase,
+      "data-presence-attention": controlInputs.attentionTarget,
+      "data-presence-event": snapshot.event,
+      "data-assistant-output-empty": String(assistantTextEmpty),
+      "data-presence-before-output": String(beforeOutput),
+    }),
+  });
+}
+
+function captureFrame(atMs, snapshot) {
+  const controlInputs = presenceControlInputsForSnapshot(snapshot, { trace, now: atMs });
+  const summary = summarizePresenceTrace(trace);
+  const surface = surfaceForSnapshot(snapshot, controlInputs, summary, surfaceState);
+
+  frames.push({
+    atMs,
+    state: snapshot.state,
+    event: snapshot.event,
+    phase: controlInputs.latencyPhase,
+    lifecycle: surfaceState.lifecycle,
+    surface,
+  });
+}
+
+function sendAt(atMs, event, patch = {}) {
+  nowMs = atMs;
+  Object.assign(surfaceState, patch);
+  captureFrame(atMs, assistantLifecycle.handleEvent(event));
+}
+
+assert.equal(
+  assistantLifecycleEventToRuntimeSignal({ type: "text-delta", delta: "Hello" }).detail.text,
+  "Hello",
+);
+
+sendAt(0, { type: "composer-input", threadId, text: "Draft a release note." }, {
+  lifecycle: "composing",
+});
+sendAt(140, { type: "composer-pause", threadId, text: "Draft a release note.", completion: 0.5 }, {
+  lifecycle: "composing",
+});
+sendAt(260, { type: "run-created", threadId, runId }, {
+  runId,
+  lifecycle: "run-created",
+});
+sendAt(520, { type: "message-created", threadId, runId, messageId, role: "assistant" }, {
+  messageId,
+  assistantText: "",
+  lifecycle: "assistant-message-open",
+});
+sendAt(900, { type: "text-delta", threadId, runId, messageId, delta: "Installed packages prove this adapter." }, {
+  assistantText: "Installed packages prove this adapter.",
+  lifecycle: "assistant-text-delta",
+});
+sendAt(1240, { type: "run-completed", threadId, runId, messageId }, {
+  lifecycle: "run-completed",
+});
+
+detachTrace();
+
+const entries = trace.getEntries();
+const summary = summarizePresenceTrace(trace);
+const firstOutputMs = Number(summary.firstOutputMs);
+const beforeOutputFrame = frames.find((frame) => {
+  const attributes = frame.surface.attributes;
+
+  return frame.atMs < firstOutputMs
+    && frame.surface.surface === "assistant-lifecycle"
+    && attributes["data-run-id"] === runId
+    && attributes["data-message-id"] === messageId
+    && attributes["data-presence-state"] === "waiting"
+    && attributes["data-presence-phase"] === "before-output"
+    && attributes["data-presence-attention"] === "response"
+    && attributes["data-presence-event"] === "stream-open"
+    && attributes["data-assistant-output-empty"] === "true"
+    && attributes["data-presence-before-output"] === "true";
+});
+
+const statePath = entries.map((entry) => entry.state).join(">");
+const eventPath = entries.map((entry) => entry.event).join(">");
+const frameworkEventPath = frames.map((frame) => frame.lifecycle).join(">");
+const phasePath = frames.map((frame) => frame.phase).join(">");
+
+assert.equal(statePath, "user-typing>thinking>thinking>waiting>streaming>ready");
+assert.equal(eventPath, "user-input>user-pause>submit>stream-open>token>response-complete");
+assert.equal(frameworkEventPath, "composing>composing>run-created>assistant-message-open>assistant-text-delta>run-completed");
+assert.equal(phasePath, "input>before-output>before-output>before-output>output>recovery");
+assert.equal(summary.firstOutputEvent, PresenceEvent.TOKEN);
+assert.equal(summary.streamOpenMs, 520);
+assert.equal(summary.firstOutputMs, 900);
+assert.equal(summary.presenceBeforeOutputMs, 900);
+assert.equal(summary.finalState, "ready");
+assert.equal(summary.hasOutput, true);
+assert.equal(summary.complete, true);
+assert.equal(summary.interrupted, false);
+assert.ok(beforeOutputFrame);
+
+console.log([
+  "assistant-lifecycle consumer smoke ok",
+  "surface=assistant-lifecycle",
+  "beforeOutput=true",
+  "statePath=" + statePath,
+  "eventPath=" + eventPath,
+  "frameworkEventPath=" + frameworkEventPath,
+  "phasePath=" + phasePath,
+  "runId=" + beforeOutputFrame.surface.attributes["data-run-id"],
+  "messageId=" + beforeOutputFrame.surface.attributes["data-message-id"],
+  "surfaceState=" + beforeOutputFrame.surface.attributes["data-presence-state"],
+  "surfacePhase=" + beforeOutputFrame.surface.attributes["data-presence-phase"],
+  "assistantOutputEmpty=" + beforeOutputFrame.surface.attributes["data-assistant-output-empty"],
+  "streamOpenMs=" + formatMs(summary.streamOpenMs),
+  "firstOutputMs=" + formatMs(summary.firstOutputMs),
+  "leadMs=" + formatMs(summary.presenceBeforeOutputMs),
+  "finalState=" + (summary.finalState || "none"),
+  "hasOutput=" + summary.hasOutput,
+  "complete=" + summary.complete,
+  "interrupted=" + summary.interrupted,
+].join(" "));
+`,
+  );
+
+  writeFileSync(
     join(tempDir, "cjs-smoke.cjs"),
     `const assert = require("node:assert/strict");
 const core = require("@ai-presence/core");
@@ -439,6 +613,7 @@ runtime.send(core.PresenceEvent.SUBMIT);
 assert.equal(runtime.getSnapshot().state, core.PresenceState.THINKING);
 assert.match(face.renderPresenceFaceSvg(runtime.getSnapshot(), { now: 1000, timeMs: 1000 }).svg, /data-presence-state="thinking"/);
 assert.equal(typeof adapters.createChatEventAdapter, "function");
+assert.equal(typeof adapters.createAssistantLifecycleAdapter, "function");
 assert.equal(typeof adapters.createOpenAIResponsesAdapter, "function");
 assert.equal(typeof reactPresence.createPresenceReactBindings(React, { runtime }).PresenceRendererSlot, "function");
 
@@ -482,6 +657,7 @@ run("npm", ["install", "--ignore-scripts", "--no-audit", "--fund=false", ...inst
 run("node", ["esm-smoke.mjs"]);
 run("node", ["responses-smoke.mjs"]);
 run("node", ["composer-lane-smoke.mjs"]);
+run("node", ["assistant-lifecycle-smoke.mjs"]);
 run("node", ["cjs-smoke.cjs"]);
 assertInstalledVersions();
 

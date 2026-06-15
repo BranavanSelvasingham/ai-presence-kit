@@ -143,10 +143,14 @@ assert.match(releaseRunbook, /consumer smoke/);
 assert.match(releaseRunbook, /renderer-agnostic before-output trace evidence/);
 assert.match(releaseRunbook, /generic chat quickstart trace/);
 assert.match(releaseRunbook, /OpenAI Responses adapter path/);
+assert.match(releaseRunbook, /assistant lifecycle adapter path/);
 assert.match(releaseRunbook, /composer-lane adoption path/);
 assert.match(releaseRunbook, /installed `@ai-presence\/core` and `@ai-presence\/adapters`/);
 assert.match(releaseRunbook, /response\.created/);
 assert.match(releaseRunbook, /response\.output_text\.delta/);
+assert.match(releaseRunbook, /run-created.*message-created.*text-delta.*run-completed/s);
+assert.match(releaseRunbook, /surface=assistant-lifecycle/);
+assert.match(releaseRunbook, /assistantOutputEmpty=true/);
 assert.match(releaseRunbook, /Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates/);
 assert.match(releaseRunbook, /renderer=composer-lane/);
 
@@ -235,7 +239,7 @@ assert.match(releaseReadiness, /before the first visible token/);
 assert.match(releaseReadiness, /npm run perf:face/);
 assert.match(releaseReadiness, /package-level latency evidence/);
 assert.match(releaseReadiness, /2026-06-12/);
-assert.match(releaseReadiness, /0\.1\.2/);
+assert.match(releaseReadiness, /0\.1\.3/);
 assert.match(releaseReadiness, /npm run release:check-scope/);
 assert.match(releaseReadiness, /npm run release:preflight/);
 assert.match(releaseReadiness, /npm run release:consumer-smoke -- X\.Y\.Z/);
@@ -243,6 +247,10 @@ assert.match(releaseReadiness, /installed `@ai-presence\/core` plus `@ai-presenc
 assert.match(releaseReadiness, /statePath.*eventPath.*firstOutputMs.*leadMs/s);
 assert.match(releaseReadiness, /OpenAI Responses adapter path/);
 assert.match(releaseReadiness, /response\.created.*response\.output_item\.added.*response\.output_text\.delta.*response\.completed/s);
+assert.match(releaseReadiness, /assistant lifecycle adapter path/);
+assert.match(releaseReadiness, /composer-input.*composer-pause.*run-created.*message-created.*text-delta.*run-completed/s);
+assert.match(releaseReadiness, /surface=assistant-lifecycle/);
+assert.match(releaseReadiness, /assistantOutputEmpty=true/);
 assert.match(releaseReadiness, /composer-lane adoption path/);
 assert.match(releaseReadiness, /renderer=composer-lane/);
 assert.match(releaseReadiness, /streamOpenMs.*firstOutputMs.*leadMs/s);
@@ -255,6 +263,19 @@ assert.match(releaseConsumerSmoke, /createPresenceTrace/);
 assert.match(releaseConsumerSmoke, /presenceControlInputsForSnapshot/);
 assert.match(releaseConsumerSmoke, /summarizePresenceTrace/);
 assert.match(releaseConsumerSmoke, /createChatEventAdapter/);
+assert.match(releaseConsumerSmoke, /assistant-lifecycle-smoke\.mjs/);
+assert.match(releaseConsumerSmoke, /createAssistantLifecycleAdapter/);
+assert.match(releaseConsumerSmoke, /assistantLifecycleEventToRuntimeSignal/);
+assert.match(releaseConsumerSmoke, /type: "composer-input"/);
+assert.match(releaseConsumerSmoke, /type: "composer-pause"/);
+assert.match(releaseConsumerSmoke, /type: "run-created"/);
+assert.match(releaseConsumerSmoke, /type: "message-created"/);
+assert.match(releaseConsumerSmoke, /type: "text-delta"/);
+assert.match(releaseConsumerSmoke, /type: "run-completed"/);
+assert.match(releaseConsumerSmoke, /assistant-lifecycle consumer smoke ok/);
+assert.match(releaseConsumerSmoke, /surface=assistant-lifecycle/);
+assert.match(releaseConsumerSmoke, /frameworkEventPath=/);
+assert.match(releaseConsumerSmoke, /assistantOutputEmpty=/);
 assert.match(releaseConsumerSmoke, /responses-smoke\.mjs/);
 assert.match(releaseConsumerSmoke, /createOpenAIResponsesAdapter/);
 assert.match(releaseConsumerSmoke, /openAIResponsesEventToRuntimeSignal/);
@@ -309,7 +330,7 @@ assert.match(responsesConsumerSmoke, /summary\.presenceBeforeOutputMs/);
 assert.doesNotMatch(responsesConsumerSmoke, /@ai-presence\/face|@ai-presence\/react|react-dom|ReactDOM|renderPresenceFaceSvg|<svg|svg/i);
 
 const composerLaneSmokeStart = releaseConsumerSmoke.indexOf('join(tempDir, "composer-lane-smoke.mjs")');
-const composerLaneSmokeEnd = releaseConsumerSmoke.indexOf('join(tempDir, "cjs-smoke.cjs")');
+const composerLaneSmokeEnd = releaseConsumerSmoke.indexOf('join(tempDir, "assistant-lifecycle-smoke.mjs")');
 assert.ok(composerLaneSmokeStart > -1, "composer-lane smoke source missing");
 assert.ok(composerLaneSmokeEnd > composerLaneSmokeStart, "composer-lane smoke source boundary missing");
 const composerLaneConsumerSmoke = releaseConsumerSmoke.slice(
@@ -319,6 +340,21 @@ const composerLaneConsumerSmoke = releaseConsumerSmoke.slice(
 assert.match(composerLaneConsumerSmoke, /from "@ai-presence\/core"/);
 assert.match(composerLaneConsumerSmoke, /from "@ai-presence\/adapters"/);
 assert.doesNotMatch(composerLaneConsumerSmoke, /@ai-presence\/face|@ai-presence\/react|react-dom|ReactDOM|renderPresenceFaceSvg|<svg|svg/i);
+
+const assistantLifecycleSmokeStart = releaseConsumerSmoke.indexOf('join(tempDir, "assistant-lifecycle-smoke.mjs")');
+const assistantLifecycleSmokeEnd = releaseConsumerSmoke.indexOf('join(tempDir, "cjs-smoke.cjs")');
+assert.ok(assistantLifecycleSmokeStart > -1, "assistant lifecycle smoke source missing");
+assert.ok(assistantLifecycleSmokeEnd > assistantLifecycleSmokeStart, "assistant lifecycle smoke source boundary missing");
+const assistantLifecycleConsumerSmoke = releaseConsumerSmoke.slice(
+  assistantLifecycleSmokeStart,
+  assistantLifecycleSmokeEnd,
+);
+assert.match(assistantLifecycleConsumerSmoke, /from "@ai-presence\/core"/);
+assert.match(assistantLifecycleConsumerSmoke, /from "@ai-presence\/adapters"/);
+assert.match(assistantLifecycleConsumerSmoke, /createAssistantLifecycleAdapter/);
+assert.match(assistantLifecycleConsumerSmoke, /assistantLifecycleEventToRuntimeSignal/);
+assert.match(assistantLifecycleConsumerSmoke, /summary\.presenceBeforeOutputMs/);
+assert.doesNotMatch(assistantLifecycleConsumerSmoke, /@ai-presence\/face|@ai-presence\/react|react-dom|ReactDOM|renderPresenceFaceSvg|<svg|svg/i);
 
 const publicReleaseGate = readFileSync(resolve(root, "docs/PUBLIC_RELEASE_GATE.md"), "utf8");
 assert.match(publicReleaseGate, /Fresh-Eyes Gate/);
@@ -940,7 +976,7 @@ assert.match(rootReadme, /createAssistantLifecycleAdapter/);
 assert.match(rootReadme, /surface=assistant-lifecycle/);
 assert.match(rootReadme, /thread\/run\/message lifecycle/i);
 assert.match(rootReadme, /data-assistant-output-empty="true"/);
-assert.match(rootReadme, /release consumer smoke now repeats both the OpenAI Responses adapter path and the composer-lane pattern/i);
+assert.match(rootReadme, /release consumer smoke now repeats the OpenAI Responses adapter path, assistant lifecycle adapter path, and composer-lane pattern/i);
 assert.doesNotMatch(rootReadme, /three starter adapter paths/);
 assert.match(rootReadme, /framework-free non-face consumer proof/);
 assert.match(rootReadme, /real-app-style composer lane proof/);

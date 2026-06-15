@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.3 - 2026-06-15
+
+### Added
+
+- Added `createAssistantLifecycleAdapter`, `assistantLifecycleEventToRuntimeSignal`, `AssistantLifecycleStatus`, and `textFromAssistantLifecycleEvent` to `@ai-presence/adapters`.
+- Added framework-package-free assistant lifecycle proof coverage for thread, run, assistant message shell, text delta, and completion events, including before-output surface evidence while assistant text is still empty.
+- Added published-package consumer smoke coverage for the assistant lifecycle adapter path so npm releases verify the new adapter from installed `@ai-presence/core` and `@ai-presence/adapters`.
+
 ### Changed
 
 - Strengthened `npm run release:consumer-smoke` so installed-package release verification covers the OpenAI Responses adapter path, including before-output lead evidence from typed Responses streaming events.

@@ -533,7 +533,7 @@ Current adoption slice:
 
 - The real-app adoption slice is represented by `examples/composer-lane-presence.mjs` and `examples/react-browser-composer-lane.html`: a framework-free consumer plus a React/browser route that use package-shaped core/adapters/React APIs and prove before-output trace evidence without depending on the reference SVG face.
 - The assistant lifecycle adoption slice is represented by `createAssistantLifecycleAdapter` and `examples/assistant-lifecycle-presence.mjs`: a framework-package-free thread/run/message lifecycle path that proves an open assistant run and message shell can show `waiting` before visible text.
-- The release consumer smoke now repeats both the OpenAI Responses adapter path and the composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the runtime adapter and status/composer/progress/timeline handoff are publishable package surface rather than repo-local source.
+- The release consumer smoke now repeats the OpenAI Responses adapter path, assistant lifecycle adapter path, and composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the runtime adapter and status/composer/progress/timeline handoff are publishable package surface rather than repo-local source.
 
 Next iteration:
 
