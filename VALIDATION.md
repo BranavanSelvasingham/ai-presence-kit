@@ -44,7 +44,7 @@ npm run release:publish -- X.Y.Z
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
 - Browser or visual behavior: run the relevant browser route and inspect the output directly.
 - Major improvement work: `npm run validate`, `npm run release:public-gate` for public-facing changes, `git diff --check`, and `npm run browser:smoke` when visual, browser-facing, or release-gate behavior changed.
-- Packaging or release work: `npm run release:preflight`, `npm run browser:smoke`, `npm run release:publish -- X.Y.Z`, then push the release tag after npm verification passes.
+- Packaging or release work: `npm run release:preflight`, `npm run release:publish -- X.Y.Z`, then push the release tag after npm verification passes. `release:preflight` includes the local browser-smoke gate.
 
 ## Package-Level Performance Smoke
 
@@ -138,7 +138,7 @@ Run before publishing a new package version:
 npm run release:preflight
 ```
 
-This includes `npm run validate`, `npm run perf:core`, `npm run perf:face`, `npm run release:public-gate`, `npm run release:security`, `git diff --check`, and `npm run release:check-scope`.
+This includes `npm run validate`, `npm run perf:core`, `npm run perf:face`, `npm run release:public-gate`, `npm run release:security`, `git diff --check`, `npm run release:check-scope`, and `npm run browser:smoke`.
 
 `npm run release:security` confirms local env/npm config files are ignored and untracked, scans tracked files for token-shaped secret material without printing values, and checks package dry-run tarballs for forbidden files.
 

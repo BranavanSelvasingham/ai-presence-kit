@@ -83,14 +83,13 @@ Before public npm release:
 
 1. Log in to npm with an account that controls the `@ai-presence` scope.
 2. Run `npm run release:public-gate` when public or collaborator-facing surfaces changed.
-3. Run `npm run release:preflight`.
-4. Run `npm run browser:smoke` to verify the reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes.
-5. Bump root and workspace packages to the chosen release version.
-6. Update `CHANGELOG.md`.
-7. Re-run `npm run release:preflight`.
-8. Commit and tag the release.
-9. Publish with `npm run release:publish -- X.Y.Z`.
-10. Verify npm metadata, then push `main` and the release tag.
+3. Run `npm run release:preflight` to verify validation, performance, public readiness, security, npm scope access, and browser-smoke DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes.
+4. Bump root and workspace packages to the chosen release version.
+5. Update `CHANGELOG.md`.
+6. Re-run `npm run release:preflight`.
+7. Commit and tag the release.
+8. Publish with `npm run release:publish -- X.Y.Z`.
+9. Verify npm metadata, then push `main` and the release tag.
 
 `npm run release:check-names` is retained as historical first-release name-availability evidence; ongoing releases rely on `npm run release:check-scope` through the preflight gate.
 
