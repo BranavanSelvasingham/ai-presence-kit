@@ -157,7 +157,7 @@ If npm asks for a one-time password or passkey confirmation, complete it outside
 npm run release:consumer-smoke -- X.Y.Z
 ```
 
-The consumer smoke should cover both the generic chat quickstart trace and the composer-lane adoption path. The composer-lane proof must import only installed `@ai-presence/core` and `@ai-presence/adapters`, simulate Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates, and print `renderer=composer-lane`, before-output `waiting`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
+The consumer smoke should cover the generic chat quickstart trace, the OpenAI Responses adapter path, and the composer-lane adoption path. The Responses proof must import only installed `@ai-presence/core` and `@ai-presence/adapters`, simulate typed `response.created`, `response.output_item.added`, `response.output_text.delta`, and `response.completed` events, and print `responses consumer smoke ok`, before-output `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`. The composer-lane proof must also import only installed `@ai-presence/core` and `@ai-presence/adapters`, simulate Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates, and print `renderer=composer-lane`, before-output `waiting`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
 
 Confirm registry metadata for all packages:
 
@@ -188,4 +188,4 @@ Stop and fix before publishing or pushing if any of these are true:
 - package dry-run tarballs include env files, npm config, app/server files, lockfiles, `.git`, or `node_modules`
 - npm scope access fails
 - post-publish metadata is not visible
-- consumer smoke cannot install all four packages, execute all four package entrypoints, or prove the installed generic chat quickstart trace and composer-lane adoption path
+- consumer smoke cannot install all four packages, execute all four package entrypoints, or prove the installed generic chat quickstart trace, OpenAI Responses adapter path, and composer-lane adoption path

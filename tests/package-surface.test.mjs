@@ -136,8 +136,11 @@ assert.match(releaseRunbook, /tracked secret scan/);
 assert.match(releaseRunbook, /consumer smoke/);
 assert.match(releaseRunbook, /renderer-agnostic before-output trace evidence/);
 assert.match(releaseRunbook, /generic chat quickstart trace/);
+assert.match(releaseRunbook, /OpenAI Responses adapter path/);
 assert.match(releaseRunbook, /composer-lane adoption path/);
 assert.match(releaseRunbook, /installed `@ai-presence\/core` and `@ai-presence\/adapters`/);
+assert.match(releaseRunbook, /response\.created/);
+assert.match(releaseRunbook, /response\.output_text\.delta/);
 assert.match(releaseRunbook, /Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates/);
 assert.match(releaseRunbook, /renderer=composer-lane/);
 
@@ -240,6 +243,14 @@ assert.match(releaseConsumerSmoke, /createPresenceTrace/);
 assert.match(releaseConsumerSmoke, /presenceControlInputsForSnapshot/);
 assert.match(releaseConsumerSmoke, /summarizePresenceTrace/);
 assert.match(releaseConsumerSmoke, /createChatEventAdapter/);
+assert.match(releaseConsumerSmoke, /responses-smoke\.mjs/);
+assert.match(releaseConsumerSmoke, /createOpenAIResponsesAdapter/);
+assert.match(releaseConsumerSmoke, /openAIResponsesEventToRuntimeSignal/);
+assert.match(releaseConsumerSmoke, /type: "response\.created"/);
+assert.match(releaseConsumerSmoke, /type: "response\.output_item\.added"/);
+assert.match(releaseConsumerSmoke, /type: "response\.output_text\.delta"/);
+assert.match(releaseConsumerSmoke, /type: "response\.completed"/);
+assert.match(releaseConsumerSmoke, /responses consumer smoke ok/);
 assert.match(releaseConsumerSmoke, /type: "input"/);
 assert.match(releaseConsumerSmoke, /type: "pause"/);
 assert.match(releaseConsumerSmoke, /type: "submit"/);
@@ -270,6 +281,20 @@ assert.match(releaseConsumerSmoke, /composerLocked=/);
 assert.match(releaseConsumerSmoke, /assistantTextEmpty=/);
 assert.match(releaseConsumerSmoke, /progressStep=/);
 assert.match(releaseConsumerSmoke, /streamOpenMs=/);
+
+const responsesSmokeStart = releaseConsumerSmoke.indexOf('join(tempDir, "responses-smoke.mjs")');
+const responsesSmokeEnd = releaseConsumerSmoke.indexOf('join(tempDir, "composer-lane-smoke.mjs")');
+assert.ok(responsesSmokeStart > -1, "Responses smoke source missing");
+assert.ok(responsesSmokeEnd > responsesSmokeStart, "Responses smoke source boundary missing");
+const responsesConsumerSmoke = releaseConsumerSmoke.slice(
+  responsesSmokeStart,
+  responsesSmokeEnd,
+);
+assert.match(responsesConsumerSmoke, /from "@ai-presence\/core"/);
+assert.match(responsesConsumerSmoke, /from "@ai-presence\/adapters"/);
+assert.match(responsesConsumerSmoke, /createOpenAIResponsesAdapter/);
+assert.match(responsesConsumerSmoke, /summary\.presenceBeforeOutputMs/);
+assert.doesNotMatch(responsesConsumerSmoke, /@ai-presence\/face|@ai-presence\/react|react-dom|ReactDOM|renderPresenceFaceSvg|<svg|svg/i);
 
 const composerLaneSmokeStart = releaseConsumerSmoke.indexOf('join(tempDir, "composer-lane-smoke.mjs")');
 const composerLaneSmokeEnd = releaseConsumerSmoke.indexOf('join(tempDir, "cjs-smoke.cjs")');

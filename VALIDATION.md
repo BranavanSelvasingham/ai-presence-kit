@@ -126,7 +126,7 @@ npm run release:check-scope
 
 ## Post-Publish Consumer Smoke
 
-`npm run release:publish -- X.Y.Z` performs this automatically. After a manual npm publish, verify fresh consumer install, both ESM/CommonJS entrypoints, and installed `@ai-presence/core` plus `@ai-presence/adapters` evidence for the generic chat quickstart trace and composer-lane adoption path:
+`npm run release:publish -- X.Y.Z` performs this automatically. After a manual npm publish, verify fresh consumer install, both ESM/CommonJS entrypoints, and installed `@ai-presence/core` plus `@ai-presence/adapters` evidence for the generic chat quickstart trace, OpenAI Responses adapter path, and composer-lane adoption path:
 
 ```bash
 npm run release:consumer-smoke -- X.Y.Z
