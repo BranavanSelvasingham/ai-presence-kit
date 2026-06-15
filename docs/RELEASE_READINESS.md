@@ -107,7 +107,15 @@ It measures shared presence snapshots across all canonical states through `faceC
 
 Also run `git diff --check` before committing.
 
-Then browser-smoke:
+Then run the local browser-smoke release gate:
+
+```bash
+npm run browser:smoke
+```
+
+This command starts `server.mjs` on a temporary local port with OpenAI disabled, drives the local Chrome executable through the Chrome DevTools Protocol, fails on browser console exceptions or errors, verifies real browser-rendered DOM evidence for the documented route classes, prints concise per-route evidence lines, and stops the server. It is a local release gate, not part of GitHub Actions or the default `npm run validate` gate.
+
+The browser-smoke command verifies:
 
 - Reference demo loads with no console warnings or errors.
 - Default route exposes safe live server-backed response evidence on the document root, face shell, and metrics panel through `data-live-response-configured`, `data-live-response-stream`, `data-live-trace-summary`, `data-live-trace-entry-count`, `data-live-trace-first-output-ms`, `data-live-trace-first-output-event`, `data-live-trace-lead-ms`, `data-live-trace-final-state`, `data-live-trace-has-output`, and `data-live-trace-complete`.
@@ -123,7 +131,7 @@ Then browser-smoke:
 - React browser demo mirrors `summarizePresenceTrace` output onto the presence panel through `data-react-trace-summary="complete"`, `data-react-trace-entry-count`, `data-react-trace-first-output-ms`, `data-react-trace-first-output-event`, `data-react-trace-lead-ms`, `data-react-trace-final-state`, `data-react-trace-has-output`, and `data-react-trace-complete`.
 - React browser demo confirms the simulated pre-output turn reaches the renderer slot as `state=waiting` with `data-face-latency-phase="before-output"` before response text appears.
 - React browser demo confirms the same renderer slot drives a non-face status surface through `data-nonface-renderer="status-surface"`, `data-nonface-state="waiting"`, `data-nonface-phase="before-output"`, `data-nonface-attention="response"`, `data-nonface-event="stream-open"`, `data-nonface-frame-time`, and `data-nonface-before-output="true"` before response text appears.
-- React browser demo confirms the renderer slot mirrors adapter-driven transition context through `data-face-transition-context="thinking stream-open 0"`, `data-face-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-face-transition-controller-reads-event="true"`, and `data-face-transition-controller-reads-age="true"`.
+- React browser demo confirms the renderer slot mirrors adapter-driven transition context through `data-face-transition-context` beginning with `thinking stream-open`, `data-face-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-face-transition-controller-reads-event="true"`, and `data-face-transition-controller-reads-age="true"`.
 - React browser composer-lane route omits the face package while reusing `@ai-presence/core`, `@ai-presence/adapters`, and `@ai-presence/react`, then confirms `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
 - README media exists for the A/B comparison and React browser demo.
 
