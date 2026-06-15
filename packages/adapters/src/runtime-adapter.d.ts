@@ -69,6 +69,7 @@ export interface EventAdapter {
 
 export declare const RUNTIME_SIGNALS: readonly RuntimeSignalValue[];
 export declare const OPENAI_REALTIME_EVENT_MAP: Readonly<Record<string, RuntimeSignalValue>>;
+export declare const OPENAI_RESPONSES_EVENT_MAP: Readonly<Record<string, RuntimeSignalValue>>;
 
 export declare function applyRuntimeSignal(
   presenceRuntime: PresenceRuntime,
@@ -76,16 +77,19 @@ export declare function applyRuntimeSignal(
 ): PresenceSnapshot;
 export declare function chatEventToRuntimeSignal(event?: string | Record<string, unknown>): NormalizedRuntimeSignal;
 export declare function createChatEventAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): EventAdapter;
+export declare function createOpenAIResponsesAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): EventAdapter;
 export declare function createOpenAIRealtimeAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): EventAdapter;
 export declare function createRuntimeSignalAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): RuntimeSignalAdapter;
 export declare function createVercelAISDKAdapter(presenceRuntime: PresenceRuntime, options?: AdapterOptions): VercelAISDKAdapter;
 export declare function isRuntimeSignal(value: unknown): value is RuntimeSignalValue;
 export declare function lastAssistantText(messages?: Array<Record<string, unknown>>): string;
 export declare function normalizeRuntimeSignal(signal: RuntimeSignalValue | RuntimeSignalObject): NormalizedRuntimeSignal;
+export declare function openAIResponsesEventToRuntimeSignal(event?: string | Record<string, unknown>): NormalizedRuntimeSignal;
 export declare function openAIRealtimeEventToRuntimeSignal(event?: string | Record<string, unknown>): NormalizedRuntimeSignal;
 export declare function presenceEventForRuntimeSignal(signal: RuntimeSignalValue | RuntimeSignalObject): {
   event: PresenceEventValue;
   detail: Record<string, unknown>;
 };
+export declare function textFromOpenAIResponsesEvent(event?: string | Record<string, unknown>): string;
 export declare function textFromMessage(message: Record<string, unknown>): string;
 export declare function vercelAIStatusToRuntimeSignal(chatState?: VercelChatState | VercelAIStatusValue): NormalizedRuntimeSignal;

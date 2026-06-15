@@ -8,6 +8,7 @@ Current adapters:
 
 - `createRuntimeSignalAdapter`: generic signal-to-presence bridge.
 - `createVercelAISDKAdapter`: maps AI SDK chat statuses and callbacks to presence.
+- `createOpenAIResponsesAdapter`: maps OpenAI Responses streaming event objects to presence.
 - `createOpenAIRealtimeAdapter`: maps OpenAI Realtime server events to presence.
 - `createChatEventAdapter`: maps small generic chat lifecycle events to presence.
 
@@ -50,6 +51,28 @@ error -> error -> error
 ```
 
 This preserves the important distinction from the AI SDK docs and troubleshooting notes: `streaming` can begin before user-visible assistant text exists, so the presence state should be `waiting` until content arrives.
+
+## OpenAI Responses
+
+`createOpenAIResponsesAdapter` is an event-mapping helper, not an SDK wrapper. Pass each typed streaming event object from your Responses stream consumer to `handleEvent(event)`. The adapter branches on `event.type`, copies text or function-call argument chunks into `detail.delta` and `detail.text` when present, and never imports the OpenAI SDK, calls the network, or reads environment config.
+
+Adapter mapping:
+
+```text
+response.created -> model-waiting -> thinking
+response.in_progress -> stream-open -> waiting
+response.output_item.added -> stream-open -> waiting
+response.content_part.added -> stream-open -> waiting
+response.output_text.delta -> token -> streaming
+response.function_call_arguments.delta -> token -> streaming
+response.output_text.done -> response-complete -> ready
+response.function_call_arguments.done -> response-complete -> ready
+response.completed -> response-complete -> ready
+response.failed / error -> error -> error
+response.incomplete -> interrupt -> interrupted
+```
+
+This preserves presence-before-output: `response.created` can move the runtime into `thinking`, stream-opening events can move it into `waiting`, and the first `response.output_text.delta` moves it into `streaming`.
 
 ## OpenAI Realtime
 
