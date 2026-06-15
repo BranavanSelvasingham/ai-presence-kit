@@ -28,6 +28,8 @@ for (const requiredFile of [
   "tests/adapter-demo.test.mjs",
   "examples/quickstart-presence.mjs",
   "tests/quickstart-presence.test.mjs",
+  "examples/status-surface-presence.mjs",
+  "tests/status-surface-presence.test.mjs",
   "examples/react-browser.css",
   "examples/react-browser-demo.js",
   "examples/react-browser.html",
@@ -63,10 +65,12 @@ assert.match(rootManifest.scripts.check, /scripts\/capture-release-media\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-core-runtime\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/quickstart-presence\.mjs/);
+assert.match(rootManifest.scripts.check, /examples\/status-surface-presence\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
 assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-runtime.mjs");
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
 assert.equal(rootManifest.scripts["demo:quickstart"], "node examples/quickstart-presence.mjs");
+assert.equal(rootManifest.scripts["demo:status-surface"], "node examples/status-surface-presence.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
 assert.equal(rootManifest.scripts["release:public-gate"], "node scripts/release-public-readiness.mjs");
@@ -79,10 +83,12 @@ assert.match(rootManifest.scripts.validate, /npm run check/);
 assert.match(rootManifest.scripts.validate, /npm test/);
 assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
 assert.match(rootManifest.scripts.validate, /npm run demo:quickstart/);
+assert.match(rootManifest.scripts.validate, /npm run demo:status-surface/);
 assert.match(rootManifest.scripts.validate, /npm run demo:react/);
 assert.match(rootManifest.scripts.validate, /npm run pack:dry-run/);
 assert.match(rootManifest.scripts.test, /tests\/adapter-demo\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/quickstart-presence\.test\.mjs/);
+assert.match(rootManifest.scripts.test, /tests\/status-surface-presence\.test\.mjs/);
 
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
@@ -129,7 +135,14 @@ assert.match(releaseReadiness, /interruptMs/);
 assert.match(releaseReadiness, /interrupted/);
 assert.match(releaseReadiness, /npm run perf:core/);
 assert.match(releaseReadiness, /npm run demo:quickstart/);
+assert.match(releaseReadiness, /npm run demo:status-surface/);
 assert.match(releaseReadiness, /no-network adoption proof/);
+assert.match(releaseReadiness, /framework-free non-face consumer proof/);
+assert.match(releaseReadiness, /renderer=status-surface/);
+assert.match(releaseReadiness, /data-renderer="status-surface"/);
+assert.match(releaseReadiness, /data-presence-state="waiting"/);
+assert.match(releaseReadiness, /data-presence-phase="before-output"/);
+assert.match(releaseReadiness, /data-presence-before-output="true"/);
 assert.match(releaseReadiness, /renderer-agnostic package path before the face renderer/);
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
 assert.match(releaseReadiness, /faceControllerDecisionTraceForFrame/);
@@ -233,8 +246,12 @@ assert.match(integrationQuickstart, /renderer-agnostic presence state layer/);
 assert.match(integrationQuickstart, /observable presence-before-output evidence/);
 assert.match(integrationQuickstart, /not emotion detection or private emotion inference/i);
 assert.match(integrationQuickstart, /node examples\/quickstart-presence\.mjs/);
+assert.match(integrationQuickstart, /node examples\/status-surface-presence\.mjs/);
 assert.match(integrationQuickstart, /statePath/);
 assert.match(integrationQuickstart, /eventPath/);
+assert.match(integrationQuickstart, /renderer=status-surface/);
+assert.match(integrationQuickstart, /data-renderer="status-surface"/);
+assert.match(integrationQuickstart, /data-presence-before-output/);
 assert.match(integrationQuickstart, /leadMs/);
 assert.match(integrationQuickstart, /npm install @ai-presence\/core @ai-presence\/adapters/);
 assert.match(integrationQuickstart, /npm install @ai-presence\/react @ai-presence\/face/);
@@ -283,6 +300,9 @@ assert.match(validation, /npm run release:capture-media/);
 assert.match(validation, /npm run perf:core/);
 assert.match(validation, /createPresenceRuntime\(\)\.send/);
 assert.match(validation, /0\.35ms/);
+assert.match(validation, /npm run demo:status-surface/);
+assert.match(validation, /renderer=status-surface/);
+assert.match(validation, /data-presence-phase/);
 assert.match(validation, /data-nonface-renderer="status-surface"/);
 assert.match(validation, /data-nonface-before-output="true"/);
 assert.match(validation, /npm run perf:face/);
@@ -383,6 +403,35 @@ assert.match(quickstartPresence, /hasOutput=/);
 assert.match(quickstartPresence, /complete=/);
 assert.match(quickstartPresence, /interrupted=/);
 assert.doesNotMatch(quickstartPresence, /emotion[- ]detection|private emotion|private inference/i);
+
+const statusSurfacePresence = readFileSync(resolve(root, "examples/status-surface-presence.mjs"), "utf8");
+assert.match(statusSurfacePresence, /@ai-presence\/core/);
+assert.match(statusSurfacePresence, /@ai-presence\/adapters/);
+assert.match(statusSurfacePresence, /createPresenceRuntime/);
+assert.match(statusSurfacePresence, /createPresenceTrace/);
+assert.match(statusSurfacePresence, /presenceControlInputsForSnapshot/);
+assert.match(statusSurfacePresence, /summarizePresenceTrace/);
+assert.match(statusSurfacePresence, /createChatEventAdapter/);
+assert.match(statusSurfacePresence, /data-renderer/);
+assert.match(statusSurfacePresence, /data-presence-state/);
+assert.match(statusSurfacePresence, /data-presence-phase/);
+assert.match(statusSurfacePresence, /data-presence-attention/);
+assert.match(statusSurfacePresence, /data-presence-event/);
+assert.match(statusSurfacePresence, /data-presence-before-output/);
+assert.match(statusSurfacePresence, /renderer=status-surface/);
+assert.match(statusSurfacePresence, /statePath=/);
+assert.match(statusSurfacePresence, /eventPath=/);
+assert.match(statusSurfacePresence, /phasePath=/);
+assert.match(statusSurfacePresence, /beforeOutput=true/);
+assert.match(statusSurfacePresence, /firstOutputMs=/);
+assert.match(statusSurfacePresence, /leadMs=/);
+assert.match(statusSurfacePresence, /finalState=/);
+assert.match(statusSurfacePresence, /hasOutput=/);
+assert.match(statusSurfacePresence, /complete=/);
+assert.match(statusSurfacePresence, /interrupted=/);
+assert.doesNotMatch(statusSurfacePresence, /@ai-presence\/face|packages\/face|renderPresenceFaceSvg|faceExpressionForPresence/);
+assert.doesNotMatch(statusSurfacePresence, /@ai-presence\/react|react-dom|ReactDOM|createPresenceReactBindings/);
+assert.doesNotMatch(statusSurfacePresence, /emotion[- ]detection|private emotion|private inference/i);
 
 const coreRuntimeBenchmark = readFileSync(resolve(root, "scripts/benchmark-core-runtime.mjs"), "utf8");
 assert.match(coreRuntimeBenchmark, /createPresenceRuntime/);
@@ -647,7 +696,11 @@ assert.match(rootReadme, /AI interfaces, expressive systems, interaction design,
 assert.match(rootReadme, /docs\/INTEGRATION_QUICKSTART\.md/);
 assert.match(rootReadme, /minimal copyable path from published packages/);
 assert.match(rootReadme, /examples\/quickstart-presence\.mjs/);
+assert.match(rootReadme, /examples\/status-surface-presence\.mjs/);
 assert.match(rootReadme, /npm run demo:quickstart/);
+assert.match(rootReadme, /npm run demo:status-surface/);
+assert.match(rootReadme, /framework-free non-face consumer proof/);
+assert.match(rootReadme, /data-renderer="status-surface"/);
 assert.match(rootReadme, /next real-app adoption slice/i);
 assert.doesNotMatch(rootReadme, /Create or confirm control of the npm `@ai-presence` scope before publishing/);
 assert.match(rootReadme, /main-app-release\.png/);

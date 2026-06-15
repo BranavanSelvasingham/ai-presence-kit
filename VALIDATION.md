@@ -58,6 +58,14 @@ npm run perf:face
 
 This local benchmark covers shared presence snapshots across all canonical presence states through both `faceControllerFrameForPresence` -> `faceControllerDecisionTraceForFrame` and the full `renderPresenceFaceSvg` reference renderer path. It validates complete six-channel, renderer-safe, warning-free trace evidence and enforces conservative average budgets: `0.25ms` for frame+trace and `0.75ms` for SVG renderer evidence. It is not a browser route, network probe, OpenAI latency probe, or part of the default `npm run validate` gate.
 
+## Framework-Free Non-Face Smoke
+
+```bash
+npm run demo:status-surface
+```
+
+This local no-browser smoke drives `@ai-presence/core` and `@ai-presence/adapters` through a generic chat lifecycle, then maps each snapshot and control-input handoff into a plain status surface. It should print `renderer=status-surface`, `data-presence-state` evidence for `waiting`, `data-presence-phase` evidence for `before-output`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
+
 ## Browser Smoke Routes
 
 ```text
