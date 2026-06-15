@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,6 +17,9 @@ const packages = [
   { name: "@ai-presence/adapters", dir: "packages/adapters" },
   { name: "@ai-presence/react", dir: "packages/react" },
 ];
+
+const registryVisibilityAttempts = readIntegerEnv("AI_PRESENCE_NPM_VISIBILITY_ATTEMPTS", 24, 1);
+const registryVisibilityDelayMs = readIntegerEnv("AI_PRESENCE_NPM_VISIBILITY_DELAY_MS", 5000, 0);
 
 if (!version) {
   console.error("Usage: npm run release:publish -- <version> [--dry-run] [--allow-dirty]");
@@ -38,6 +42,16 @@ function fail(message, detail = "") {
   console.error(message);
   if (detail) console.error(detail);
   process.exit(1);
+}
+
+function readIntegerEnv(name, fallback, minimum) {
+  const value = Number.parseInt(process.env[name] || "", 10);
+  if (!Number.isFinite(value) || value < minimum) return fallback;
+  return value;
+}
+
+function pluralize(count, singular, plural = `${singular}s`) {
+  return count === 1 ? singular : plural;
 }
 
 function run(command, commandArgs, options = {}) {
@@ -167,8 +181,12 @@ function assertManifestVersions() {
   }
 }
 
+function registrySpec(packageName, latest = false) {
+  return latest ? packageName : `${packageName}@${version}`;
+}
+
 function registryVersion(packageName, npmEnv, latest = false) {
-  const spec = latest ? packageName : `${packageName}@${version}`;
+  const spec = registrySpec(packageName, latest);
   const result = capture("npm", ["view", spec, "version"], {
     env: npmEnv,
     allowFailure: true,
@@ -179,7 +197,40 @@ function registryVersion(packageName, npmEnv, latest = false) {
   fail(`Unable to inspect npm registry metadata for ${spec}.`, result.stderr.trim());
 }
 
-function publishPackage(packageInfo, npmEnv) {
+async function waitForRegistryVersion(packageName, npmEnv, options = {}) {
+  const latest = options.latest || false;
+  const context = options.context || "registry metadata check";
+  const expected = options.expected || version;
+  const spec = registrySpec(packageName, latest);
+  let observed = null;
+
+  for (let attempt = 1; attempt <= registryVisibilityAttempts; attempt += 1) {
+    observed = registryVersion(packageName, npmEnv, latest);
+    if (observed === expected) {
+      if (attempt > 1) {
+        console.log(`${spec}: npm registry metadata visible as ${observed}`);
+      }
+      return observed;
+    }
+
+    if (attempt < registryVisibilityAttempts) {
+      const state = observed ? `found ${observed}` : "not visible";
+      console.log(
+        `${spec}: npm registry metadata ${state}; waiting ${registryVisibilityDelayMs}ms before retry ` +
+          `(${context}, attempt ${attempt}/${registryVisibilityAttempts})`,
+      );
+      if (registryVisibilityDelayMs > 0) await delay(registryVisibilityDelayMs);
+    }
+  }
+
+  fail(
+    `${spec}: expected npm registry metadata ${expected}; found ${observed || "missing"} after ` +
+      `${registryVisibilityAttempts} ${pluralize(registryVisibilityAttempts, "attempt")} ` +
+      `for ${context}.`,
+  );
+}
+
+async function publishPackage(packageInfo, npmEnv) {
   const alreadyPublished = registryVersion(packageInfo.name, npmEnv);
   if (alreadyPublished === version && !dryRun) {
     console.log(`${packageInfo.name}@${version}: already published, skipping publish`);
@@ -193,37 +244,41 @@ function publishPackage(packageInfo, npmEnv) {
   run("npm", publishArgs, { env: npmEnv });
 
   if (!dryRun) {
-    const published = registryVersion(packageInfo.name, npmEnv);
-    if (published !== version) {
-      fail(`${packageInfo.name}@${version} is not visible after publish.`);
-    }
+    await waitForRegistryVersion(packageInfo.name, npmEnv, {
+      context: "after accepted publish",
+    });
   }
 }
 
-loadReleaseEnv();
-const npmEnv = createNpmEnv();
+async function main() {
+  loadReleaseEnv();
+  const npmEnv = createNpmEnv();
 
-assertCleanGit();
-assertReleaseTag();
-assertManifestVersions();
+  assertCleanGit();
+  assertReleaseTag();
+  assertManifestVersions();
 
-for (const packageInfo of packages) publishPackage(packageInfo, npmEnv);
+  for (const packageInfo of packages) await publishPackage(packageInfo, npmEnv);
 
-if (dryRun) {
-  console.log(`release publish dry-run passed for ${version}`);
-  process.exit(0);
-}
-
-for (const packageInfo of packages) {
-  const exactVersion = registryVersion(packageInfo.name, npmEnv);
-  if (exactVersion !== version) fail(`${packageInfo.name}@${version}: expected exact npm metadata.`);
-
-  const latestVersion = registryVersion(packageInfo.name, npmEnv, true);
-  if (latestVersion !== version) {
-    fail(`${packageInfo.name}: npm latest is ${latestVersion || "missing"}; expected ${version}.`);
+  if (dryRun) {
+    console.log(`release publish dry-run passed for ${version}`);
+    process.exit(0);
   }
+
+  for (const packageInfo of packages) {
+    await waitForRegistryVersion(packageInfo.name, npmEnv, {
+      context: "final exact metadata check",
+    });
+
+    await waitForRegistryVersion(packageInfo.name, npmEnv, {
+      latest: true,
+      context: "final latest metadata check",
+    });
+  }
+
+  run("npm", ["run", "release:consumer-smoke", "--", version], { env: npmEnv });
+
+  console.log(`release publish passed for ${version}`);
 }
 
-run("npm", ["run", "release:consumer-smoke", "--", version], { env: npmEnv });
-
-console.log(`release publish passed for ${version}`);
+await main();

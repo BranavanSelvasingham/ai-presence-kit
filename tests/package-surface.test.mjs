@@ -159,6 +159,18 @@ assert.match(releaseRunbook, /surface=assistant-lifecycle/);
 assert.match(releaseRunbook, /assistantOutputEmpty=true/);
 assert.match(releaseRunbook, /Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates/);
 assert.match(releaseRunbook, /renderer=composer-lane/);
+assert.match(releaseRunbook, /npm registry propagation delays do not require manual reruns/);
+assert.match(releaseRunbook, /bounded wait for npm registry metadata propagation/);
+
+const releasePublish = readFileSync(resolve(root, "scripts/release-publish.mjs"), "utf8");
+assert.match(releasePublish, /AI_PRESENCE_NPM_VISIBILITY_ATTEMPTS/);
+assert.match(releasePublish, /AI_PRESENCE_NPM_VISIBILITY_DELAY_MS/);
+assert.match(releasePublish, /waitForRegistryVersion/);
+assert.match(releasePublish, /after accepted publish/);
+assert.match(releasePublish, /final exact metadata check/);
+assert.match(releasePublish, /final latest metadata check/);
+assert.match(releasePublish, /already published, skipping publish/);
+assert.match(releasePublish, /release publish dry-run passed/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
 assert.match(releaseReadiness, /summarizePresenceTrace/);
