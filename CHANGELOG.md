@@ -5,6 +5,7 @@
 ### Changed
 
 - Strengthened `npm run release:consumer-smoke` so installed-package release verification covers the OpenAI Responses adapter path, including before-output lead evidence from typed Responses streaming events.
+- Aligned public release/readiness docs with the published `0.1.2` OpenAI Responses adapter surface and four-path adapter demo.
 
 ## 0.1.2 - 2026-06-15
 

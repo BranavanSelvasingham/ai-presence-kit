@@ -300,7 +300,7 @@ npm run pack:dry-run
 
 `npm run demo:composer-lane` runs a real-app-style composer lane proof from `examples/composer-lane-presence.mjs`. It simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates, then maps the renderer-agnostic snapshot and trace summary into a status bar, locked message composer, progress lane, and trace timeline. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` without importing the SVG face renderer.
 
-`npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
+`npm run demo:adapters` prints Vercel AI SDK, OpenAI Responses, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
 
 `npm run perf:core` runs a local package-level smoke benchmark for the renderer-agnostic runtime path. It drives `createPresenceRuntime().send(...)`, Vercel AI SDK and generic chat adapters, `createPresenceTrace().record(...)`, and `summarizePresenceTrace(...)` through completed traces with `thinking` and `waiting` before the first `token`, final `ready`, `hasOutput=true`, and `complete=true`. It is local core/adapters/trace latency evidence, not a browser latency probe, OpenAI call, face-renderer benchmark, or release-blocking CI gate.
 
@@ -484,10 +484,10 @@ Validation notes:
 - Browser validation covered Shift+Enter newline behavior, click-send clear/focus, prefetch reuse after submit, and typing-to-interrupt stale OpenAI response work.
 - Package-shaped no-build surfaces now exist for core state, face renderer mapping, and generic runtime-signal adapters.
 - A/B comparison harness now contrasts generic loading against AI Presence Kit with the same simulated first-token latency.
-- Framework-facing starter adapters now cover Vercel AI SDK statuses, OpenAI Realtime server events, and generic chat lifecycle events.
+- Framework-facing starter adapters now cover Vercel AI SDK statuses, OpenAI Responses streaming events, OpenAI Realtime server events, and generic chat lifecycle events.
 - Core runtime subscriptions and the first React binding factory now support provider, snapshot hook, state hook, and renderer-slot patterns without adding a build step.
 - Each package now has npm-style manifests and TypeScript declaration files.
-- `npm run demo:adapters` prints adapter-to-presence traces, reference face frame evidence, and six-channel decision-trace evidence for the three starter adapter paths.
+- `npm run demo:adapters` prints adapter-to-presence traces, reference face frame evidence, and six-channel decision-trace evidence for the four starter adapter paths.
 - `npm run perf:face` prints compact package-level face-pipeline timing evidence across all canonical states while validating complete, renderer-safe, warning-free six-channel decision traces for both the controller frame path and full SVG renderer path.
 - `npm pack --dry-run` passes for `@ai-presence/core`, `@ai-presence/face`, `@ai-presence/adapters`, and `@ai-presence/react` when using a writable npm cache.
 - React usage is covered by `examples/react-presence-demo.js`, `examples/react-browser.html`, `examples/react-browser-composer-lane.html`, `npm run demo:react`, `tests/react-example.test.mjs`, and `tests/react-browser-example.test.mjs`.
@@ -503,9 +503,9 @@ Validation notes:
 Current adoption slice:
 
 - The real-app adoption slice is represented by `examples/composer-lane-presence.mjs` and `examples/react-browser-composer-lane.html`: a framework-free consumer plus a React/browser route that use package-shaped core/adapters/React APIs and prove before-output trace evidence without depending on the reference SVG face.
-- The release consumer smoke now repeats that composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the status/composer/progress/timeline handoff is publishable package surface rather than repo-local source.
+- The release consumer smoke now repeats both the OpenAI Responses adapter path and the composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the runtime adapter and status/composer/progress/timeline handoff are publishable package surface rather than repo-local source.
 
 Next iteration:
 
-- Carry the installed-package composer-lane gate through the next publish, then validate the same pattern against a hosted framework route when the package version is intentionally advanced.
+- Validate the same renderer-agnostic adapter and composer-lane pattern against the next real integration surface, such as assistant-ui, LangChain-style streaming, or a hosted framework route, when the package version is intentionally advanced.
 - Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.
