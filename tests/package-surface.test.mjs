@@ -1149,6 +1149,8 @@ assert.match(rootReadme, /examples\/composer-lane-presence\.mjs/);
 assert.match(rootReadme, /examples\/assistant-lifecycle-presence\.mjs/);
 assert.match(rootReadme, /examples\/assistant-ui-external-store-presence\.mjs/);
 assert.match(rootReadme, /examples\/react-browser-composer-lane\.html/);
+assert.match(rootReadme, /npm run browser:smoke/);
+assert.match(rootReadme, /local release gate, not part of CI or the default `npm run validate` gate/);
 assert.match(rootReadme, /OpenAI Responses adapter usage/);
 assert.match(rootReadme, /createOpenAIResponsesAdapter/);
 assert.match(rootReadme, /response\.created/);
