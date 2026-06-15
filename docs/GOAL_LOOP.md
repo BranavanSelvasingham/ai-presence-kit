@@ -185,7 +185,7 @@ Validate:
 - React browser smoke evidence now includes helper-derived `data-react-trace-summary="complete"`, `data-react-trace-first-output-ms`, `data-react-trace-lead-ms`, `data-react-trace-final-state`, `data-react-trace-has-output`, and `data-react-trace-complete` on the actual React proof surface.
 - Vercel AI SDK smoke evidence now includes `framework=vercel-ai-sdk`, `statusPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `abortState=interrupted`, and `errorState=error`.
 - The repeatable local browser gate now runs as `npm run browser:smoke` and checks rendered DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, face-free composer-lane, and vanilla status-surface routes.
-- Published-package consumer smoke now covers generic chat, OpenAI Responses, assistant lifecycle, assistant-ui ExternalStoreRuntime, vanilla status-surface, and composer-lane adoption paths from installed packages.
+- Published-package consumer smoke now covers generic chat, OpenAI Responses, Vercel AI SDK `useChat`, assistant lifecycle, assistant-ui ExternalStoreRuntime, vanilla status-surface, and composer-lane adoption paths from installed packages.
 
 ## Loop 7: Collaborator And Adoption Path
 
