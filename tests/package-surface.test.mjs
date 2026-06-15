@@ -34,6 +34,7 @@ for (const requiredFile of [
   "tests/composer-lane-presence.test.mjs",
   "examples/react-browser.css",
   "examples/react-browser-demo.js",
+  "examples/react-browser-composer-lane.html",
   "examples/react-browser.html",
   "examples/react-presence-demo.js",
   "package-lock.json",
@@ -118,6 +119,7 @@ assert.match(releasePolicy, /scope/);
 const releaseRunbook = readFileSync(resolve(root, "docs/RELEASE_RUNBOOK.md"), "utf8");
 assert.match(releaseRunbook, /Fresh-Eyes Gate/);
 assert.match(releaseRunbook, /npm run release:public-gate/);
+assert.match(releaseRunbook, /react-browser-composer-lane\.html\?autorun=1/);
 assert.match(releaseRunbook, /npm run release:preflight/);
 assert.match(releaseRunbook, /npm run release:security/);
 assert.match(releaseRunbook, /npm run release:publish -- X\.Y\.Z/);
@@ -160,6 +162,11 @@ assert.match(releaseReadiness, /data-presence-before-output="true"/);
 assert.match(releaseReadiness, /data-composer-lock="true"/);
 assert.match(releaseReadiness, /data-assistant-text-empty="true"/);
 assert.match(releaseReadiness, /data-progress-step="stream-open"/);
+assert.match(releaseReadiness, /react-browser-composer-lane\.html/);
+assert.match(releaseReadiness, /omits the face package/);
+assert.match(releaseReadiness, /data-stream-open-ms="420ms"/);
+assert.match(releaseReadiness, /data-first-output-ms="none"/);
+assert.match(releaseReadiness, /positive `data-lead-ms`/);
 assert.match(releaseReadiness, /renderer-agnostic package path before the face renderer/);
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
 assert.match(releaseReadiness, /faceControllerDecisionTraceForFrame/);
@@ -357,6 +364,9 @@ assert.match(validation, /renderer=status-surface/);
 assert.match(validation, /renderer=composer-lane/);
 assert.match(validation, /data-presence-phase/);
 assert.match(validation, /data-composer-lock/);
+assert.match(validation, /react-browser-composer-lane\.html\?autorun=1/);
+assert.match(validation, /data-stream-open-ms="420ms"/);
+assert.match(validation, /data-first-output-ms="none"/);
 assert.match(validation, /data-nonface-renderer="status-surface"/);
 assert.match(validation, /data-nonface-before-output="true"/);
 assert.match(validation, /npm run perf:face/);
@@ -791,6 +801,7 @@ assert.match(rootReadme, /minimal copyable path from published packages/);
 assert.match(rootReadme, /examples\/quickstart-presence\.mjs/);
 assert.match(rootReadme, /examples\/status-surface-presence\.mjs/);
 assert.match(rootReadme, /examples\/composer-lane-presence\.mjs/);
+assert.match(rootReadme, /examples\/react-browser-composer-lane\.html/);
 assert.match(rootReadme, /npm run demo:quickstart/);
 assert.match(rootReadme, /npm run demo:status-surface/);
 assert.match(rootReadme, /npm run demo:composer-lane/);
@@ -798,7 +809,12 @@ assert.match(rootReadme, /framework-free non-face consumer proof/);
 assert.match(rootReadme, /real-app-style composer lane proof/);
 assert.match(rootReadme, /data-renderer="status-surface"/);
 assert.match(rootReadme, /data-renderer="composer-lane"/);
-assert.match(rootReadme, /next real-app adoption slice/i);
+assert.match(rootReadme, /face-free React composer-lane route/);
+assert.match(rootReadme, /without loading `@ai-presence\/face`/);
+assert.match(rootReadme, /data-stream-open-ms="420ms"/);
+assert.match(rootReadme, /data-first-output-ms="none"/);
+assert.match(rootReadme, /positive `data-lead-ms`/);
+assert.match(rootReadme, /real-app adoption slice/i);
 assert.doesNotMatch(rootReadme, /Create or confirm control of the npm `@ai-presence` scope before publishing/);
 assert.match(rootReadme, /main-app-release\.png/);
 assert.doesNotMatch(rootReadme, /presence-comparison-release\.png/);

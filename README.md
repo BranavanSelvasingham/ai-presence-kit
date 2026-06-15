@@ -87,6 +87,8 @@ The comparison harness remains a validation route rather than the lead visual. I
 The React browser demo runs the provider, snapshot hook, renderer slot, adapter path, and face expression mapping with actual React and ReactDOM. The actual renderer slot exposes six-channel trace DOM evidence: `data-face-decision-trace="complete"`, `data-face-decision-trace-channels="gaze blink brows mouth posture motion"`, `data-face-decision-trace-decisions="6"`, `data-face-decision-trace-warnings="0"`, `data-face-decision-trace-renderer-safe="true"`, and `data-face-latency-phase="before-output"` during the pre-output turn. The same slot also drives a non-face status surface with `data-nonface-renderer="status-surface"`, `data-nonface-state`, `data-nonface-phase`, `data-nonface-attention`, `data-nonface-event`, `data-nonface-frame-time`, and `data-nonface-before-output="true"` before response text appears. It also mirrors renderer-agnostic trace-summary evidence through `data-react-trace-summary="complete"`, `data-react-trace-first-output-ms`, `data-react-trace-lead-ms`, and `data-react-trace-final-state`.
 It also mirrors transition context from the rendered SVG as `data-face-transition-context="thinking stream-open 0"`, `data-face-transition-controller-reads="gaze blink brows mouth posture motion"`, `data-face-transition-controller-reads-event="true"`, and `data-face-transition-controller-reads-age="true"` so adapter-driven pre-output cues stay visible without recomputing face internals.
 
+The React composer-lane route reuses the same provider, renderer slot, and Vercel AI SDK adapter path without loading `@ai-presence/face`. It shows the real-app adoption pattern in browser DOM: before assistant text appears, the lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms`.
+
 The controller gallery route (`?controllerGallery=1`) exposes transition-cue proof for fresh `submit`, `stream-open`, `token`, and `interrupt` events. Its DOM evidence includes `data-transition-events="submit stream-open token interrupt"`, `data-transition-decision-trace="complete"`, and `data-transition-controller-reads="gaze blink brows mouth posture motion"` so all six controller decisions are inspectable against recent transition context.
 
 ## Package Shape
@@ -334,6 +336,14 @@ http://127.0.0.1:8058/examples/react-browser.html
 
 It uses the installed React and ReactDOM UMD builds, then drives `@ai-presence/react`, `@ai-presence/adapters`, the reference face mapping, and a non-face status surface in a real rendered React tree. Browser smoke should click Run and confirm the renderer slot reports `state=waiting`, `data-face-latency-phase="before-output"`, complete six-channel decision-trace evidence, 6 decisions, 0 warnings, and `data-face-decision-trace-renderer-safe="true"` before output appears. It should also confirm the sibling status surface reports `data-nonface-renderer="status-surface"`, `data-nonface-state="waiting"`, `data-nonface-phase="before-output"`, and `data-nonface-before-output="true"` while response text is still empty.
 
+The face-free React composer-lane route is available at:
+
+```text
+http://127.0.0.1:8058/examples/react-browser-composer-lane.html
+```
+
+It uses the same React bindings and adapter path but does not load the face package. Browser smoke should confirm `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
+
 Expected `.env` keys:
 
 ```bash
@@ -480,7 +490,7 @@ Validation notes:
 - `npm run demo:adapters` prints adapter-to-presence traces, reference face frame evidence, and six-channel decision-trace evidence for the three starter adapter paths.
 - `npm run perf:face` prints compact package-level face-pipeline timing evidence across all canonical states while validating complete, renderer-safe, warning-free six-channel decision traces for both the controller frame path and full SVG renderer path.
 - `npm pack --dry-run` passes for `@ai-presence/core`, `@ai-presence/face`, `@ai-presence/adapters`, and `@ai-presence/react` when using a writable npm cache.
-- React usage is covered by `examples/react-presence-demo.js`, `examples/react-browser.html`, `npm run demo:react`, `tests/react-example.test.mjs`, and `tests/react-browser-example.test.mjs`.
+- React usage is covered by `examples/react-presence-demo.js`, `examples/react-browser.html`, `examples/react-browser-composer-lane.html`, `npm run demo:react`, `tests/react-example.test.mjs`, and `tests/react-browser-example.test.mjs`.
 - ESM import entrypoints now sit beside the CommonJS/browser-global source files for all four packages.
 - A browser React demo now uses real React and ReactDOM runtime builds to exercise the provider, snapshot hook, renderer slot, adapter path, and face expression mapping.
 - README media now shows the A/B comparison harness and the real React browser demo.
@@ -492,10 +502,10 @@ Validation notes:
 
 Current adoption slice:
 
-- The next real-app adoption slice is now represented by `examples/composer-lane-presence.mjs`: a framework-free consumer that uses package-shaped core/adapters APIs and proves before-output trace evidence without depending on the reference SVG face.
+- The real-app adoption slice is represented by `examples/composer-lane-presence.mjs` and `examples/react-browser-composer-lane.html`: a framework-free consumer plus a React/browser route that use package-shaped core/adapters/React APIs and prove before-output trace evidence without depending on the reference SVG face.
 - The release consumer smoke now repeats that composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the status/composer/progress/timeline handoff is publishable package surface rather than repo-local source.
 
 Next iteration:
 
-- Carry the installed-package composer-lane gate through the next publish, then validate the same pattern in a specific framework route when the package version is intentionally advanced.
+- Carry the installed-package composer-lane gate through the next publish, then validate the same pattern against a hosted framework route when the package version is intentionally advanced.
 - Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.

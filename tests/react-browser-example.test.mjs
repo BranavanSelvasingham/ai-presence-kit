@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 const require = createRequire(import.meta.url);
 const root = resolve(new URL("..", import.meta.url).pathname);
 const html = readFileSync(resolve(root, "examples/react-browser.html"), "utf8");
+const composerLaneHtml = readFileSync(resolve(root, "examples/react-browser-composer-lane.html"), "utf8");
 const script = readFileSync(resolve(root, "examples/react-browser-demo.js"), "utf8");
 const css = readFileSync(resolve(root, "examples/react-browser.css"), "utf8");
 const {
@@ -25,6 +26,16 @@ assert.match(html, /packages\/core\/src\/presence-core\.js/);
 assert.match(html, /packages\/face\/src\/presence-face\.js/);
 assert.match(html, /packages\/react\/src\/presence-react\.js/);
 assert.match(html, /data-react-demo-root/);
+
+assert.match(composerLaneHtml, /packages\/core\/src\/presence-core\.js/);
+assert.match(composerLaneHtml, /packages\/adapters\/src\/runtime-adapter\.js/);
+assert.match(composerLaneHtml, /packages\/react\/src\/presence-react\.js/);
+assert.match(composerLaneHtml, /node_modules\/react\/umd\/react\.production\.min\.js/);
+assert.match(composerLaneHtml, /node_modules\/react-dom\/umd\/react-dom\.production\.min\.js/);
+assert.match(composerLaneHtml, /react-browser-demo\.js\?mode=composer-lane/);
+assert.match(composerLaneHtml, /data-react-demo-root/);
+assert.doesNotMatch(composerLaneHtml, /packages\/face|presence-face|AIPresenceFace|@ai-presence\/face/);
+assert.doesNotMatch(composerLaneHtml, /emotion/i);
 
 assert.match(script, /ReactDOM\.createRoot/);
 assert.match(script, /createPresenceReactBindings\(React, \{ runtime \}\)/);
@@ -96,7 +107,39 @@ assert.match(script, /controllerReadChannels\(renderedFace\.decisionTrace, "tran
 assert.match(script, /decisionTrace\.decisions\[channel\]\?\.reads/);
 assert.match(script, /data-renderer-slot-face/);
 assert.match(script, /@ai-presence\/face/);
+assert.match(script, /function ComposerLaneApp/);
+assert.match(script, /function ComposerLaneSurface/);
+assert.match(script, /function composerLaneTraceEvidence/);
+assert.match(script, /summarizePresenceTrace\(trace\)/);
+assert.match(script, /reactDemoMode/);
+assert.match(script, /searchParams\.get\("mode"\)/);
+assert.match(script, /data-react-composer-lane-route/);
+assert.match(script, /data-react-composer-lane-stream-open-ms/);
+assert.match(script, /data-react-composer-lane-first-output-ms/);
+assert.match(script, /data-react-composer-lane-lead-ms/);
+assert.match(script, /data-react-composer-lane-has-output/);
+assert.match(script, /data-renderer": "composer-lane"/);
+assert.match(script, /data-presence-state/);
+assert.match(script, /data-presence-phase/);
+assert.match(script, /data-presence-attention/);
+assert.match(script, /data-presence-event/);
+assert.match(script, /data-presence-before-output/);
+assert.match(script, /data-composer-lock/);
+assert.match(script, /data-assistant-text-empty/);
+assert.match(script, /data-progress-step/);
+assert.match(script, /data-stream-open-ms/);
+assert.match(script, /data-first-output-ms/);
+assert.match(script, /data-lead-ms/);
+assert.match(script, /pendingComposerLeadMs/);
 assert.doesNotMatch(script, /emotion/i);
+
+const composerLaneSource = script.match(/function ComposerLaneApp\([\s\S]*?\n  function PresencePanel/);
+assert.ok(composerLaneSource, "ComposerLaneApp source missing");
+assert.match(composerLaneSource[0], /bindings\.PresenceProvider/);
+assert.match(composerLaneSource[0], /bindings\.PresenceRendererSlot/);
+assert.match(composerLaneSource[0], /createPresenceTrace\(\{ limit: 24 \}\)/);
+assert.match(composerLaneSource[0], /aiSdkPresence\.update/);
+assert.doesNotMatch(composerLaneSource[0], /PresenceFace|renderPresenceFaceSvg|faceExpressionForPresence|renderedFace|data-face-|<svg|svg/i);
 
 const nonFaceSurfaceSource = script.match(/function NonFaceRendererSurface\([\s\S]*?\n  }\n\n  function reactTraceSummaryEvidence/);
 assert.ok(nonFaceSurfaceSource, "NonFaceRendererSurface source missing");
@@ -143,6 +186,66 @@ assert.equal(reactTraceSummary.presenceBeforeOutputMs, 980);
 assert.equal(reactTraceSummary.finalState, PresenceState.READY);
 assert.equal(reactTraceSummary.hasOutput, true);
 assert.equal(reactTraceSummary.complete, true);
+
+const composerRuntime = createPresenceRuntime({ initialState: PresenceState.IDLE });
+const composerAdapter = createVercelAISDKAdapter(composerRuntime);
+const composerTrace = createPresenceTrace({ limit: 24 });
+const composerMessages = [{ role: "user", content: "Write a concise launch note for before-output presence." }];
+
+function recordComposerAt(snapshot, updatedAt) {
+  composerTrace.record({
+    ...snapshot,
+    updatedAt,
+  });
+}
+
+recordComposerAt(composerAdapter.update({ status: "submitted", messages: composerMessages }), 0);
+const composerWaitingSnapshot = composerAdapter.update({ status: "streaming", messages: composerMessages });
+recordComposerAt(composerWaitingSnapshot, 420);
+const pendingComposerSummary = summarizePresenceTrace(composerTrace);
+const composerWaitingInputs = presenceControlInputsForSnapshot(composerWaitingSnapshot, {
+  now: composerWaitingSnapshot.updatedAt,
+});
+assert.equal(composerWaitingSnapshot.state, PresenceState.WAITING);
+assert.equal(composerWaitingSnapshot.event, PresenceEvent.STREAM_OPEN);
+assert.equal(composerWaitingInputs.latencyPhase, "before-output");
+assert.equal(composerWaitingInputs.attentionTarget, "response");
+assert.equal(pendingComposerSummary.streamOpenMs, 420);
+assert.equal(pendingComposerSummary.hasOutput, false);
+assert.equal(String(
+  composerWaitingInputs.latencyPhase === "before-output"
+    && pendingComposerSummary.hasOutput === false,
+), "true");
+
+recordComposerAt(composerAdapter.update({
+  status: "streaming",
+  messages: [
+    ...composerMessages,
+    { role: "assistant", content: "Lead with the pre-output" },
+  ],
+}), 980);
+recordComposerAt(composerAdapter.update({
+  status: "streaming",
+  messages: [
+    ...composerMessages,
+    { role: "assistant", content: "Lead with the pre-output posture evidence." },
+  ],
+}), 1520);
+recordComposerAt(composerAdapter.update({
+  status: "ready",
+  messages: [
+    ...composerMessages,
+    { role: "assistant", content: "Lead with the pre-output posture evidence." },
+  ],
+}), 2080);
+const composerTraceSummary = summarizePresenceTrace(composerTrace);
+assert.equal(composerTraceSummary.entryCount, 5);
+assert.equal(composerTraceSummary.streamOpenMs, 420);
+assert.equal(composerTraceSummary.firstOutputMs, 980);
+assert.equal(composerTraceSummary.presenceBeforeOutputMs, 980);
+assert.equal(composerTraceSummary.finalState, PresenceState.READY);
+assert.equal(composerTraceSummary.hasOutput, true);
+assert.equal(composerTraceSummary.complete, true);
 
 const waitingInputs = presenceControlInputsForSnapshot(waitingSnapshot, { now: waitingSnapshot.updatedAt });
 assert.equal(waitingSnapshot.state, PresenceState.WAITING);
@@ -201,6 +304,9 @@ assert.equal(renderedFace.attributes.decisionTrace, "complete");
 assert.match(css, /grid-template-columns/);
 assert.match(css, /nonface-status-surface/);
 assert.match(css, /data-nonface-phase="before-output"/);
+assert.match(css, /composer-lane-surface/);
+assert.match(css, /data-presence-phase="before-output"/);
+assert.match(css, /composer-lane-progress/);
 assert.match(css, /@media \(max-width: 760px\)/);
 
 console.log("react-browser-example ok");

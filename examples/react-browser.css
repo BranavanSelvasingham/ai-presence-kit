@@ -129,6 +129,67 @@ h1 {
   box-shadow: 0 0 0 4px rgba(138, 111, 43, 0.16);
 }
 
+.composer-lane-surface {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0 0;
+}
+
+.composer-lane-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  border: 1px solid rgba(28, 38, 32, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.composer-lane-surface[data-presence-phase="before-output"] .nonface-status-dot {
+  background: #8a6f2b;
+  box-shadow: 0 0 0 4px rgba(138, 111, 43, 0.16);
+}
+
+.composer-lane-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(28, 38, 32, 0.1);
+}
+
+.composer-lane-progress-fill {
+  display: block;
+  width: 38%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+  transition: width 180ms ease, background 180ms ease;
+}
+
+.composer-lane-surface[data-presence-phase="before-output"] .composer-lane-progress-fill {
+  width: 58%;
+  background: #8a6f2b;
+}
+
+.composer-lane-surface[data-presence-phase="output"] .composer-lane-progress-fill,
+.composer-lane-surface[data-presence-phase="recovery"] .composer-lane-progress-fill {
+  width: 100%;
+}
+
+.composer-lane-readout {
+  margin-top: 4px;
+}
+
+.composer-lane-timeline {
+  margin-top: 18px;
+}
+
+.composer-response-output:empty::before {
+  content: "";
+}
+
 .nonface-status-state {
   min-width: 0;
   font-weight: 800;
@@ -200,6 +261,11 @@ textarea:focus {
   box-shadow: 0 0 0 4px rgba(49, 95, 77, 0.1);
 }
 
+textarea:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .button-row {
   display: flex;
   flex-wrap: wrap;
@@ -259,6 +325,10 @@ button:disabled {
   }
 
   .nonface-status-surface {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .composer-lane-status {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
