@@ -41,6 +41,8 @@ git diff --check
 npm run release:publish -- X.Y.Z
 ```
 
+`npm run release:preflight` includes the local browser-smoke gate, so publish readiness requires browser-rendered DOM evidence without adding Chrome to CI or `npm run validate`.
+
 `npm run release:publish -- X.Y.Z` publishes in dependency order, verifies npm metadata for all four packages, and runs the published-package consumer smoke. It reads `NPM_TOKEN` from the environment or `.env.release.local` through a temporary npm config that is deleted after the command exits.
 
 Do not paste npm tokens into chat, docs, commit messages, shell history, or logs.

@@ -12,6 +12,7 @@ const gates = [
   { label: "release security preflight", command: "npm", args: ["run", "release:security"] },
   { label: "whitespace diff check", command: "git", args: ["diff", "--check"] },
   { label: "authenticated npm scope check", command: "npm", args: ["run", "release:check-scope"] },
+  { label: "browser smoke DOM evidence", command: "npm", args: ["run", "browser:smoke"] },
 ];
 
 function runGate(gate) {

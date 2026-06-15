@@ -107,10 +107,13 @@ This runs:
 - `npm run release:security`
 - `git diff --check`
 - `npm run release:check-scope`
+- `npm run browser:smoke`
 
 `npm run release:security` verifies `.env` and npm config files are ignored and untracked, scans tracked files for OpenAI/npm-token-shaped secrets without printing secret values, and confirms package dry-run tarballs do not include forbidden files.
 
 `npm run release:check-scope` can use either an active npm login or `NPM_TOKEN` from the ignored `.env.release.local` file. It writes only a temporary npm config and removes it before exiting. If a granular token cannot list org packages, the check falls back to per-package registry metadata.
+
+`npm run browser:smoke` is included in `release:preflight` for publish readiness. A missing local Chrome executable is a release visibility gap; set `CHROME_PATH` to a local Chrome executable and rerun preflight.
 
 Do not paste API keys, npm tokens, or npm OTP values into chat, docs, commit messages, or logs.
 

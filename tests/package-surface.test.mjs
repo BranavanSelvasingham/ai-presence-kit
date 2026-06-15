@@ -114,9 +114,18 @@ assert.match(rootManifest.scripts.test, /tests\/composer-lane-presence\.test\.mj
 assert.match(rootManifest.scripts.test, /tests\/assistant-lifecycle-presence\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/assistant-ui-external-store-presence\.test\.mjs/);
 
+const releasePreflight = readFileSync(resolve(root, "scripts/release-preflight.mjs"), "utf8");
+assert.match(releasePreflight, /label: "browser smoke DOM evidence"/);
+assert.match(releasePreflight, /args: \["run", "browser:smoke"\]/);
+assert.ok(
+  releasePreflight.indexOf("release:check-scope") < releasePreflight.indexOf("browser:smoke"),
+  "browser smoke should not run before authenticated npm scope checks in release preflight",
+);
+
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
 assert.match(workflow, /npm run validate/);
+assert.doesNotMatch(workflow, /browser:smoke/);
 
 const readme = readFileSync(resolve(root, "README.md"), "utf8");
 assert.match(readme, /renderer-agnostic presence state layer for AI interfaces/);
