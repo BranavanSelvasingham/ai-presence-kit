@@ -601,10 +601,16 @@ assert.match(operatingManual, /Browser-smoke the reference, metrics, comparison,
 
 const goalLoop = readFileSync(resolve(root, "docs/GOAL_LOOP.md"), "utf8");
 assert.match(goalLoop, /2026-06-12/);
-assert.match(goalLoop, /0\.1\.1/);
+assert.match(goalLoop, /0\.1\.4/);
 assert.match(goalLoop, /no-network quickstart adoption proof/);
 assert.match(goalLoop, /npm run release:check-scope/);
 assert.match(goalLoop, /summarizePresenceTrace/);
+assert.match(goalLoop, /createOpenAIResponsesAdapter/);
+assert.match(goalLoop, /createAssistantLifecycleAdapter/);
+assert.match(goalLoop, /assistant-ui ExternalStoreRuntime proof/);
+assert.match(goalLoop, /npm run browser:smoke/);
+assert.match(goalLoop, /Published-package consumer smoke now covers generic chat, OpenAI Responses, assistant lifecycle, assistant-ui ExternalStoreRuntime, and composer-lane adoption paths/);
+assert.doesNotMatch(goalLoop, /Minimal assistant-ui or adjacent app-framework adapter as the next adoption check/);
 assert.match(goalLoop, /firstOutputMs/);
 assert.match(goalLoop, /leadMs/);
 assert.match(goalLoop, /interruptMs/);
