@@ -1,6 +1,6 @@
 {
   "name": "@ai-presence/adapters",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Runtime signal adapters for AI Presence Kit.",
   "type": "commonjs",
   "main": "./src/runtime-adapter.js",
@@ -20,7 +20,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@ai-presence/core": "0.1.1"
+    "@ai-presence/core": "0.1.2"
   },
   "sideEffects": false,
   "license": "MIT"

@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+## 0.1.2 - 2026-06-15
+
 ### Added
 
+- Added `createOpenAIResponsesAdapter`, `openAIResponsesEventToRuntimeSignal`, `OPENAI_RESPONSES_EVENT_MAP`, and `textFromOpenAIResponsesEvent` to `@ai-presence/adapters`.
+- Added renderer-agnostic OpenAI Responses streaming trace evidence to the adapter demo, including `thinking` and `waiting` before the first `response.output_text.delta`.
+- Added package docs and integration quickstart coverage for mapping typed OpenAI Responses streaming events into presence runtime signals without importing the OpenAI SDK or reading environment config.
 - Added `CONTRIBUTING.md` with collaborator paths for AI interface, expressive system, SVG/rendering, adapter, React proof, and release-gate work.
 - Added `docs/PUBLIC_RELEASE_GATE.md` and `npm run release:public-gate` for first-time visitor and collaborator-readiness checks.
 - Added `npm run release:publish -- X.Y.Z` for token-safe npm publishing, registry verification, and published-package consumer smoke.
@@ -12,6 +17,14 @@
 
 - Updated README, release policy, release runbook, operating manual, validation docs, and package-surface tests so public-facing milestones include a fresh-eyes gate before broad release claims.
 - Sharpened `CORE_PILLARS.md`, `docs/ORCHESTRATION_LOOP.md`, and `docs/GOAL_LOOP.md` around the renderer-agnostic presence-layer objective, product wedge, non-goals, and automation steering rubric.
+- Updated `npm run release:check-scope` to support the same ignored `.env.release.local` `NPM_TOKEN` path as the publish script, including a per-package metadata fallback for granular tokens that cannot list org packages.
+
+### Validation
+
+- Passed `npm run validate`.
+- Passed `npm run release:public-gate`.
+- Passed `npm run release:security`.
+- Passed CI for PR #73.
 
 ## 0.1.1 - 2026-06-14
 
