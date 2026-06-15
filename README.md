@@ -168,7 +168,7 @@ Intended public packages:
 @ai-presence/adapters
 ```
 
-First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, or `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface.
+First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, or `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence.
 
 Minimal core usage:
 
@@ -288,12 +288,15 @@ npm test
 npm run demo:adapters
 npm run demo:quickstart
 npm run demo:react
+npm run demo:composer-lane
 npm run pack:dry-run
 ```
 
 `npm run demo:quickstart` runs the no-network adoption proof from `examples/quickstart-presence.mjs`, mapping generic chat lifecycle events through `@ai-presence/adapters` and printing `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 `npm run demo:status-surface` runs a framework-free non-face consumer proof from `examples/status-surface-presence.mjs`. It maps the same adapter-driven lifecycle into a plain status surface with `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, and `data-presence-before-output="true"` before the first output.
+
+`npm run demo:composer-lane` runs a real-app-style composer lane proof from `examples/composer-lane-presence.mjs`. It simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates, then maps the renderer-agnostic snapshot and trace summary into a status bar, locked message composer, progress lane, and trace timeline. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` without importing the SVG face renderer.
 
 `npm run demo:adapters` prints Vercel AI SDK, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
 
@@ -487,7 +490,11 @@ Validation notes:
 - Browser validation covered the comparison route, pre-token presence cues, equal first-token timing, same response text, no state leak between panes, desktop two-column layout, and mobile no-overflow layout.
 - `npm run check`, `npm test`, and `git diff --check` pass for the current prototype.
 
+Current adoption slice:
+
+- The next real-app adoption slice is now represented by `examples/composer-lane-presence.mjs`: a framework-free consumer that uses package-shaped core/adapters APIs and proves before-output trace evidence without depending on the reference SVG face.
+
 Next iteration:
 
-- Build the next real-app adoption slice: a fresh consumer or framework integration that runs the published packages and proves before-output trace evidence without depending on the reference SVG face.
+- Validate the composer-lane pattern against a fresh installed-package consumer or a specific framework route once the package version is intentionally advanced.
 - Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.

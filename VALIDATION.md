@@ -66,6 +66,14 @@ npm run demo:status-surface
 
 This local no-browser smoke drives `@ai-presence/core` and `@ai-presence/adapters` through a generic chat lifecycle, then maps each snapshot and control-input handoff into a plain status surface. It should print `renderer=status-surface`, `data-presence-state` evidence for `waiting`, `data-presence-phase` evidence for `before-output`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
 
+## Real-App Composer Lane Smoke
+
+```bash
+npm run demo:composer-lane
+```
+
+This local no-browser smoke drives a Vercel AI SDK-style lifecycle through `@ai-presence/core` and `@ai-presence/adapters`, then maps each snapshot and trace summary into a non-face status bar, message composer, progress lane, and trace timeline. It should print `renderer=composer-lane`, `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
+
 ## Browser Smoke Routes
 
 ```text

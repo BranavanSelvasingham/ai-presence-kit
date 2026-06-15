@@ -42,12 +42,15 @@ Command-line demos:
 npm run demo:adapters
 npm run demo:quickstart
 npm run demo:status-surface
+npm run demo:composer-lane
 npm run demo:react
 ```
 
 `npm run demo:quickstart` runs a no-network adoption proof that maps generic chat lifecycle events through the package APIs and prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 `npm run demo:status-surface` runs a framework-free non-face consumer proof that maps the same adapter-driven lifecycle into a plain status surface. It prints `renderer=status-surface`, `statePath`, `eventPath`, `phasePath`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the surface model exposes `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, and `data-presence-before-output="true"` before the first output.
+
+`npm run demo:composer-lane` runs a real-app-style composer lane proof that simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates without a framework dependency. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the lane model exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` before the first output.
 
 `npm run demo:adapters` reports compact trace summaries for adapter-driven turns, including `interruptMs` and `interrupted` so interruption posture is observable without importing the face renderer into core.
 
@@ -74,6 +77,7 @@ npm test
 npm run demo:adapters
 npm run demo:quickstart
 npm run demo:status-surface
+npm run demo:composer-lane
 npm run demo:react
 npm run pack:dry-run
 ```
