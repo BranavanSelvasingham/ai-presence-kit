@@ -174,7 +174,7 @@ Intended public packages:
 @ai-presence/adapters
 ```
 
-First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, or `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence.
+First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence, or `node examples/assistant-lifecycle-presence.mjs` to see a thread/run/message lifecycle surface expose the open run before assistant text exists.
 
 Minimal core usage:
 
@@ -222,6 +222,17 @@ aiSdkPresence.update({
   messages: [{ role: "assistant", parts: [{ type: "text", text: "Hello" }] }],
 });
 aiSdkPresence.onFinish({ finishReason: "stop" });
+```
+
+Assistant lifecycle adapter usage:
+
+```js
+const assistantPresence = AIPresenceAdapters.createAssistantLifecycleAdapter(presence);
+
+assistantPresence.handleEvent({ type: "run-created", threadId, runId });
+assistantPresence.handleEvent({ type: "message-created", threadId, runId, messageId });
+assistantPresence.handleEvent({ type: "text-delta", threadId, runId, messageId, delta: "Hello" });
+assistantPresence.handleEvent({ type: "run-completed", threadId, runId });
 ```
 
 Realtime adapter usage:
@@ -306,6 +317,7 @@ npm run demo:adapters
 npm run demo:quickstart
 npm run demo:react
 npm run demo:composer-lane
+npm run demo:assistant-lifecycle
 npm run pack:dry-run
 ```
 
@@ -315,7 +327,9 @@ npm run pack:dry-run
 
 `npm run demo:composer-lane` runs a real-app-style composer lane proof from `examples/composer-lane-presence.mjs`. It simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates, then maps the renderer-agnostic snapshot and trace summary into a status bar, locked message composer, progress lane, and trace timeline. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` without importing the SVG face renderer.
 
-`npm run demo:adapters` prints Vercel AI SDK, OpenAI Responses, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
+`npm run demo:assistant-lifecycle` runs an assistant app lifecycle proof from `examples/assistant-lifecycle-presence.mjs`. It simulates a thread/run/message opening before visible assistant text, then prints `surface=assistant-lifecycle`, `statePath`, `eventPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output surface exposes `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-output-empty="true"`, and `data-presence-before-output="true"`.
+
+`npm run demo:adapters` prints Vercel AI SDK, assistant lifecycle, OpenAI Responses, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
 
 `npm run perf:core` runs a local package-level smoke benchmark for the renderer-agnostic runtime path. It drives `createPresenceRuntime().send(...)`, Vercel AI SDK and generic chat adapters, `createPresenceTrace().record(...)`, and `summarizePresenceTrace(...)` through completed traces with `thinking` and `waiting` before the first `token`, final `ready`, `hasOutput=true`, and `complete=true`. It is local core/adapters/trace latency evidence, not a browser latency probe, OpenAI call, face-renderer benchmark, or release-blocking CI gate.
 
@@ -499,10 +513,10 @@ Validation notes:
 - Browser validation covered Shift+Enter newline behavior, click-send clear/focus, prefetch reuse after submit, and typing-to-interrupt stale OpenAI response work.
 - Package-shaped no-build surfaces now exist for core state, face renderer mapping, and generic runtime-signal adapters.
 - A/B comparison harness now contrasts generic loading against AI Presence Kit with the same simulated first-token latency.
-- Framework-facing starter adapters now cover Vercel AI SDK statuses, OpenAI Responses streaming events, OpenAI Realtime server events, and generic chat lifecycle events.
+- Framework-facing starter adapters now cover assistant lifecycle events, Vercel AI SDK statuses, OpenAI Responses streaming events, OpenAI Realtime server events, and generic chat lifecycle events.
 - Core runtime subscriptions and the first React binding factory now support provider, snapshot hook, state hook, and renderer-slot patterns without adding a build step.
 - Each package now has npm-style manifests and TypeScript declaration files.
-- `npm run demo:adapters` prints adapter-to-presence traces, reference face frame evidence, and six-channel decision-trace evidence for the four starter adapter paths.
+- `npm run demo:adapters` prints adapter-to-presence traces, reference face frame evidence, and six-channel decision-trace evidence for the five starter adapter paths.
 - `npm run perf:face` prints compact package-level face-pipeline timing evidence across all canonical states while validating complete, renderer-safe, warning-free six-channel decision traces for both the controller frame path and full SVG renderer path.
 - `npm pack --dry-run` passes for `@ai-presence/core`, `@ai-presence/face`, `@ai-presence/adapters`, and `@ai-presence/react` when using a writable npm cache.
 - React usage is covered by `examples/react-presence-demo.js`, `examples/react-browser.html`, `examples/react-browser-composer-lane.html`, `npm run demo:react`, `tests/react-example.test.mjs`, and `tests/react-browser-example.test.mjs`.
@@ -518,9 +532,10 @@ Validation notes:
 Current adoption slice:
 
 - The real-app adoption slice is represented by `examples/composer-lane-presence.mjs` and `examples/react-browser-composer-lane.html`: a framework-free consumer plus a React/browser route that use package-shaped core/adapters/React APIs and prove before-output trace evidence without depending on the reference SVG face.
+- The assistant lifecycle adoption slice is represented by `createAssistantLifecycleAdapter` and `examples/assistant-lifecycle-presence.mjs`: a framework-package-free thread/run/message lifecycle path that proves an open assistant run and message shell can show `waiting` before visible text.
 - The release consumer smoke now repeats both the OpenAI Responses adapter path and the composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the runtime adapter and status/composer/progress/timeline handoff are publishable package surface rather than repo-local source.
 
 Next iteration:
 
-- Validate the same renderer-agnostic adapter and composer-lane pattern against the next real integration surface, such as assistant-ui, LangChain-style streaming, or a hosted framework route, when the package version is intentionally advanced.
+- Validate the same renderer-agnostic adapter and assistant lifecycle pattern against a named framework route when exact current event names can be verified from primary docs.
 - Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.

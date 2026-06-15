@@ -8,6 +8,7 @@ const {
   summarizePresenceTrace,
 } = require("../packages/core/src/presence-core.js");
 const {
+  createAssistantLifecycleAdapter,
   createChatEventAdapter,
   createOpenAIResponsesAdapter,
   createOpenAIRealtimeAdapter,
@@ -127,6 +128,24 @@ vercelAdapter.update({
 });
 vercelAdapter.onFinish({ finishReason: "stop" });
 
+const assistantLifecycle = collect("assistant-lifecycle");
+const assistantLifecycleAdapter = createAssistantLifecycleAdapter(assistantLifecycle.runtime, assistantLifecycle.options);
+assistantLifecycleAdapter.handleEvent({ type: "run-created", threadId: "thread_1", runId: "run_1" });
+assistantLifecycleAdapter.handleEvent({
+  type: "message-created",
+  threadId: "thread_1",
+  runId: "run_1",
+  messageId: "msg_1",
+});
+assistantLifecycleAdapter.handleEvent({
+  type: "text-delta",
+  threadId: "thread_1",
+  runId: "run_1",
+  messageId: "msg_1",
+  delta: "The assistant message opened before text.",
+});
+assistantLifecycleAdapter.handleEvent({ type: "run-completed", threadId: "thread_1", runId: "run_1" });
+
 const realtime = collect("realtime");
 const realtimeAdapter = createOpenAIRealtimeAdapter(realtime.runtime, realtime.options);
 realtimeAdapter.handleEvent({ type: "input_audio_buffer.speech_started" });
@@ -157,6 +176,7 @@ interruptedAdapter.handleEvent({ type: "interrupt", reason: "user-started-new-tu
 
 console.log([
   ...renderTrace(vercel),
+  ...renderTrace(assistantLifecycle),
   ...renderTrace(realtime),
   ...renderTrace(responses),
   ...renderTrace(chat),

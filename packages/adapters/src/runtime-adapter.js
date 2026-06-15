@@ -46,6 +46,19 @@
     ERROR: "error",
   });
 
+  const AssistantLifecycleStatus = Object.freeze({
+    SUBMITTED: "submitted",
+    QUEUED: "queued",
+    RUNNING: "running",
+    STREAMING: "streaming",
+    READY: "ready",
+    COMPLETED: "completed",
+    CANCELLED: "cancelled",
+    CANCELED: "canceled",
+    ERROR: "error",
+    FAILED: "failed",
+  });
+
   const OPENAI_REALTIME_EVENT_MAP = Object.freeze({
     "session.created": RuntimeSignal.VOICE_WAITING,
     "session.updated": RuntimeSignal.VOICE_WAITING,
@@ -193,6 +206,140 @@
     }
 
     return { type: RuntimeSignal.RESET, detail };
+  }
+
+  function textFromAssistantLifecycleEvent(event = {}) {
+    if (!event || typeof event !== "object") return "";
+    for (const key of ["delta", "text", "content", "assistantText", "completion"]) {
+      if (typeof event[key] === "string") return event[key];
+    }
+    if (event.delta && typeof event.delta === "object") return textFromPart(event.delta);
+    if (event.part && typeof event.part === "object") return textFromPart(event.part);
+    if (event.message && typeof event.message === "object") return textFromMessage(event.message);
+    return "";
+  }
+
+  function normalizeAssistantLifecycleType(type) {
+    if (typeof type !== "string") return "";
+    return type.toLowerCase().replaceAll("_", "-");
+  }
+
+  function assistantLifecycleEventToRuntimeSignal(event = {}) {
+    const rawType = typeof event === "string" ? event : event.type || event.event || event.status;
+    const type = normalizeAssistantLifecycleType(rawType);
+    const detail = typeof event === "string" ? { eventType: event } : { ...event, eventType: rawType };
+    const text = textFromAssistantLifecycleEvent(event);
+
+    if (text) {
+      if (typeof detail.text !== "string") detail.text = text;
+      if (
+        [
+          "delta",
+          "message-delta",
+          "text-delta",
+          "content-delta",
+          "output",
+          "streaming",
+        ].includes(type)
+        && typeof detail.delta !== "string"
+      ) {
+        detail.delta = text;
+      }
+    }
+
+    switch (type) {
+      case "input":
+      case "composer-input":
+      case "user-input":
+        return { type: RuntimeSignal.USER_INPUT, detail };
+      case "pause":
+      case "composer-pause":
+      case "user-pause":
+        return { type: RuntimeSignal.USER_PAUSE, detail };
+      case "submit":
+      case "submitted":
+      case "queued":
+      case "run-created":
+      case "run-queued":
+      case "run-started":
+      case "run-in-progress":
+      case "running":
+        return { type: RuntimeSignal.MODEL_WAITING, detail };
+      case "stream-open":
+      case "message-created":
+      case "assistant-message-created":
+      case "content-block-start":
+      case "tool-call-created":
+        return { type: RuntimeSignal.STREAM_OPEN, detail };
+      case "streaming":
+        return { type: text || hasAssistantContent(detail) ? RuntimeSignal.TOKEN : RuntimeSignal.STREAM_OPEN, detail };
+      case "delta":
+      case "token":
+      case "message-delta":
+      case "text-delta":
+      case "content-delta":
+      case "output":
+        return { type: RuntimeSignal.TOKEN, detail };
+      case "complete":
+      case "completed":
+      case "done":
+      case "ready":
+      case "run-completed":
+      case "message-completed":
+        return { type: RuntimeSignal.RESPONSE_COMPLETE, detail };
+      case "abort":
+      case "cancel":
+      case "canceled":
+      case "cancelled":
+      case "interrupt":
+      case "run-cancelled":
+      case "run-canceled":
+        return { type: RuntimeSignal.INTERRUPT, detail };
+      case "error":
+      case "failed":
+      case "run-failed":
+        if (detail.error?.message && typeof detail.message !== "string") detail.message = detail.error.message;
+        return { type: RuntimeSignal.ERROR, detail };
+      default:
+        return { type: RuntimeSignal.RESET, detail };
+    }
+  }
+
+  function createAssistantLifecycleAdapter(presenceRuntime, options = {}) {
+    const adapter = createRuntimeSignalAdapter(presenceRuntime, options);
+
+    return Object.freeze({
+      handleEvent(event) {
+        return adapter.send(assistantLifecycleEventToRuntimeSignal(event));
+      },
+      update(event) {
+        return adapter.send(assistantLifecycleEventToRuntimeSignal(event));
+      },
+      onInput(text, detail = {}) {
+        return adapter.send({ type: RuntimeSignal.USER_INPUT, text, ...detail });
+      },
+      onPause(text, detail = {}) {
+        return adapter.send({ type: RuntimeSignal.USER_PAUSE, text, ...detail });
+      },
+      onRunStart(detail = {}) {
+        return adapter.send({ type: RuntimeSignal.MODEL_WAITING, ...detail });
+      },
+      onStreamOpen(detail = {}) {
+        return adapter.send({ type: RuntimeSignal.STREAM_OPEN, ...detail });
+      },
+      onOutput(delta, detail = {}) {
+        return adapter.send({ type: RuntimeSignal.TOKEN, delta, text: delta, ...detail });
+      },
+      onComplete(detail = {}) {
+        return adapter.send({ type: RuntimeSignal.RESPONSE_COMPLETE, ...detail });
+      },
+      onInterrupt(detail = {}) {
+        return adapter.send({ type: RuntimeSignal.INTERRUPT, ...detail });
+      },
+      onError(error, detail = {}) {
+        return adapter.send({ type: RuntimeSignal.ERROR, error, ...detail });
+      },
+    });
   }
 
   function createVercelAISDKAdapter(presenceRuntime, options = {}) {
@@ -378,13 +525,16 @@
   }
 
   const api = Object.freeze({
+    AssistantLifecycleStatus,
     OPENAI_RESPONSES_EVENT_MAP,
     VercelAIStatus,
     OPENAI_REALTIME_EVENT_MAP,
     RuntimeSignal,
     RUNTIME_SIGNALS,
     applyRuntimeSignal,
+    assistantLifecycleEventToRuntimeSignal,
     chatEventToRuntimeSignal,
+    createAssistantLifecycleAdapter,
     createChatEventAdapter,
     createOpenAIResponsesAdapter,
     createOpenAIRealtimeAdapter,
@@ -396,6 +546,7 @@
     openAIResponsesEventToRuntimeSignal,
     openAIRealtimeEventToRuntimeSignal,
     presenceEventForRuntimeSignal,
+    textFromAssistantLifecycleEvent,
     textFromOpenAIResponsesEvent,
     textFromMessage,
     vercelAIStatusToRuntimeSignal,
