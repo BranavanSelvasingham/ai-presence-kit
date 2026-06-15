@@ -345,6 +345,14 @@ Versioning, changelog, and npm package-name policy are tracked in `docs/RELEASE_
 
 The app can still be opened directly as a static file, but OpenAI-backed speculation, streaming responses, and speech require `server.mjs`.
 
+For repeatable local browser evidence across the documented routes, run:
+
+```bash
+npm run browser:smoke
+```
+
+This starts `server.mjs` on a temporary local port with OpenAI disabled, drives local headless Chrome through the Chrome DevTools Protocol, verifies rendered DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes, then stops the server. It is a local release gate, not part of CI or the default `npm run validate` gate.
+
 For visual QA without touching the default first screen, the app accepts quiet view-only query params:
 
 ```text
@@ -367,7 +375,7 @@ The browser React demo is available at:
 http://127.0.0.1:8058/examples/react-browser.html
 ```
 
-It uses the installed React and ReactDOM UMD builds, then drives `@ai-presence/react`, `@ai-presence/adapters`, the reference face mapping, and a non-face status surface in a real rendered React tree. Browser smoke should click Run and confirm the renderer slot reports `state=waiting`, `data-face-latency-phase="before-output"`, complete six-channel decision-trace evidence, 6 decisions, 0 warnings, and `data-face-decision-trace-renderer-safe="true"` before output appears. It should also confirm the sibling status surface reports `data-nonface-renderer="status-surface"`, `data-nonface-state="waiting"`, `data-nonface-phase="before-output"`, and `data-nonface-before-output="true"` while response text is still empty.
+It uses the installed React and ReactDOM UMD builds, then drives `@ai-presence/react`, `@ai-presence/adapters`, the reference face mapping, and a non-face status surface in a real rendered React tree. The browser-smoke gate confirms the renderer slot reports `state=waiting`, `data-face-latency-phase="before-output"`, complete six-channel decision-trace evidence, 6 decisions, 0 warnings, and `data-face-decision-trace-renderer-safe="true"` before output appears. It also confirms the sibling status surface reports `data-nonface-renderer="status-surface"`, `data-nonface-state="waiting"`, `data-nonface-phase="before-output"`, and `data-nonface-before-output="true"` while response text is still empty.
 
 The face-free React composer-lane route is available at:
 
@@ -375,7 +383,7 @@ The face-free React composer-lane route is available at:
 http://127.0.0.1:8058/examples/react-browser-composer-lane.html
 ```
 
-It uses the same React bindings and adapter path but does not load the face package. Browser smoke should confirm `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
+It uses the same React bindings and adapter path but does not load the face package. The browser-smoke gate confirms `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `data-stream-open-ms="420ms"`, `data-first-output-ms="none"`, and positive `data-lead-ms` before response text appears.
 
 Expected `.env` keys:
 
