@@ -34,6 +34,8 @@ for (const requiredFile of [
   "tests/composer-lane-presence.test.mjs",
   "examples/assistant-lifecycle-presence.mjs",
   "tests/assistant-lifecycle-presence.test.mjs",
+  "examples/assistant-ui-external-store-presence.mjs",
+  "tests/assistant-ui-external-store-presence.test.mjs",
   "examples/react-browser.css",
   "examples/react-browser-demo.js",
   "examples/react-browser-composer-lane.html",
@@ -73,6 +75,7 @@ assert.match(rootManifest.scripts.check, /examples\/quickstart-presence\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/status-surface-presence\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/composer-lane-presence\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/assistant-lifecycle-presence\.mjs/);
+assert.match(rootManifest.scripts.check, /examples\/assistant-ui-external-store-presence\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
 assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-runtime.mjs");
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
@@ -80,6 +83,7 @@ assert.equal(rootManifest.scripts["demo:quickstart"], "node examples/quickstart-
 assert.equal(rootManifest.scripts["demo:status-surface"], "node examples/status-surface-presence.mjs");
 assert.equal(rootManifest.scripts["demo:composer-lane"], "node examples/composer-lane-presence.mjs");
 assert.equal(rootManifest.scripts["demo:assistant-lifecycle"], "node examples/assistant-lifecycle-presence.mjs");
+assert.equal(rootManifest.scripts["demo:assistant-ui-external-store"], "node examples/assistant-ui-external-store-presence.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
 assert.equal(rootManifest.scripts["release:public-gate"], "node scripts/release-public-readiness.mjs");
@@ -95,6 +99,7 @@ assert.match(rootManifest.scripts.validate, /npm run demo:quickstart/);
 assert.match(rootManifest.scripts.validate, /npm run demo:status-surface/);
 assert.match(rootManifest.scripts.validate, /npm run demo:composer-lane/);
 assert.match(rootManifest.scripts.validate, /npm run demo:assistant-lifecycle/);
+assert.match(rootManifest.scripts.validate, /npm run demo:assistant-ui-external-store/);
 assert.match(rootManifest.scripts.validate, /npm run demo:react/);
 assert.match(rootManifest.scripts.validate, /npm run pack:dry-run/);
 assert.match(rootManifest.scripts.test, /tests\/adapter-demo\.test\.mjs/);
@@ -102,6 +107,7 @@ assert.match(rootManifest.scripts.test, /tests\/quickstart-presence\.test\.mjs/)
 assert.match(rootManifest.scripts.test, /tests\/status-surface-presence\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/composer-lane-presence\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/assistant-lifecycle-presence\.test\.mjs/);
+assert.match(rootManifest.scripts.test, /tests\/assistant-ui-external-store-presence\.test\.mjs/);
 
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
@@ -163,13 +169,18 @@ assert.match(releaseReadiness, /npm run demo:quickstart/);
 assert.match(releaseReadiness, /npm run demo:status-surface/);
 assert.match(releaseReadiness, /npm run demo:composer-lane/);
 assert.match(releaseReadiness, /npm run demo:assistant-lifecycle/);
+assert.match(releaseReadiness, /npm run demo:assistant-ui-external-store/);
 assert.match(releaseReadiness, /no-network adoption proof/);
 assert.match(releaseReadiness, /framework-free non-face consumer proof/);
 assert.match(releaseReadiness, /real-app-style composer lane proof/);
 assert.match(releaseReadiness, /assistant app lifecycle proof/);
+assert.match(releaseReadiness, /assistant-ui ExternalStoreRuntime proof/);
 assert.match(releaseReadiness, /renderer=status-surface/);
 assert.match(releaseReadiness, /renderer=composer-lane/);
 assert.match(releaseReadiness, /surface=assistant-lifecycle/);
+assert.match(releaseReadiness, /surface=assistant-ui-external-store/);
+assert.match(releaseReadiness, /framework=assistant-ui/);
+assert.match(releaseReadiness, /route=ExternalStoreRuntime/);
 assert.match(releaseReadiness, /data-renderer="status-surface"/);
 assert.match(releaseReadiness, /data-renderer="composer-lane"/);
 assert.match(releaseReadiness, /data-assistant-output-empty="true"/);
@@ -374,11 +385,15 @@ assert.match(integrationQuickstart, /node examples\/quickstart-presence\.mjs/);
 assert.match(integrationQuickstart, /node examples\/status-surface-presence\.mjs/);
 assert.match(integrationQuickstart, /node examples\/composer-lane-presence\.mjs/);
 assert.match(integrationQuickstart, /node examples\/assistant-lifecycle-presence\.mjs/);
+assert.match(integrationQuickstart, /node examples\/assistant-ui-external-store-presence\.mjs/);
 assert.match(integrationQuickstart, /statePath/);
 assert.match(integrationQuickstart, /eventPath/);
 assert.match(integrationQuickstart, /renderer=status-surface/);
 assert.match(integrationQuickstart, /renderer=composer-lane/);
 assert.match(integrationQuickstart, /surface="assistant-lifecycle"|surface=assistant-lifecycle|data-surface="assistant-lifecycle"/);
+assert.match(integrationQuickstart, /framework=assistant-ui/);
+assert.match(integrationQuickstart, /route=ExternalStoreRuntime/);
+assert.match(integrationQuickstart, /status\.type="running"/);
 assert.match(integrationQuickstart, /data-renderer="status-surface"/);
 assert.match(integrationQuickstart, /data-renderer="composer-lane"/);
 assert.match(integrationQuickstart, /data-assistant-output-empty/);
@@ -447,9 +462,14 @@ assert.match(validation, /0\.35ms/);
 assert.match(validation, /npm run demo:status-surface/);
 assert.match(validation, /npm run demo:composer-lane/);
 assert.match(validation, /npm run demo:assistant-lifecycle/);
+assert.match(validation, /npm run demo:assistant-ui-external-store/);
 assert.match(validation, /renderer=status-surface/);
 assert.match(validation, /renderer=composer-lane/);
 assert.match(validation, /surface=assistant-lifecycle/);
+assert.match(validation, /surface=assistant-ui-external-store/);
+assert.match(validation, /framework=assistant-ui/);
+assert.match(validation, /route=ExternalStoreRuntime/);
+assert.match(validation, /status\.type="running"/);
 assert.match(validation, /data-presence-phase/);
 assert.match(validation, /data-composer-lock/);
 assert.match(validation, /assistant output empty/);
@@ -665,6 +685,57 @@ assert.doesNotMatch(assistantLifecyclePresence, /@ai-presence\/face|packages\/fa
 assert.doesNotMatch(assistantLifecyclePresence, /@ai-presence\/react|react-dom|ReactDOM|createPresenceReactBindings/);
 assert.doesNotMatch(assistantLifecyclePresence, /emotion[- ]detection|private emotion|private inference/i);
 
+const assistantUiExternalStorePresence = readFileSync(
+  resolve(root, "examples/assistant-ui-external-store-presence.mjs"),
+  "utf8",
+);
+assert.match(assistantUiExternalStorePresence, /@ai-presence\/core/);
+assert.match(assistantUiExternalStorePresence, /@ai-presence\/adapters/);
+assert.match(assistantUiExternalStorePresence, /createPresenceRuntime/);
+assert.match(assistantUiExternalStorePresence, /createPresenceTrace/);
+assert.match(assistantUiExternalStorePresence, /presenceControlInputsForSnapshot/);
+assert.match(assistantUiExternalStorePresence, /summarizePresenceTrace/);
+assert.match(assistantUiExternalStorePresence, /createAssistantLifecycleAdapter/);
+assert.match(assistantUiExternalStorePresence, /www\.assistant-ui\.com\/docs\/runtimes\/custom\/external-store/);
+assert.match(assistantUiExternalStorePresence, /ExternalStoreRuntime/);
+assert.match(assistantUiExternalStorePresence, /onNew/);
+assert.match(assistantUiExternalStorePresence, /isRunning:true/);
+assert.match(assistantUiExternalStorePresence, /assistant-message:running-empty/);
+assert.match(assistantUiExternalStorePresence, /assistant-message:running-delta/);
+assert.match(assistantUiExternalStorePresence, /assistant-message:complete/);
+assert.match(assistantUiExternalStorePresence, /status: \{ type: "running" \}/);
+assert.match(assistantUiExternalStorePresence, /status: \{ type: "complete" \}/);
+assert.match(assistantUiExternalStorePresence, /data-surface/);
+assert.match(assistantUiExternalStorePresence, /data-framework/);
+assert.match(assistantUiExternalStorePresence, /data-route/);
+assert.match(assistantUiExternalStorePresence, /data-is-running/);
+assert.match(assistantUiExternalStorePresence, /data-assistant-message-status/);
+assert.match(assistantUiExternalStorePresence, /data-presence-state/);
+assert.match(assistantUiExternalStorePresence, /data-presence-phase/);
+assert.match(assistantUiExternalStorePresence, /data-assistant-output-empty/);
+assert.match(assistantUiExternalStorePresence, /data-presence-before-output/);
+assert.match(assistantUiExternalStorePresence, /surface=assistant-ui-external-store/);
+assert.match(assistantUiExternalStorePresence, /framework=assistant-ui/);
+assert.match(assistantUiExternalStorePresence, /route=ExternalStoreRuntime/);
+assert.match(assistantUiExternalStorePresence, /statePath=/);
+assert.match(assistantUiExternalStorePresence, /eventPath=/);
+assert.match(assistantUiExternalStorePresence, /frameworkEventPath=/);
+assert.match(assistantUiExternalStorePresence, /frameworkStatusPath=/);
+assert.match(assistantUiExternalStorePresence, /streamOpenMs=/);
+assert.match(assistantUiExternalStorePresence, /firstOutputMs=/);
+assert.match(assistantUiExternalStorePresence, /leadMs=/);
+assert.match(assistantUiExternalStorePresence, /presenceBeforeOutputMs=/);
+assert.match(assistantUiExternalStorePresence, /finalState=/);
+assert.match(assistantUiExternalStorePresence, /hasOutput=/);
+assert.match(assistantUiExternalStorePresence, /complete=/);
+assert.match(assistantUiExternalStorePresence, /interrupted=/);
+assert.doesNotMatch(assistantUiExternalStorePresence, /from ["']@assistant-ui\/|require\(["']@assistant-ui\//);
+assert.doesNotMatch(assistantUiExternalStorePresence, /from ["']@langchain\/|require\(["']@langchain\//);
+assert.doesNotMatch(assistantUiExternalStorePresence, /from ["']openai["']|require\(["']openai["']\)/);
+assert.doesNotMatch(assistantUiExternalStorePresence, /@ai-presence\/face|packages\/face|renderPresenceFaceSvg|faceExpressionForPresence|<svg|svg/i);
+assert.doesNotMatch(assistantUiExternalStorePresence, /@ai-presence\/react|react-dom|ReactDOM|createPresenceReactBindings/);
+assert.doesNotMatch(assistantUiExternalStorePresence, /emotion[- ]detection|private emotion|private inference/i);
+
 const coreRuntimeBenchmark = readFileSync(resolve(root, "scripts/benchmark-core-runtime.mjs"), "utf8");
 assert.match(coreRuntimeBenchmark, /createPresenceRuntime/);
 assert.match(coreRuntimeBenchmark, /createPresenceTrace/);
@@ -681,6 +752,16 @@ assert.match(adaptersReadme, /message-created \/ content-block-start \/ stream-o
 assert.match(adaptersReadme, /text-delta \/ message-delta \/ output -> token -> streaming/);
 assert.match(adaptersReadme, /run-completed \/ message-completed \/ ready -> response-complete -> ready/);
 assert.match(adaptersReadme, /node examples\/assistant-lifecycle-presence\.mjs/);
+assert.match(adaptersReadme, /assistant-ui ExternalStoreRuntime/);
+assert.match(adaptersReadme, /onNew -> run-created -> model-waiting -> thinking/);
+assert.match(adaptersReadme, /isRunning=true -> running -> model-waiting -> thinking/);
+assert.match(adaptersReadme, /status\.type="running" -> message-created -> stream-open -> waiting/);
+assert.match(adaptersReadme, /first assistant text chunk -> text-delta -> token -> streaming/);
+assert.match(adaptersReadme, /status\.type="complete" -> complete -> response-complete -> ready/);
+assert.match(adaptersReadme, /node examples\/assistant-ui-external-store-presence\.mjs/);
+assert.match(adaptersReadme, /framework=assistant-ui/);
+assert.match(adaptersReadme, /route=ExternalStoreRuntime/);
+assert.match(adaptersReadme, /frameworkStatusPath/);
 assert.match(adaptersReadme, /presenceBeforeOutputMs/);
 assert.match(adaptersReadme, /createOpenAIResponsesAdapter/);
 assert.match(adaptersReadme, /response\.created -> model-waiting -> thinking/);
@@ -960,6 +1041,7 @@ assert.match(rootReadme, /examples\/quickstart-presence\.mjs/);
 assert.match(rootReadme, /examples\/status-surface-presence\.mjs/);
 assert.match(rootReadme, /examples\/composer-lane-presence\.mjs/);
 assert.match(rootReadme, /examples\/assistant-lifecycle-presence\.mjs/);
+assert.match(rootReadme, /examples\/assistant-ui-external-store-presence\.mjs/);
 assert.match(rootReadme, /examples\/react-browser-composer-lane\.html/);
 assert.match(rootReadme, /OpenAI Responses adapter usage/);
 assert.match(rootReadme, /createOpenAIResponsesAdapter/);
@@ -970,10 +1052,14 @@ assert.match(rootReadme, /npm run demo:quickstart/);
 assert.match(rootReadme, /npm run demo:status-surface/);
 assert.match(rootReadme, /npm run demo:composer-lane/);
 assert.match(rootReadme, /npm run demo:assistant-lifecycle/);
+assert.match(rootReadme, /npm run demo:assistant-ui-external-store/);
 assert.match(rootReadme, /Vercel AI SDK, assistant lifecycle, OpenAI Responses, OpenAI Realtime, and generic chat transitions/);
 assert.match(rootReadme, /five starter adapter paths/);
 assert.match(rootReadme, /createAssistantLifecycleAdapter/);
 assert.match(rootReadme, /surface=assistant-lifecycle/);
+assert.match(rootReadme, /surface=assistant-ui-external-store/);
+assert.match(rootReadme, /framework=assistant-ui/);
+assert.match(rootReadme, /route=ExternalStoreRuntime/);
 assert.match(rootReadme, /thread\/run\/message lifecycle/i);
 assert.match(rootReadme, /data-assistant-output-empty="true"/);
 assert.match(rootReadme, /release consumer smoke now repeats the OpenAI Responses adapter path, assistant lifecycle adapter path, and composer-lane pattern/i);
@@ -988,6 +1074,8 @@ assert.match(rootReadme, /data-stream-open-ms="420ms"/);
 assert.match(rootReadme, /data-first-output-ms="none"/);
 assert.match(rootReadme, /positive `data-lead-ms`/);
 assert.match(rootReadme, /real-app adoption slice/i);
+assert.match(rootReadme, /named assistant-ui adoption proof/i);
+assert.match(rootReadme, /documented `onNew`, `isRunning`, and assistant message `status\.type` values/);
 assert.doesNotMatch(rootReadme, /Create or confirm control of the npm `@ai-presence` scope before publishing/);
 assert.match(rootReadme, /main-app-release\.png/);
 assert.doesNotMatch(rootReadme, /presence-comparison-release\.png/);

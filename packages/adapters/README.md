@@ -84,6 +84,22 @@ run-failed / error -> error -> error
 
 Run `node examples/assistant-lifecycle-presence.mjs` for the no-network proof. It simulates a thread/run opening and an assistant message shell existing before text arrives, then prints `statePath`, `eventPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
+## assistant-ui ExternalStoreRuntime
+
+The assistant lifecycle adapter can also be wrapped around assistant-ui's documented `ExternalStoreRuntime` route without importing assistant-ui. Primary assistant-ui docs expose `onNew`, `isRunning`, mutable `messages`, and assistant message `status.type` values such as `running`, `complete`, and `incomplete`.
+
+`examples/assistant-ui-external-store-presence.mjs` maps:
+
+```text
+onNew -> run-created -> model-waiting -> thinking
+isRunning=true -> running -> model-waiting -> thinking
+empty assistant message with status.type="running" -> message-created -> stream-open -> waiting
+first assistant text chunk -> text-delta -> token -> streaming
+assistant message status.type="complete" -> complete -> response-complete -> ready
+```
+
+Run `node examples/assistant-ui-external-store-presence.mjs` for the named no-network proof. It prints `framework=assistant-ui`, `route=ExternalStoreRuntime`, `frameworkEventPath`, `frameworkStatusPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
+
 ## OpenAI Responses
 
 `createOpenAIResponsesAdapter` is an event-mapping helper, not an SDK wrapper. Pass each typed streaming event object from your Responses stream consumer to `handleEvent(event)`. The adapter branches on `event.type`, copies text or function-call argument chunks into `detail.delta` and `detail.text` when present, and never imports the OpenAI SDK, calls the network, or reads environment config.

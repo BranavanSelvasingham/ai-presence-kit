@@ -9,6 +9,7 @@ npm run check
 npm test
 npm run demo:adapters
 npm run demo:assistant-lifecycle
+npm run demo:assistant-ui-external-store
 npm run demo:react
 npm run pack:dry-run
 git diff --check
@@ -39,7 +40,7 @@ npm run release:publish -- X.Y.Z
 - Core state, runtime, package exports, TypeScript declarations: `npm test`, then `npm run validate`.
 - Core runtime, adapters, trace recording, and trace-summary latency evidence: `npm run perf:core`, then `npm run check`.
 - Face controller or SVG renderer latency and decision-trace performance evidence: `npm run perf:face`, then `npm run check`.
-- Adapter mappings: `npm run demo:adapters`, `npm run demo:assistant-lifecycle`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
+- Adapter mappings: `npm run demo:adapters`, `npm run demo:assistant-lifecycle`, `npm run demo:assistant-ui-external-store`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
 - Browser or visual behavior: run the relevant browser route and inspect the output directly.
 - Major improvement work: `npm run validate`, `npm run release:public-gate` for public-facing changes, `git diff --check`, and browser smoke when visual or browser-facing behavior changed.
@@ -82,6 +83,14 @@ npm run demo:assistant-lifecycle
 ```
 
 This local no-browser smoke drives a framework-package-free thread/run/message lifecycle through `@ai-presence/core` and `@ai-presence/adapters`. It should print `surface=assistant-lifecycle`, `statePath`, `eventPath`, `frameworkEventPath`, before-output `waiting`, assistant output empty, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
+
+## assistant-ui ExternalStoreRuntime Smoke
+
+```bash
+npm run demo:assistant-ui-external-store
+```
+
+This local no-browser smoke drives a documented assistant-ui ExternalStoreRuntime route through `createAssistantLifecycleAdapter` without importing assistant-ui. It should print `surface=assistant-ui-external-store`, `framework=assistant-ui`, `route=ExternalStoreRuntime`, `statePath`, `eventPath`, `frameworkEventPath`, `frameworkStatusPath`, before-output `waiting`, `isRunning=true`, assistant message `status.type="running"`, assistant output empty, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
 
 ## Browser Smoke Routes
 
