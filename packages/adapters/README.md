@@ -32,6 +32,13 @@ The trace demo prints each adapter transition with the shared core control input
 
 ## Vercel AI SDK
 
+Primary AI SDK docs checked for this adapter route:
+
+```text
+https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat
+https://ai-sdk.dev/docs/ai-sdk-ui/chatbot
+```
+
 The current AI SDK `useChat` status values are:
 
 ```text
@@ -51,7 +58,11 @@ ready -> response-complete -> ready
 error -> error -> error
 ```
 
-This preserves the important distinction from the AI SDK docs and troubleshooting notes: `streaming` can begin before user-visible assistant text exists, so the presence state should be `waiting` until content arrives.
+The current `useChat` reference also documents `messages` as `UIMessage[]`, message `role`, message `parts`, `onFinish.isAbort`, `onFinish.isError`, and `onError`. The chatbot guide renders assistant text from `message.parts` when `part.type === "text"`.
+
+This preserves the important distinction for presence before output: `streaming` means the response stream is active, while visible assistant text still depends on the message content. The presence state stays `waiting` until content arrives.
+
+Run `node examples/vercel-ai-sdk-presence.mjs` for the named no-network proof. It prints `framework=vercel-ai-sdk`, `statusPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, `interrupted=false`, `abortState=interrupted`, and `errorState=error`.
 
 ## Assistant Lifecycle
 

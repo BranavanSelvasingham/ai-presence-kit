@@ -8,6 +8,7 @@ Run the smallest command that can prove the change, then run broader validation 
 npm run check
 npm test
 npm run demo:adapters
+npm run demo:vercel-ai-sdk
 npm run demo:assistant-lifecycle
 npm run demo:assistant-ui-external-store
 npm run demo:react
@@ -40,7 +41,7 @@ npm run release:publish -- X.Y.Z
 - Core state, runtime, package exports, TypeScript declarations: `npm test`, then `npm run validate`.
 - Core runtime, adapters, trace recording, and trace-summary latency evidence: `npm run perf:core`, then `npm run check`.
 - Face controller or SVG renderer latency and decision-trace performance evidence: `npm run perf:face`, then `npm run check`.
-- Adapter mappings: `npm run demo:adapters`, `npm run demo:assistant-lifecycle`, `npm run demo:assistant-ui-external-store`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
+- Adapter mappings: `npm run demo:adapters`, `npm run demo:vercel-ai-sdk`, `npm run demo:assistant-lifecycle`, `npm run demo:assistant-ui-external-store`, `node tests/runtime-adapter.test.mjs`, then `npm run validate`.
 - React bindings or React examples: `npm run demo:react`, React tests, then `npm run validate`.
 - Browser or visual behavior: run the relevant browser route and inspect the output directly.
 - Major improvement work: `npm run validate`, `npm run release:public-gate` for public-facing changes, `git diff --check`, and `npm run browser:smoke` when visual, browser-facing, or release-gate behavior changed.
@@ -74,7 +75,15 @@ This local no-browser smoke drives `@ai-presence/core` and `@ai-presence/adapter
 npm run demo:composer-lane
 ```
 
-This local no-browser smoke drives a Vercel AI SDK-style lifecycle through `@ai-presence/core` and `@ai-presence/adapters`, then maps each snapshot and trace summary into a non-face status bar, message composer, progress lane, and trace timeline. It should print `renderer=composer-lane`, `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
+This local no-browser smoke drives the Vercel AI SDK adapter path through `@ai-presence/core` and `@ai-presence/adapters`, then maps each snapshot and trace summary into a non-face status bar, message composer, progress lane, and trace timeline. It should print `renderer=composer-lane`, `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, `data-progress-step="stream-open"`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, and `interrupted=false`.
+
+## Vercel AI SDK Named Runtime Smoke
+
+```bash
+npm run demo:vercel-ai-sdk
+```
+
+This local no-browser smoke follows primary Vercel AI SDK docs for the current `useChat` `status`, `messages`, assistant text `parts`, `onFinish.isAbort`, and `onError` shape without importing Vercel packages. It should print `framework=vercel-ai-sdk`, `statePath`, `eventPath`, `statusPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, `interrupted=false`, `abortState=interrupted`, and `errorState=error`. It should also expose a before-output frame where `status=streaming`, `state=waiting`, `phase=before-output`, `assistantTextEmpty=true`, and `surfaceFirstOutputMs=none`.
 
 ## Assistant Lifecycle Smoke
 
