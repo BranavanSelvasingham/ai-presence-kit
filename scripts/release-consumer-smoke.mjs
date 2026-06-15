@@ -60,37 +60,92 @@ import React from "react";
 
 assert.equal(core.PresenceState.THINKING, "thinking");
 assert.equal(typeof core.createPresenceRuntime, "function");
+assert.equal(typeof core.createPresenceTrace, "function");
+assert.equal(typeof core.presenceControlInputsForSnapshot, "function");
 assert.equal(typeof core.summarizePresenceTrace, "function");
 
-const trace = core.createPresenceTrace();
-const runtime = core.createPresenceRuntime({ now: () => 1000 + trace.getEntries().length * 20 });
-trace.attach(runtime);
-runtime.send(core.PresenceEvent.SUBMIT);
-runtime.send(core.PresenceEvent.STREAM_OPEN);
-runtime.send(core.PresenceEvent.TOKEN, { delta: "Hello" });
-runtime.send(core.PresenceEvent.RESPONSE_COMPLETE);
+assert.equal(typeof adapters.createChatEventAdapter, "function");
+assert.equal(typeof adapters.createVercelAISDKAdapter, "function");
+assert.equal(typeof adapters.createOpenAIRealtimeAdapter, "function");
 
+let nowMs = 0;
+const runtime = core.createPresenceRuntime({ now: () => nowMs });
+const trace = core.createPresenceTrace({ limit: 16 });
+const detachTrace = trace.attach(runtime, { includeInitial: false });
+const chatPresence = adapters.createChatEventAdapter(runtime);
+const timeline = [];
+
+function sendAt(atMs, event) {
+  nowMs = atMs;
+  const snapshot = chatPresence.handleEvent(event);
+  const controlInputs = core.presenceControlInputsForSnapshot(snapshot, {
+    trace,
+    now: atMs,
+  });
+
+  timeline.push({
+    event: snapshot.event,
+    state: snapshot.state,
+    phase: controlInputs.latencyPhase,
+    atMs,
+  });
+}
+
+sendAt(0, { type: "input", text: "What should I build next?" });
+sendAt(140, { type: "pause", text: "What should I build next?", completion: 0.42 });
+sendAt(260, { type: "submit", text: "What should I build next?" });
+sendAt(520, { type: "stream-open" });
+sendAt(900, { type: "token", text: "Start with a narrow adoption proof." });
+sendAt(1240, { type: "done" });
+
+detachTrace();
+
+const entries = trace.getEntries();
 const summary = core.summarizePresenceTrace(trace);
+const statePath = entries.map((entry) => entry.state).join(">");
+const eventPath = entries.map((entry) => entry.event).join(">");
+const phasePath = timeline.map((entry) => entry.phase).join(">");
+
+assert.equal(statePath, "user-typing>thinking>thinking>waiting>streaming>ready");
+assert.equal(eventPath, "user-input>user-pause>submit>stream-open>token>response-complete");
+assert.equal(phasePath, "input>before-output>before-output>before-output>output>recovery");
+assert.equal(summary.streamOpenMs, 520);
+assert.equal(summary.firstOutputMs, 900);
+assert.equal(summary.firstOutputEvent, core.PresenceEvent.TOKEN);
+assert.equal(summary.presenceBeforeOutputMs, 900);
 assert.equal(summary.complete, true);
 assert.equal(summary.hasOutput, true);
+assert.equal(summary.finalState, "ready");
+assert.equal(summary.interrupted, false);
 
 const rendered = face.renderPresenceFaceSvg(runtime.getSnapshot(), {
-  history: trace.getEntries(),
-  now: 1200,
-  timeMs: 1200,
+  history: entries,
+  now: 1240,
+  timeMs: 1240,
 });
 assert.match(rendered.svg, /<svg/);
 assert.equal(rendered.attributes.decisionTrace, "complete");
 assert.equal(rendered.decisionTrace.decisionCount, 6);
 
-assert.equal(typeof adapters.createVercelAISDKAdapter, "function");
-assert.equal(typeof adapters.createOpenAIRealtimeAdapter, "function");
-
 const bindings = reactPresence.createPresenceReactBindings(React, { runtime });
 assert.equal(typeof bindings.PresenceProvider, "function");
 assert.equal(typeof bindings.usePresenceFrameTime, "function");
 
-console.log("esm consumer smoke ok");
+function formatMs(value) {
+  return Number.isFinite(Number(value)) ? String(Math.round(Number(value))) + "ms" : "none";
+}
+
+console.log([
+  "esm consumer smoke ok",
+  "statePath=" + statePath,
+  "eventPath=" + eventPath,
+  "firstOutputMs=" + formatMs(summary.firstOutputMs),
+  "leadMs=" + formatMs(summary.presenceBeforeOutputMs),
+  "finalState=" + (summary.finalState || "none"),
+  "hasOutput=" + summary.hasOutput,
+  "complete=" + summary.complete,
+  "interrupted=" + summary.interrupted,
+].join(" "));
 `,
   );
 
