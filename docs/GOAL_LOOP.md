@@ -139,7 +139,7 @@ Build:
 - Package manifests. Completed for the four local packages.
 - CommonJS plus ESM import entrypoints. Completed for the four local packages.
 - API docs. Current package READMEs plus TypeScript declarations cover the initial surface.
-- Examples. Current examples cover adapter traces, command-line React bindings, and a real browser React runtime.
+- Examples. Current examples cover adapter traces, the no-network quickstart adoption proof, command-line React bindings, and a real browser React runtime.
 - Release notes. Current file: `CHANGELOG.md`.
 - README demo media. Completed for the A/B comparison and React browser demo.
 - Release policy. Completed for lockstep `0.x` package versioning, changelog headings, token-safe publish automation, public-readiness gates, and package-name/scope checks.
@@ -154,7 +154,7 @@ Validate:
 - React browser demo smoke test now covers provider, snapshot hook, renderer slot, AI SDK adapter, and face expression mapping with actual React and ReactDOM.
 - CI validation now runs `npm ci` and `npm run validate` through GitHub Actions.
 - README media is generated from the validated browser routes and checked by package-surface tests.
-- Package-name availability was rechecked on 2026-06-12 with npm registry `E404` results for all four intended names; ongoing releases verify scope ownership with `npm run release:check-scope` through `npm run release:preflight`.
+- Package-name availability was rechecked on 2026-06-12 with npm registry `E404` results before the first public release. Public npm metadata for all four packages was verified at `0.1.1` on 2026-06-15; ongoing releases verify scope ownership with `npm run release:check-scope` through `npm run release:preflight`.
 
 ## Loop 6: Integration Evidence
 

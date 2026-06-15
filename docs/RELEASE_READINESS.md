@@ -40,8 +40,11 @@ Command-line demos:
 
 ```bash
 npm run demo:adapters
+npm run demo:quickstart
 npm run demo:react
 ```
+
+`npm run demo:quickstart` runs a no-network adoption proof that maps generic chat lifecycle events through the package APIs and prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 `npm run demo:adapters` reports compact trace summaries for adapter-driven turns, including `interruptMs` and `interrupted` so interruption posture is observable without importing the face renderer into core.
 
@@ -66,6 +69,7 @@ That command expands to:
 npm run check
 npm test
 npm run demo:adapters
+npm run demo:quickstart
 npm run demo:react
 npm run pack:dry-run
 ```
@@ -113,7 +117,7 @@ npm run release:check-names
 npm run release:check-scope
 ```
 
-The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished before the first public release. `release:check-names` is now historical/first-release evidence for the existing package names; ongoing releases use `npm run release:preflight`.
+The package names were rechecked against the npm registry on 2026-06-12 and all four intended names were still unpublished before the first public release. Public npm metadata for all four packages was verified at `0.1.1` on 2026-06-15. `release:check-names` is now historical/first-release evidence for the existing package names; ongoing releases use `npm run release:preflight`.
 
 Repeatable release gate:
 

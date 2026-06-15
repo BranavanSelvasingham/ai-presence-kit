@@ -487,4 +487,5 @@ Validation notes:
 
 Next iteration:
 
-- Create or confirm control of the npm `@ai-presence` scope before publishing.
+- Build the next real-app adoption slice: a fresh consumer or framework integration that runs the published packages and proves before-output trace evidence without depending on the reference SVG face.
+- Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.
