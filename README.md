@@ -168,6 +168,8 @@ Intended public packages:
 @ai-presence/adapters
 ```
 
+First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff.
+
 Minimal core usage:
 
 ```js

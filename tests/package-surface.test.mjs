@@ -14,6 +14,7 @@ for (const requiredFile of [
   "CONTRIBUTING.md",
   "CORE_PILLARS.md",
   "docs/GOAL_LOOP.md",
+  "docs/INTEGRATION_QUICKSTART.md",
   "docs/media/presence-comparison.jpg",
   "docs/media/main-app-release.png",
   "docs/media/react-browser-demo.jpg",
@@ -180,6 +181,44 @@ assert.match(publicReleaseGate, /npm run release:publish -- X\.Y\.Z/);
 assert.match(publicReleaseGate, /NPM_TOKEN/);
 assert.match(publicReleaseGate, /Do not paste/);
 assert.match(publicReleaseGate, /CONTRIBUTING\.md/);
+
+const integrationQuickstart = readFileSync(resolve(root, "docs/INTEGRATION_QUICKSTART.md"), "utf8");
+assert.match(integrationQuickstart, /renderer-agnostic presence state layer/);
+assert.match(integrationQuickstart, /observable presence-before-output evidence/);
+assert.match(integrationQuickstart, /not emotion detection or private emotion inference/i);
+assert.match(integrationQuickstart, /npm install @ai-presence\/core @ai-presence\/adapters/);
+assert.match(integrationQuickstart, /npm install @ai-presence\/react @ai-presence\/face/);
+assert.match(integrationQuickstart, /PresenceEvent/);
+assert.match(integrationQuickstart, /createPresenceRuntime/);
+assert.match(integrationQuickstart, /createPresenceTrace/);
+assert.match(integrationQuickstart, /presenceControlInputsForSnapshot/);
+assert.match(integrationQuickstart, /summarizePresenceTrace/);
+assert.match(integrationQuickstart, /PresenceEvent\.USER_INPUT/);
+assert.match(integrationQuickstart, /PresenceEvent\.USER_PAUSE/);
+assert.match(integrationQuickstart, /PresenceEvent\.SUBMIT/);
+assert.match(integrationQuickstart, /PresenceEvent\.STREAM_OPEN/);
+assert.match(integrationQuickstart, /PresenceEvent\.TOKEN/);
+assert.match(integrationQuickstart, /PresenceEvent\.RESPONSE_COMPLETE/);
+assert.match(integrationQuickstart, /PresenceEvent\.INTERRUPT/);
+assert.match(integrationQuickstart, /PresenceEvent\.ERROR/);
+assert.match(integrationQuickstart, /user input -> user-typing/);
+assert.match(integrationQuickstart, /stream open -> waiting/);
+assert.match(integrationQuickstart, /first token -> streaming/);
+assert.match(integrationQuickstart, /createChatEventAdapter/);
+assert.match(integrationQuickstart, /createVercelAISDKAdapter/);
+assert.match(integrationQuickstart, /streaming with no assistant content -> waiting/);
+assert.match(integrationQuickstart, /streaming with assistant content -> streaming/);
+assert.match(integrationQuickstart, /summary\.presenceBeforeOutputMs/);
+assert.match(integrationQuickstart, /hasOutput: true/);
+assert.match(integrationQuickstart, /complete: true/);
+assert.match(integrationQuickstart, /finalState: "ready"/);
+assert.match(integrationQuickstart, /Renderer.*consume the snapshot and control inputs/s);
+assert.match(integrationQuickstart, /@ai-presence\/react/);
+assert.match(integrationQuickstart, /PresenceRendererSlot/);
+assert.match(integrationQuickstart, /@ai-presence\/face/);
+assert.match(integrationQuickstart, /renderPresenceFaceSvg/);
+assert.match(integrationQuickstart, /The SVG face is optional proof/);
+assert.doesNotMatch(integrationQuickstart, /\b(?:OPENAI_API_KEY|NPM_TOKEN|npm_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,})\b/);
 
 const contributing = readFileSync(resolve(root, "CONTRIBUTING.md"), "utf8");
 assert.match(contributing, /Good First Collaboration Areas/);
@@ -532,6 +571,8 @@ assert.match(rootReadme, /Why This Exists/);
 assert.match(rootReadme, /AI interfaces should not feel frozen until text appears/);
 assert.match(rootReadme, /Collaborating/);
 assert.match(rootReadme, /AI interfaces, expressive systems, interaction design, SVG\/rendering, or low-latency UI behavior/);
+assert.match(rootReadme, /docs\/INTEGRATION_QUICKSTART\.md/);
+assert.match(rootReadme, /minimal copyable path from published packages/);
 assert.match(rootReadme, /main-app-release\.png/);
 assert.doesNotMatch(rootReadme, /presence-comparison-release\.png/);
 assert.doesNotMatch(rootReadme, /react-before-output-release\.png/);
