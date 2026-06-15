@@ -45,6 +45,7 @@ npm run demo:quickstart
 npm run demo:status-surface
 npm run demo:composer-lane
 npm run demo:assistant-lifecycle
+npm run demo:assistant-ui-external-store
 npm run demo:react
 ```
 
@@ -55,6 +56,8 @@ npm run demo:react
 `npm run demo:composer-lane` runs a real-app-style composer lane proof that simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates without a framework dependency. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the lane model exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` before the first output.
 
 `npm run demo:assistant-lifecycle` runs an assistant app lifecycle proof that simulates a thread, run, assistant message shell, first text delta, and completion without a framework dependency. It prints `surface=assistant-lifecycle`, `statePath`, `eventPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the surface model exposes `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-output-empty="true"`, and `data-presence-before-output="true"` before the first output.
+
+`npm run demo:assistant-ui-external-store` runs a named assistant-ui ExternalStoreRuntime proof without importing assistant-ui. It maps documented `onNew`, `isRunning`, empty assistant message `status.type="running"`, first text delta, and `status.type="complete"` into `createAssistantLifecycleAdapter`, then prints `surface=assistant-ui-external-store`, `framework=assistant-ui`, `route=ExternalStoreRuntime`, `frameworkEventPath`, `frameworkStatusPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 `npm run demo:adapters` reports compact trace summaries for adapter-driven turns, including `interruptMs` and `interrupted` so interruption posture is observable without importing the face renderer into core.
 
@@ -83,6 +86,7 @@ npm run demo:quickstart
 npm run demo:status-surface
 npm run demo:composer-lane
 npm run demo:assistant-lifecycle
+npm run demo:assistant-ui-external-store
 npm run demo:react
 npm run pack:dry-run
 ```

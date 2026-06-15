@@ -174,7 +174,7 @@ Intended public packages:
 @ai-presence/adapters
 ```
 
-First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence, or `node examples/assistant-lifecycle-presence.mjs` to see a thread/run/message lifecycle surface expose the open run before assistant text exists.
+First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence, `node examples/assistant-lifecycle-presence.mjs` to see a thread/run/message lifecycle surface expose the open run before assistant text exists, or `node examples/assistant-ui-external-store-presence.mjs` to see a documented assistant-ui ExternalStoreRuntime route map `onNew`, `isRunning`, and assistant message `status.type` into the same before-output proof.
 
 Minimal core usage:
 
@@ -315,9 +315,11 @@ npm run perf:face
 npm test
 npm run demo:adapters
 npm run demo:quickstart
+npm run demo:status-surface
 npm run demo:react
 npm run demo:composer-lane
 npm run demo:assistant-lifecycle
+npm run demo:assistant-ui-external-store
 npm run pack:dry-run
 ```
 
@@ -328,6 +330,8 @@ npm run pack:dry-run
 `npm run demo:composer-lane` runs a real-app-style composer lane proof from `examples/composer-lane-presence.mjs`. It simulates Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates, then maps the renderer-agnostic snapshot and trace summary into a status bar, locked message composer, progress lane, and trace timeline. It prints `renderer=composer-lane`, `statePath`, `eventPath`, `phasePath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output lane exposes `data-renderer="composer-lane"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-composer-lock="true"`, `data-assistant-text-empty="true"`, and `data-progress-step="stream-open"` without importing the SVG face renderer.
 
 `npm run demo:assistant-lifecycle` runs an assistant app lifecycle proof from `examples/assistant-lifecycle-presence.mjs`. It simulates a thread/run/message opening before visible assistant text, then prints `surface=assistant-lifecycle`, `statePath`, `eventPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the pre-output surface exposes `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-output-empty="true"`, and `data-presence-before-output="true"`.
+
+`npm run demo:assistant-ui-external-store` runs a named-framework proof from `examples/assistant-ui-external-store-presence.mjs`. It follows the documented assistant-ui ExternalStoreRuntime route without importing assistant-ui, then maps `onNew`, `isRunning`, an empty assistant message with `status.type="running"`, the first text delta, and `status.type="complete"` into `createAssistantLifecycleAdapter`. It prints `surface=assistant-ui-external-store`, `framework=assistant-ui`, `route=ExternalStoreRuntime`, `frameworkEventPath`, `frameworkStatusPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
 
 `npm run demo:adapters` prints Vercel AI SDK, assistant lifecycle, OpenAI Responses, OpenAI Realtime, and generic chat transitions with reference face frame evidence plus bounded six-channel decision-trace evidence such as `trace=complete`, `decisions=6`, `safe=true`, and `warnings=0`. Its trace summaries include `interruptMs` and `interrupted` so interruption posture is visible without coupling the core package to the face renderer.
 
@@ -533,6 +537,7 @@ Current adoption slice:
 
 - The real-app adoption slice is represented by `examples/composer-lane-presence.mjs` and `examples/react-browser-composer-lane.html`: a framework-free consumer plus a React/browser route that use package-shaped core/adapters/React APIs and prove before-output trace evidence without depending on the reference SVG face.
 - The assistant lifecycle adoption slice is represented by `createAssistantLifecycleAdapter` and `examples/assistant-lifecycle-presence.mjs`: a framework-package-free thread/run/message lifecycle path that proves an open assistant run and message shell can show `waiting` before visible text.
+- The named assistant-ui adoption proof is represented by `examples/assistant-ui-external-store-presence.mjs`: a no-dependency ExternalStoreRuntime route that maps documented `onNew`, `isRunning`, and assistant message `status.type` values into the assistant lifecycle adapter and proves the same before-output trace evidence.
 - The release consumer smoke now repeats the OpenAI Responses adapter path, assistant lifecycle adapter path, and composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the runtime adapter and status/composer/progress/timeline handoff are publishable package surface rather than repo-local source.
 
 Next iteration:
