@@ -94,7 +94,8 @@ Build:
 - OpenAI Responses event adapter.
 - OpenAI Realtime event adapter.
 - Generic chat adapter.
-- Minimal assistant-ui or adjacent app-framework adapter as the next adoption check.
+- Assistant lifecycle adapter for thread/run/message-style app frameworks.
+- Named assistant-ui ExternalStoreRuntime proof, implemented as a framework-package-free example and installed-package consumer smoke.
 
 Validate:
 
@@ -110,7 +111,9 @@ packages/adapters/src/runtime-adapter.js
 Current exports:
 
 - `createVercelAISDKAdapter`
+- `createOpenAIResponsesAdapter`
 - `createOpenAIRealtimeAdapter`
+- `createAssistantLifecycleAdapter`
 - `createChatEventAdapter`
 - `createRuntimeSignalAdapter`
 
@@ -156,7 +159,7 @@ Validate:
 - React browser demo smoke test now covers provider, snapshot hook, renderer slot, AI SDK adapter, and face expression mapping with actual React and ReactDOM.
 - CI validation now runs `npm ci` and `npm run validate` through GitHub Actions.
 - README media is generated from the validated browser routes and checked by package-surface tests.
-- Package-name availability was rechecked on 2026-06-12 with npm registry `E404` results before the first public release. Public npm metadata for all four packages was verified at `0.1.1` on 2026-06-15; ongoing releases verify scope ownership with `npm run release:check-scope` through `npm run release:preflight`.
+- Package-name availability was rechecked on 2026-06-12 with npm registry `E404` results before the first public release. Public npm metadata for all four packages was verified at `0.1.4` on 2026-06-15; ongoing releases verify scope ownership with `npm run release:check-scope` through `npm run release:preflight`.
 
 ## Loop 6: Integration Evidence
 
@@ -169,6 +172,7 @@ Build:
 - Adapter/demo output that exposes event-to-state timing, first-output timing, presence-before-output lead time, and interruption evidence through `interruptMs` and `interrupted`.
 - Browser comparison evidence that mirrors `summarizePresenceTrace` output onto the comparison root and SVG face through `data-presence-trace-*`.
 - React browser evidence that mirrors `summarizePresenceTrace` output onto the actual React + adapter + SVG route through `data-react-trace-*`.
+- Assistant-ui ExternalStoreRuntime evidence that maps documented `onNew`, `isRunning`, and assistant message `status.type` signals into before-output trace summaries without importing assistant-ui.
 - Documentation that explains trace summaries as integration evidence, not renderer behavior.
 
 Validate:
@@ -178,6 +182,8 @@ Validate:
 - Adapter demo output that shows pre-token state transitions and compact summary fields such as `firstOutputMs`, `leadMs`, `interruptMs`, `interrupted`, `finalState`, `hasOutput`, and `complete`.
 - Comparison route smoke evidence now includes helper-derived `data-presence-trace-summary="complete"`, `data-presence-trace-first-output-ms`, `data-presence-trace-lead-ms`, `data-presence-trace-final-state`, `data-presence-trace-has-output`, and `data-presence-trace-complete` on the browser proof surface.
 - React browser smoke evidence now includes helper-derived `data-react-trace-summary="complete"`, `data-react-trace-first-output-ms`, `data-react-trace-lead-ms`, `data-react-trace-final-state`, `data-react-trace-has-output`, and `data-react-trace-complete` on the actual React proof surface.
+- The repeatable local browser gate now runs as `npm run browser:smoke` and checks rendered DOM evidence for the reference, metrics/controller, controller gallery, comparison, React browser, and face-free composer-lane routes.
+- Published-package consumer smoke now covers generic chat, OpenAI Responses, assistant lifecycle, assistant-ui ExternalStoreRuntime, and composer-lane adoption paths from installed packages.
 
 ## Loop 7: Collaborator And Adoption Path
 
