@@ -132,7 +132,8 @@ This command:
 - reads `NPM_TOKEN` from the environment or `.env.release.local`
 - writes a temporary npm config that references `${NPM_TOKEN}`
 - publishes in dependency order
-- verifies exact npm metadata and `latest` metadata
+- waits for exact npm metadata after each accepted publish so npm registry propagation delays do not require manual reruns
+- verifies exact npm metadata and `latest` metadata with the same bounded propagation retry
 - runs `npm run release:consumer-smoke -- X.Y.Z`
 - deletes the temporary npm config on exit
 
@@ -151,7 +152,7 @@ If npm asks for a one-time password or passkey confirmation, complete it outside
 
 ## Post-Publish Gate
 
-`npm run release:publish -- X.Y.Z` performs this gate automatically. If publishing manually, after npm accepts all packages, wait for registry metadata to propagate, then verify a fresh consumer can install all four packages, execute both ESM and CommonJS entrypoints, and prove renderer-agnostic before-output trace evidence through installed `@ai-presence/core` and `@ai-presence/adapters`:
+`npm run release:publish -- X.Y.Z` performs this gate automatically, including a bounded wait for npm registry metadata propagation. If publishing manually, after npm accepts all packages, wait for registry metadata to propagate, then verify a fresh consumer can install all four packages, execute both ESM and CommonJS entrypoints, and prove renderer-agnostic before-output trace evidence through installed `@ai-presence/core` and `@ai-presence/adapters`:
 
 ```bash
 npm run release:consumer-smoke -- X.Y.Z
