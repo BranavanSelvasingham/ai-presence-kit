@@ -565,4 +565,4 @@ Current adoption slice:
 Next iteration:
 
 - Keep validating named framework routes only when exact current lifecycle names can be verified from primary docs, preserving no-dependency adapter proofs and before-output trace evidence.
-- Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.
+- Use `npm run release:preflight` before broad release-readiness claims, and use `npm run release:publish -- X.Y.Z` when package source, package README, package metadata, examples, release media, public package behavior, or other published artifacts change. Private docs-only milestones still go through public gate, validation, CI, and PR merge without publishing.
