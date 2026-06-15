@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.4 - 2026-06-15
+
+### Added
+
+- Added a docs-verified, no-network assistant-ui `ExternalStoreRuntime` adoption proof that maps documented `onNew`, `isRunning`, and assistant message `status.type` signals into the existing assistant lifecycle adapter.
+- Added validation, package-surface guardrails, and public docs for the assistant-ui route, including before-output trace evidence before assistant text exists.
+
 ## 0.1.3 - 2026-06-15
 
 ### Added
