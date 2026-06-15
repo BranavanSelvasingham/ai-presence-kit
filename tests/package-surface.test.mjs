@@ -30,6 +30,8 @@ for (const requiredFile of [
   "tests/quickstart-presence.test.mjs",
   "examples/status-surface-presence.mjs",
   "tests/status-surface-presence.test.mjs",
+  "examples/composer-lane-presence.mjs",
+  "tests/composer-lane-presence.test.mjs",
   "examples/react-browser.css",
   "examples/react-browser-demo.js",
   "examples/react-browser.html",
@@ -66,11 +68,13 @@ assert.match(rootManifest.scripts.check, /scripts\/benchmark-core-runtime\.mjs/)
 assert.match(rootManifest.scripts.check, /scripts\/benchmark-face-pipeline\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/quickstart-presence\.mjs/);
 assert.match(rootManifest.scripts.check, /examples\/status-surface-presence\.mjs/);
+assert.match(rootManifest.scripts.check, /examples\/composer-lane-presence\.mjs/);
 assert.equal(rootManifest.scripts["pack:dry-run"], "node scripts/pack-dry-run.mjs");
 assert.equal(rootManifest.scripts["perf:core"], "node scripts/benchmark-core-runtime.mjs");
 assert.equal(rootManifest.scripts["perf:face"], "node scripts/benchmark-face-pipeline.mjs");
 assert.equal(rootManifest.scripts["demo:quickstart"], "node examples/quickstart-presence.mjs");
 assert.equal(rootManifest.scripts["demo:status-surface"], "node examples/status-surface-presence.mjs");
+assert.equal(rootManifest.scripts["demo:composer-lane"], "node examples/composer-lane-presence.mjs");
 assert.equal(rootManifest.scripts["release:check-names"], "node scripts/check-package-names.mjs");
 assert.equal(rootManifest.scripts["release:check-scope"], "node scripts/check-npm-scope.mjs");
 assert.equal(rootManifest.scripts["release:public-gate"], "node scripts/release-public-readiness.mjs");
@@ -84,11 +88,13 @@ assert.match(rootManifest.scripts.validate, /npm test/);
 assert.match(rootManifest.scripts.validate, /npm run demo:adapters/);
 assert.match(rootManifest.scripts.validate, /npm run demo:quickstart/);
 assert.match(rootManifest.scripts.validate, /npm run demo:status-surface/);
+assert.match(rootManifest.scripts.validate, /npm run demo:composer-lane/);
 assert.match(rootManifest.scripts.validate, /npm run demo:react/);
 assert.match(rootManifest.scripts.validate, /npm run pack:dry-run/);
 assert.match(rootManifest.scripts.test, /tests\/adapter-demo\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/quickstart-presence\.test\.mjs/);
 assert.match(rootManifest.scripts.test, /tests\/status-surface-presence\.test\.mjs/);
+assert.match(rootManifest.scripts.test, /tests\/composer-lane-presence\.test\.mjs/);
 
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
@@ -136,13 +142,20 @@ assert.match(releaseReadiness, /interrupted/);
 assert.match(releaseReadiness, /npm run perf:core/);
 assert.match(releaseReadiness, /npm run demo:quickstart/);
 assert.match(releaseReadiness, /npm run demo:status-surface/);
+assert.match(releaseReadiness, /npm run demo:composer-lane/);
 assert.match(releaseReadiness, /no-network adoption proof/);
 assert.match(releaseReadiness, /framework-free non-face consumer proof/);
+assert.match(releaseReadiness, /real-app-style composer lane proof/);
 assert.match(releaseReadiness, /renderer=status-surface/);
+assert.match(releaseReadiness, /renderer=composer-lane/);
 assert.match(releaseReadiness, /data-renderer="status-surface"/);
+assert.match(releaseReadiness, /data-renderer="composer-lane"/);
 assert.match(releaseReadiness, /data-presence-state="waiting"/);
 assert.match(releaseReadiness, /data-presence-phase="before-output"/);
 assert.match(releaseReadiness, /data-presence-before-output="true"/);
+assert.match(releaseReadiness, /data-composer-lock="true"/);
+assert.match(releaseReadiness, /data-assistant-text-empty="true"/);
+assert.match(releaseReadiness, /data-progress-step="stream-open"/);
 assert.match(releaseReadiness, /renderer-agnostic package path before the face renderer/);
 assert.match(releaseReadiness, /faceControllerFrameForPresence|temporal frame reports/);
 assert.match(releaseReadiness, /faceControllerDecisionTraceForFrame/);
@@ -247,11 +260,17 @@ assert.match(integrationQuickstart, /observable presence-before-output evidence/
 assert.match(integrationQuickstart, /not emotion detection or private emotion inference/i);
 assert.match(integrationQuickstart, /node examples\/quickstart-presence\.mjs/);
 assert.match(integrationQuickstart, /node examples\/status-surface-presence\.mjs/);
+assert.match(integrationQuickstart, /node examples\/composer-lane-presence\.mjs/);
 assert.match(integrationQuickstart, /statePath/);
 assert.match(integrationQuickstart, /eventPath/);
 assert.match(integrationQuickstart, /renderer=status-surface/);
+assert.match(integrationQuickstart, /renderer=composer-lane/);
 assert.match(integrationQuickstart, /data-renderer="status-surface"/);
+assert.match(integrationQuickstart, /data-renderer="composer-lane"/);
 assert.match(integrationQuickstart, /data-presence-before-output/);
+assert.match(integrationQuickstart, /data-composer-lock/);
+assert.match(integrationQuickstart, /data-assistant-text-empty/);
+assert.match(integrationQuickstart, /data-progress-step/);
 assert.match(integrationQuickstart, /leadMs/);
 assert.match(integrationQuickstart, /npm install @ai-presence\/core @ai-presence\/adapters/);
 assert.match(integrationQuickstart, /npm install @ai-presence\/react @ai-presence\/face/);
@@ -301,8 +320,11 @@ assert.match(validation, /npm run perf:core/);
 assert.match(validation, /createPresenceRuntime\(\)\.send/);
 assert.match(validation, /0\.35ms/);
 assert.match(validation, /npm run demo:status-surface/);
+assert.match(validation, /npm run demo:composer-lane/);
 assert.match(validation, /renderer=status-surface/);
+assert.match(validation, /renderer=composer-lane/);
 assert.match(validation, /data-presence-phase/);
+assert.match(validation, /data-composer-lock/);
 assert.match(validation, /data-nonface-renderer="status-surface"/);
 assert.match(validation, /data-nonface-before-output="true"/);
 assert.match(validation, /npm run perf:face/);
@@ -432,6 +454,43 @@ assert.match(statusSurfacePresence, /interrupted=/);
 assert.doesNotMatch(statusSurfacePresence, /@ai-presence\/face|packages\/face|renderPresenceFaceSvg|faceExpressionForPresence/);
 assert.doesNotMatch(statusSurfacePresence, /@ai-presence\/react|react-dom|ReactDOM|createPresenceReactBindings/);
 assert.doesNotMatch(statusSurfacePresence, /emotion[- ]detection|private emotion|private inference/i);
+
+const composerLanePresence = readFileSync(resolve(root, "examples/composer-lane-presence.mjs"), "utf8");
+assert.match(composerLanePresence, /@ai-presence\/core/);
+assert.match(composerLanePresence, /@ai-presence\/adapters/);
+assert.match(composerLanePresence, /createPresenceRuntime/);
+assert.match(composerLanePresence, /createPresenceTrace/);
+assert.match(composerLanePresence, /presenceControlInputsForSnapshot/);
+assert.match(composerLanePresence, /summarizePresenceTrace/);
+assert.match(composerLanePresence, /createVercelAISDKAdapter/);
+assert.match(composerLanePresence, /statusBar/);
+assert.match(composerLanePresence, /messageComposer/);
+assert.match(composerLanePresence, /progressLane/);
+assert.match(composerLanePresence, /traceTimeline/);
+assert.match(composerLanePresence, /data-renderer/);
+assert.match(composerLanePresence, /data-presence-state/);
+assert.match(composerLanePresence, /data-presence-phase/);
+assert.match(composerLanePresence, /data-presence-attention/);
+assert.match(composerLanePresence, /data-presence-event/);
+assert.match(composerLanePresence, /data-presence-before-output/);
+assert.match(composerLanePresence, /data-composer-lock/);
+assert.match(composerLanePresence, /data-assistant-text-empty/);
+assert.match(composerLanePresence, /data-progress-step/);
+assert.match(composerLanePresence, /renderer=composer-lane/);
+assert.match(composerLanePresence, /statePath=/);
+assert.match(composerLanePresence, /eventPath=/);
+assert.match(composerLanePresence, /phasePath=/);
+assert.match(composerLanePresence, /beforeOutput=true/);
+assert.match(composerLanePresence, /streamOpenMs=/);
+assert.match(composerLanePresence, /firstOutputMs=/);
+assert.match(composerLanePresence, /leadMs=/);
+assert.match(composerLanePresence, /finalState=/);
+assert.match(composerLanePresence, /hasOutput=/);
+assert.match(composerLanePresence, /complete=/);
+assert.match(composerLanePresence, /interrupted=/);
+assert.doesNotMatch(composerLanePresence, /@ai-presence\/face|packages\/face|renderPresenceFaceSvg|faceExpressionForPresence|<svg|svg/i);
+assert.doesNotMatch(composerLanePresence, /@ai-presence\/react|react-dom|ReactDOM|createPresenceReactBindings/);
+assert.doesNotMatch(composerLanePresence, /emotion[- ]detection|private emotion|private inference/i);
 
 const coreRuntimeBenchmark = readFileSync(resolve(root, "scripts/benchmark-core-runtime.mjs"), "utf8");
 assert.match(coreRuntimeBenchmark, /createPresenceRuntime/);
@@ -697,10 +756,14 @@ assert.match(rootReadme, /docs\/INTEGRATION_QUICKSTART\.md/);
 assert.match(rootReadme, /minimal copyable path from published packages/);
 assert.match(rootReadme, /examples\/quickstart-presence\.mjs/);
 assert.match(rootReadme, /examples\/status-surface-presence\.mjs/);
+assert.match(rootReadme, /examples\/composer-lane-presence\.mjs/);
 assert.match(rootReadme, /npm run demo:quickstart/);
 assert.match(rootReadme, /npm run demo:status-surface/);
+assert.match(rootReadme, /npm run demo:composer-lane/);
 assert.match(rootReadme, /framework-free non-face consumer proof/);
+assert.match(rootReadme, /real-app-style composer lane proof/);
 assert.match(rootReadme, /data-renderer="status-surface"/);
+assert.match(rootReadme, /data-renderer="composer-lane"/);
 assert.match(rootReadme, /next real-app adoption slice/i);
 assert.doesNotMatch(rootReadme, /Create or confirm control of the npm `@ai-presence` scope before publishing/);
 assert.match(rootReadme, /main-app-release\.png/);
