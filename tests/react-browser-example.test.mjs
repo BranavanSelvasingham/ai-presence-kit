@@ -13,6 +13,7 @@ const {
   PresenceState,
   createPresenceRuntime,
   createPresenceTrace,
+  presenceControlInputsForSnapshot,
   summarizePresenceTrace,
 } = require(resolve(root, "packages/core/src/presence-core.js"));
 const { createVercelAISDKAdapter } = require(resolve(root, "packages/adapters/src/runtime-adapter.js"));
@@ -37,8 +38,16 @@ assert.match(script, /recordReactTraceSnapshot\(laterTokenSnapshot, 1520\)/);
 assert.match(script, /recordReactTraceSnapshot\(completeSnapshot, 2080\)/);
 assert.match(script, /summary\.presenceBeforeOutputMs/);
 assert.match(script, /bindings\.PresenceRendererSlot/);
+assert.match(script, /React\.createElement\(NonFaceRendererSurface, \{/);
 assert.match(script, /data-presence-phase/);
 assert.match(script, /data-presence-attention/);
+assert.match(script, /data-nonface-renderer/);
+assert.match(script, /data-nonface-state/);
+assert.match(script, /data-nonface-phase/);
+assert.match(script, /data-nonface-attention/);
+assert.match(script, /data-nonface-event/);
+assert.match(script, /data-nonface-frame-time/);
+assert.match(script, /data-nonface-before-output/);
 assert.match(script, /data-react-trace-summary/);
 assert.match(script, /data-react-trace-entry-count/);
 assert.match(script, /data-react-trace-first-output-ms/);
@@ -89,6 +98,16 @@ assert.match(script, /data-renderer-slot-face/);
 assert.match(script, /@ai-presence\/face/);
 assert.doesNotMatch(script, /emotion/i);
 
+const nonFaceSurfaceSource = script.match(/function NonFaceRendererSurface\([\s\S]*?\n  }\n\n  function reactTraceSummaryEvidence/);
+assert.ok(nonFaceSurfaceSource, "NonFaceRendererSurface source missing");
+assert.match(nonFaceSurfaceSource[0], /snapshot\.state/);
+assert.match(nonFaceSurfaceSource[0], /controlInputs\.latencyPhase/);
+assert.match(nonFaceSurfaceSource[0], /controlInputs\.attentionTarget/);
+assert.match(nonFaceSurfaceSource[0], /snapshot\.event/);
+assert.match(nonFaceSurfaceSource[0], /String\(frameTimeMs\)/);
+assert.match(nonFaceSurfaceSource[0], /controlInputs\.latencyPhase === "before-output"/);
+assert.doesNotMatch(nonFaceSurfaceSource[0], /PresenceFace|renderPresenceFaceSvg|faceExpressionForPresence|renderedFace|data-face-/);
+
 const traceRuntime = createPresenceRuntime({ initialState: PresenceState.IDLE });
 const traceAdapter = createVercelAISDKAdapter(traceRuntime);
 const reactTrace = createPresenceTrace({ limit: 16 });
@@ -101,7 +120,8 @@ function recordAt(snapshot, updatedAt) {
 }
 
 recordAt(traceAdapter.onSubmit("Why does this feel faster?"), 0);
-recordAt(traceAdapter.update({ status: "streaming", messages: [] }), 420);
+const waitingSnapshot = traceAdapter.update({ status: "streaming", messages: [] });
+recordAt(waitingSnapshot, 420);
 recordAt(traceAdapter.update({
   status: "streaming",
   messages: [{ role: "assistant", parts: [{ type: "text", text: "Presence moved through thinking" }] }],
@@ -123,6 +143,13 @@ assert.equal(reactTraceSummary.presenceBeforeOutputMs, 980);
 assert.equal(reactTraceSummary.finalState, PresenceState.READY);
 assert.equal(reactTraceSummary.hasOutput, true);
 assert.equal(reactTraceSummary.complete, true);
+
+const waitingInputs = presenceControlInputsForSnapshot(waitingSnapshot, { now: waitingSnapshot.updatedAt });
+assert.equal(waitingSnapshot.state, PresenceState.WAITING);
+assert.equal(waitingSnapshot.event, PresenceEvent.STREAM_OPEN);
+assert.equal(waitingInputs.latencyPhase, "before-output");
+assert.equal(waitingInputs.attentionTarget, "response");
+assert.equal(String(waitingInputs.latencyPhase === "before-output"), "true");
 
 const thinkingFace = renderPresenceFaceSvg("thinking", { now: 1000, timeMs: 1000 });
 assert.equal(thinkingFace.frameReport.sharedInputs.latencyPhase, "before-output");
@@ -172,6 +199,8 @@ assert.equal(renderedFace.attributes.channels, "gaze blink brows mouth posture m
 assert.equal(renderedFace.attributes.decisionTrace, "complete");
 
 assert.match(css, /grid-template-columns/);
+assert.match(css, /nonface-status-surface/);
+assert.match(css, /data-nonface-phase="before-output"/);
 assert.match(css, /@media \(max-width: 760px\)/);
 
 console.log("react-browser-example ok");
