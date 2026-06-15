@@ -24,6 +24,8 @@ for (const requiredFile of [
 
 const readme = readText("README.md");
 assert.match(readme, /Why This Exists/);
+assert.match(readme, /renderer-agnostic presence state layer for AI interfaces/);
+assert.match(readme, /reference facial controller system/);
 assert.match(readme, /AI interfaces should not feel frozen until text appears/);
 assert.match(readme, /Collaborating/);
 assert.match(readme, /AI interfaces, expressive systems, interaction design, SVG\/rendering, or low-latency UI behavior/);

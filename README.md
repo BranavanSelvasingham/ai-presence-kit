@@ -1,6 +1,6 @@
 # AI Presence Kit
 
-AI Presence Kit is a low-latency facial presence engine for AI interfaces. It turns runtime signals like typing, pausing, waiting, thinking, streaming, speaking, interruption, and error into parallel facial micro-decisions.
+AI Presence Kit is a renderer-agnostic presence state layer for AI interfaces, with a reference facial controller system. It turns runtime signals like typing, pausing, waiting, thinking, streaming, speaking, interruption, and error into inspectable interaction posture.
 
 The simple SVG face in this repo is the proof surface. It exists to prove that gaze, blink, brows, mouth, posture, and motion can make an AI interface feel attentive before, during, and after model output.
 
@@ -16,7 +16,7 @@ AI Presence Kit explores that middle layer: runtime signals become interaction p
 
 ## Goal Statement
 
-Build a minimal, artful facial presence engine for expressive AI interaction: a low-latency web prototype that maps input, response, voice, and latency signals into a conservative presence state model, then lets independent facial controllers make parallel micro-decisions for gaze, blink, brows, mouth, posture, and motion.
+Build a minimal, renderer-agnostic presence state layer and reference facial controller system for expressive AI interaction: a low-latency web prototype that maps input, response, voice, and latency signals into a conservative presence state model, then lets independent facial controllers make parallel micro-decisions for gaze, blink, brows, mouth, posture, and motion.
 
 The finished prototype should feel less like an avatar and more like a living interface: attentive before it speaks, elegant when idle, responsive under pressure, coherent without pose swaps, and adjustable in expressiveness without pretending to infer private emotion.
 
@@ -28,7 +28,7 @@ Good places to help include the reference face, runtime adapters, React/browser 
 
 ## Product Direction
 
-The GitHub-facing package should be framed around facial presence primitives, not a static avatar library:
+The GitHub-facing package should be framed around a renderer-agnostic presence runtime and reference face proof, not a static avatar library:
 
 - `@ai-presence/core`: presence state machine and event model.
 - `@ai-presence/react`: React hooks and components for AI apps.

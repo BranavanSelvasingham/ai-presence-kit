@@ -60,7 +60,7 @@ for (const requiredFile of [
 }
 
 const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
-assert.equal(rootManifest.description, "Low-latency facial presence engine for AI interfaces.");
+assert.equal(rootManifest.description, "Renderer-agnostic presence state layer for AI interfaces.");
 assert.match(rootManifest.scripts.check, /scripts\/pack-dry-run\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-package-names\.mjs/);
 assert.match(rootManifest.scripts.check, /scripts\/check-npm-scope\.mjs/);
@@ -116,6 +116,12 @@ assert.match(rootManifest.scripts.test, /tests\/assistant-ui-external-store-pres
 const workflow = readFileSync(resolve(root, ".github/workflows/ci.yml"), "utf8");
 assert.match(workflow, /npm ci/);
 assert.match(workflow, /npm run validate/);
+
+const readme = readFileSync(resolve(root, "README.md"), "utf8");
+assert.match(readme, /renderer-agnostic presence state layer for AI interfaces/);
+assert.match(readme, /reference facial controller system/);
+assert.match(readme, /renderer-agnostic presence runtime and reference face proof/);
+assert.doesNotMatch(readme, /AI Presence Kit is a low-latency facial presence engine/);
 
 const server = readFileSync(resolve(root, "server.mjs"), "utf8");
 assert.doesNotMatch(server, /features\.emotion/);
