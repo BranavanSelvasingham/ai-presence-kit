@@ -134,6 +134,10 @@ assert.match(releaseRunbook, /tracked secret scan/);
 assert.match(releaseRunbook, /consumer smoke/);
 assert.match(releaseRunbook, /renderer-agnostic before-output trace evidence/);
 assert.match(releaseRunbook, /generic chat quickstart trace/);
+assert.match(releaseRunbook, /composer-lane adoption path/);
+assert.match(releaseRunbook, /installed `@ai-presence\/core` and `@ai-presence\/adapters`/);
+assert.match(releaseRunbook, /Vercel AI SDK-style `submitted`, `streaming`, and `ready` updates/);
+assert.match(releaseRunbook, /renderer=composer-lane/);
 
 const releaseReadiness = readFileSync(resolve(root, "docs/RELEASE_READINESS.md"), "utf8");
 assert.match(releaseReadiness, /summarizePresenceTrace/);
@@ -217,6 +221,9 @@ assert.match(releaseReadiness, /npm run release:preflight/);
 assert.match(releaseReadiness, /npm run release:consumer-smoke -- X\.Y\.Z/);
 assert.match(releaseReadiness, /installed `@ai-presence\/core` plus `@ai-presence\/adapters`/);
 assert.match(releaseReadiness, /statePath.*eventPath.*firstOutputMs.*leadMs/s);
+assert.match(releaseReadiness, /composer-lane adoption path/);
+assert.match(releaseReadiness, /renderer=composer-lane/);
+assert.match(releaseReadiness, /streamOpenMs.*firstOutputMs.*leadMs/s);
 
 const releaseConsumerSmoke = readFileSync(resolve(root, "scripts/release-consumer-smoke.mjs"), "utf8");
 assert.match(releaseConsumerSmoke, /@ai-presence\/core/);
@@ -243,6 +250,31 @@ assert.match(releaseConsumerSmoke, /finalState=/);
 assert.match(releaseConsumerSmoke, /hasOutput=/);
 assert.match(releaseConsumerSmoke, /complete=/);
 assert.match(releaseConsumerSmoke, /interrupted=/);
+assert.match(releaseConsumerSmoke, /composer-lane-smoke\.mjs/);
+assert.match(releaseConsumerSmoke, /createVercelAISDKAdapter/);
+assert.match(releaseConsumerSmoke, /status: "submitted"/);
+assert.match(releaseConsumerSmoke, /status: "streaming"/);
+assert.match(releaseConsumerSmoke, /status: "ready"/);
+assert.match(releaseConsumerSmoke, /renderer=composer-lane/);
+assert.match(releaseConsumerSmoke, /beforeOutput=true/);
+assert.match(releaseConsumerSmoke, /laneState=/);
+assert.match(releaseConsumerSmoke, /lanePhase=/);
+assert.match(releaseConsumerSmoke, /composerLocked=/);
+assert.match(releaseConsumerSmoke, /assistantTextEmpty=/);
+assert.match(releaseConsumerSmoke, /progressStep=/);
+assert.match(releaseConsumerSmoke, /streamOpenMs=/);
+
+const composerLaneSmokeStart = releaseConsumerSmoke.indexOf('join(tempDir, "composer-lane-smoke.mjs")');
+const composerLaneSmokeEnd = releaseConsumerSmoke.indexOf('join(tempDir, "cjs-smoke.cjs")');
+assert.ok(composerLaneSmokeStart > -1, "composer-lane smoke source missing");
+assert.ok(composerLaneSmokeEnd > composerLaneSmokeStart, "composer-lane smoke source boundary missing");
+const composerLaneConsumerSmoke = releaseConsumerSmoke.slice(
+  composerLaneSmokeStart,
+  composerLaneSmokeEnd,
+);
+assert.match(composerLaneConsumerSmoke, /from "@ai-presence\/core"/);
+assert.match(composerLaneConsumerSmoke, /from "@ai-presence\/adapters"/);
+assert.doesNotMatch(composerLaneConsumerSmoke, /@ai-presence\/face|@ai-presence\/react|react-dom|ReactDOM|renderPresenceFaceSvg|<svg|svg/i);
 
 const publicReleaseGate = readFileSync(resolve(root, "docs/PUBLIC_RELEASE_GATE.md"), "utf8");
 assert.match(publicReleaseGate, /Fresh-Eyes Gate/);
@@ -330,6 +362,8 @@ assert.match(validation, /data-nonface-before-output="true"/);
 assert.match(validation, /npm run perf:face/);
 assert.match(validation, /0\.25ms/);
 assert.match(validation, /generic chat quickstart trace/);
+assert.match(validation, /composer-lane adoption path/);
+assert.match(validation, /from installed package APIs only/);
 
 const operatingManual = readFileSync(resolve(root, "OPERATING_MANUAL.md"), "utf8");
 assert.match(operatingManual, /npm run release:check-names/);

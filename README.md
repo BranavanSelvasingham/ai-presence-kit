@@ -493,8 +493,9 @@ Validation notes:
 Current adoption slice:
 
 - The next real-app adoption slice is now represented by `examples/composer-lane-presence.mjs`: a framework-free consumer that uses package-shaped core/adapters APIs and proves before-output trace evidence without depending on the reference SVG face.
+- The release consumer smoke now repeats that composer-lane pattern in a fresh temp consumer with installed `@ai-presence/core` and `@ai-presence/adapters`, proving the status/composer/progress/timeline handoff is publishable package surface rather than repo-local source.
 
 Next iteration:
 
-- Validate the composer-lane pattern against a fresh installed-package consumer or a specific framework route once the package version is intentionally advanced.
+- Carry the installed-package composer-lane gate through the next publish, then validate the same pattern in a specific framework route when the package version is intentionally advanced.
 - Use `npm run release:preflight` and `npm run release:publish -- X.Y.Z` only when package source, package versions, or published artifacts change; docs/example-only milestones still go through public gate, validation, CI, and PR merge.
