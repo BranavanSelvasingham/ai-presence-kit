@@ -41,10 +41,13 @@ Command-line demos:
 ```bash
 npm run demo:adapters
 npm run demo:quickstart
+npm run demo:status-surface
 npm run demo:react
 ```
 
 `npm run demo:quickstart` runs a no-network adoption proof that maps generic chat lifecycle events through the package APIs and prints `statePath`, `eventPath`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`.
+
+`npm run demo:status-surface` runs a framework-free non-face consumer proof that maps the same adapter-driven lifecycle into a plain status surface. It prints `renderer=status-surface`, `statePath`, `eventPath`, `phasePath`, `beforeOutput=true`, `firstOutputMs`, `leadMs`, `finalState`, `hasOutput`, `complete`, and `interrupted`, while the surface model exposes `data-renderer="status-surface"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-presence-attention="response"`, `data-presence-event="stream-open"`, and `data-presence-before-output="true"` before the first output.
 
 `npm run demo:adapters` reports compact trace summaries for adapter-driven turns, including `interruptMs` and `interrupted` so interruption posture is observable without importing the face renderer into core.
 
@@ -70,6 +73,7 @@ npm run check
 npm test
 npm run demo:adapters
 npm run demo:quickstart
+npm run demo:status-surface
 npm run demo:react
 npm run pack:dry-run
 ```
