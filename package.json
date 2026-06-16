@@ -1,6 +1,6 @@
 {
   "name": "ai-presence-kit",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "Renderer-agnostic presence state layer for AI interfaces.",
   "workspaces": [
