@@ -2,8 +2,16 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { PresenceEvent, PresenceState, createPresenceRuntime } = require("../packages/core/src/presence-core.js");
-const { createPresenceReactBindings } = require("../packages/react/src/presence-react.js");
+const {
+  PresenceEvent,
+  PresenceState,
+  createPresenceRuntime,
+  summarizePresenceTrace,
+} = require("../packages/core/src/presence-core.js");
+const {
+  createPresenceReactBindings,
+  vercelAIPresenceEvidence,
+} = require("../packages/react/src/presence-react.js");
 
 let contextValue = null;
 let latestStateValue = null;
@@ -49,6 +57,8 @@ assert.equal(bindings.usePresenceState(), PresenceState.IDLE);
 assert.equal(typeof bindings.usePresenceControlInputs, "function");
 assert.equal(typeof bindings.usePresenceFrameTime, "function");
 assert.equal(typeof bindings.PresenceRendererSlot, "function");
+assert.equal(typeof bindings.useVercelAIPresence, "function");
+assert.equal(typeof bindings.vercelAIPresenceEvidence, "function");
 runtime.send(PresenceEvent.USER_INPUT, { text: "Hello" });
 assert.equal(bindings.usePresenceSnapshot().state, PresenceState.USER_TYPING);
 
@@ -141,6 +151,75 @@ latestEffectCleanup();
 assert.equal(slotCancelledFrame, 84);
 globalThis.requestAnimationFrame = originalRequestAnimationFrame;
 globalThis.cancelAnimationFrame = originalCancelAnimationFrame;
+
+let hookNow = 2000;
+const hookRuntime = createPresenceRuntime({ now: () => hookNow });
+const vercelPresence = bindings.useVercelAIPresence({
+  status: "submitted",
+  messages: [{ role: "user", content: "Show presence before output." }],
+}, {
+  runtime: hookRuntime,
+  traceLimit: 8,
+});
+
+assert.equal(vercelPresence.snapshot.state, PresenceState.THINKING);
+assert.equal(vercelPresence.controlInputs.latencyPhase, "before-output");
+assert.equal(vercelPresence.evidence.status, "submitted");
+assert.equal(vercelPresence.evidence.beforeOutput, false);
+assert.equal(vercelPresence.evidenceAttributes["data-ai-presence-framework"], "vercel-ai-sdk");
+assert.equal(vercelPresence.evidenceAttributes["data-ai-presence-status"], "submitted");
+assert.equal(vercelPresence.evidenceAttributes["data-presence-state"], PresenceState.THINKING);
+
+hookNow = 2420;
+vercelPresence.update({
+  status: "streaming",
+  messages: [
+    { role: "user", content: "Show presence before output." },
+    { role: "assistant", parts: [{ type: "text", text: "" }] },
+  ],
+});
+
+const streamingSnapshot = hookRuntime.getSnapshot();
+const streamingInputs = bindings.usePresenceControlInputs(hookRuntime, {
+  now: hookNow,
+  trace: vercelPresence.trace,
+});
+const streamingSummary = summarizePresenceTrace(vercelPresence.trace);
+const streamingEvidence = vercelAIPresenceEvidence({
+  chatState: {
+    status: "streaming",
+    messages: [
+      { role: "user", content: "Show presence before output." },
+      { role: "assistant", parts: [{ type: "text", text: "" }] },
+    ],
+  },
+  controlInputs: streamingInputs,
+  snapshot: streamingSnapshot,
+  traceSummary: streamingSummary,
+});
+const streamingBindingEvidence = bindings.vercelAIPresenceEvidence({
+  chatState: {
+    status: "streaming",
+    messages: [
+      { role: "user", content: "Show presence before output." },
+      { role: "assistant", parts: [{ type: "text", text: "" }] },
+    ],
+  },
+  controlInputs: streamingInputs,
+  snapshot: streamingSnapshot,
+  traceSummary: streamingSummary,
+});
+
+assert.equal(streamingSnapshot.state, PresenceState.WAITING);
+assert.equal(streamingEvidence.beforeOutput, true);
+assert.equal(streamingBindingEvidence.beforeOutput, true);
+assert.equal(streamingEvidence.assistantTextEmpty, true);
+assert.equal(streamingEvidence.attributes["data-presence-before-output"], "true");
+assert.equal(streamingEvidence.attributes["data-presence-state"], PresenceState.WAITING);
+assert.equal(streamingEvidence.attributes["data-presence-phase"], "before-output");
+assert.equal(streamingEvidence.attributes["data-assistant-text-empty"], "true");
+assert.equal(streamingEvidence.attributes["data-first-output-ms"], "none");
+assert.equal(streamingEvidence.attributes["data-lead-ms"], "420ms");
 
 assert.throws(
   () => createPresenceReactBindings({}),

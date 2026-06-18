@@ -269,6 +269,34 @@ node examples/vercel-ai-sdk-presence.mjs
 
 It prints `framework=vercel-ai-sdk`, `statePath`, `eventPath`, `statusPath`, `frameworkEventPath`, `streamOpenMs`, `firstOutputMs`, `leadMs`, `presenceBeforeOutputMs`, `finalState=ready`, `hasOutput=true`, `complete=true`, `interrupted=false`, plus `abortState=interrupted` and `errorState=error`.
 
+## React + Vercel AI SDK Hook
+
+For a React app using Vercel AI SDK `useChat`, `@ai-presence/react` exposes the same adapter path as a hook. It accepts the plain chat state shape and returns the runtime, trace summary, control inputs, and DOM attributes for inspectable before-output evidence.
+
+```js
+import { createPresenceReactBindings } from "@ai-presence/react";
+
+const {
+  PresenceProvider,
+  useVercelAIPresence,
+} = createPresenceReactBindings(React);
+
+function ChatPresence({ chat }) {
+  const presence = useVercelAIPresence({
+    status: chat.status,
+    messages: chat.messages,
+  });
+
+  return React.createElement(
+    PresenceProvider,
+    { runtime: presence.runtime },
+    React.createElement("section", presence.evidenceAttributes, chat.status),
+  );
+}
+```
+
+While `status: "streaming"` is active and assistant text is still empty, the attributes expose `data-ai-presence-framework="vercel-ai-sdk"`, `data-presence-state="waiting"`, `data-presence-phase="before-output"`, `data-assistant-text-empty="true"`, `data-presence-before-output="true"`, and `data-first-output-ms="none"`. The hook does not import the reference face renderer, and `@ai-presence/core` remains renderer-agnostic.
+
 ## Prove Presence Before Output
 
 Use the trace summary as integration evidence. It is renderer-agnostic and does not require the SVG face.

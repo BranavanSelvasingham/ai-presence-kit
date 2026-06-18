@@ -1,6 +1,6 @@
 {
   "name": "@ai-presence/react",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "React bindings for AI Presence Kit presence runtimes.",
   "type": "commonjs",
   "main": "./src/presence-react.js",
@@ -20,7 +20,8 @@
     "README.md"
   ],
   "dependencies": {
-    "@ai-presence/core": "0.1.5"
+    "@ai-presence/adapters": "0.1.6",
+    "@ai-presence/core": "0.1.6"
   },
   "peerDependencies": {
     "react": ">=18.0.0"

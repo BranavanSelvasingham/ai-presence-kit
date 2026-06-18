@@ -282,6 +282,7 @@
           chatStatus,
           draft,
           running,
+          trace: traceRef.current,
           timeline,
           traceEvidence,
         }),
@@ -302,47 +303,61 @@
     chatStatus,
     draft,
     running,
+    trace,
     timeline,
     traceEvidence,
   }) {
+    const vercelPresence = bindings.useVercelAIPresence({
+      status: chatStatus === "idle" ? "ready" : chatStatus,
+      messages: assistantText.length
+        ? [{ role: "assistant", parts: [{ type: "text", text: assistantText }] }]
+        : [],
+      assistantText,
+    }, {
+      attachTrace: false,
+      autoUpdate: false,
+      trace,
+    });
+
     return React.createElement(
       bindings.PresenceRendererSlot,
       null,
       ({ snapshot, controlInputs, frameTimeMs }) => React.createElement(
-        "article",
-        {
-          className: "presence-panel composer-lane-panel",
-          "data-renderer": "composer-lane",
-          "data-rendered-state": snapshot.state,
-          "data-react-composer-lane-route": "true",
-          "data-react-composer-lane-summary": traceEvidence.status,
-          "data-react-composer-lane-stream-open-ms": traceEvidence.streamOpenMs,
-          "data-react-composer-lane-first-output-ms": traceEvidence.firstOutputMs,
-          "data-react-composer-lane-lead-ms": traceEvidence.leadMs,
-          "data-react-composer-lane-has-output": traceEvidence.hasOutput,
-          "data-react-composer-lane-complete": traceEvidence.complete,
-          "data-react-composer-lane-final-state": traceEvidence.finalState,
-        },
-        React.createElement("p", { className: "eyebrow" }, "Composer lane"),
-        React.createElement("h1", null, "Before output"),
-        React.createElement(ComposerLaneSurface, {
-          assistantText,
-          chatStatus,
-          controlInputs,
-          draft,
-          frameTimeMs,
-          running,
-          snapshot,
-          traceEvidence,
-        }),
-        React.createElement(
-          "ol",
-          { className: "event-list composer-lane-timeline", "data-trace-events": traceEvidence.events },
-          timeline.length
-            ? timeline.map((item, index) => React.createElement("li", { key: `${index}-${item}` }, item))
-            : React.createElement("li", null, "--"),
+          "article",
+          {
+            className: "presence-panel composer-lane-panel",
+            "data-renderer": "composer-lane",
+            "data-rendered-state": snapshot.state,
+            "data-react-composer-lane-route": "true",
+            "data-react-composer-lane-summary": traceEvidence.status,
+            "data-react-composer-lane-stream-open-ms": traceEvidence.streamOpenMs,
+            "data-react-composer-lane-first-output-ms": traceEvidence.firstOutputMs,
+            "data-react-composer-lane-lead-ms": traceEvidence.leadMs,
+            "data-react-composer-lane-has-output": traceEvidence.hasOutput,
+            "data-react-composer-lane-complete": traceEvidence.complete,
+            "data-react-composer-lane-final-state": traceEvidence.finalState,
+          },
+          React.createElement("p", { className: "eyebrow" }, "Composer lane"),
+          React.createElement("h1", null, "Before output"),
+          React.createElement(ComposerLaneSurface, {
+            assistantText,
+            chatStatus,
+            controlInputs,
+            draft,
+            frameTimeMs,
+            running,
+            snapshot,
+            traceEvidence,
+            vercelEvidenceAttributes: vercelPresence.evidenceAttributes,
+          }),
+          React.createElement(
+            "ol",
+            { className: "event-list composer-lane-timeline", "data-trace-events": traceEvidence.events },
+            timeline.length
+              ? timeline.map((item, index) => React.createElement("li", { key: `${index}-${item}` }, item))
+              : React.createElement("li", null, "--"),
+          ),
         ),
-      ),
     );
   }
 
@@ -355,6 +370,7 @@
     running,
     snapshot,
     traceEvidence,
+    vercelEvidenceAttributes,
   }) {
     const assistantTextEmpty = assistantText.length === 0;
     const beforeOutput = controlInputs.latencyPhase === "before-output"
@@ -392,6 +408,7 @@
         "data-trace-entry-count": traceEvidence.entryCount,
         "data-trace-states": traceEvidence.states,
         "data-frame-time": String(frameTimeMs),
+        ...vercelEvidenceAttributes,
       },
       React.createElement(
         "div",

@@ -1,6 +1,6 @@
 {
   "name": "@ai-presence/face",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "SVG reference face renderer with parallel presence controllers.",
   "type": "commonjs",
   "main": "./src/presence-face.js",
@@ -20,7 +20,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@ai-presence/core": "0.1.5"
+    "@ai-presence/core": "0.1.6"
   },
   "sideEffects": false,
   "license": "MIT"

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.1.6 - 2026-06-17
+
+### Added
+
+- Added `useVercelAIPresence()` and `vercelAIPresenceEvidence()` to `@ai-presence/react` for a production-shaped React/Vercel AI SDK adoption path with before-output DOM evidence attributes.
+- Added a design-partner adopter trial packet for 10-minute React/Vercel AI SDK validation, success criteria, DOM evidence checks, and feedback capture.
+
+### Changed
+
+- Documented the new React/Vercel hook path in the root README, React package README, and integration quickstart.
+
+### Validation
+
+- Added React binding and package-surface coverage for the hook and evidence helper, including pending before-output lead evidence.
+
 ## 0.1.5 - 2026-06-15
 
 ### Added
