@@ -13,6 +13,7 @@ for (const requiredFile of [
   "CHANGELOG.md",
   "CONTRIBUTING.md",
   "CORE_PILLARS.md",
+  "docs/ADOPTER_TRIAL.md",
   "docs/GOAL_LOOP.md",
   "docs/INTEGRATION_QUICKSTART.md",
   "docs/media/presence-comparison.jpg",
@@ -1285,7 +1286,7 @@ const packages = [
     name: "@ai-presence/react",
     description: "React bindings for AI Presence Kit presence runtimes.",
     types: "src/presence-react.d.ts",
-    exports: ["createPresenceReactBindings"],
+    exports: ["createPresenceReactBindings", "vercelAIPresenceEvidence"],
   },
 ];
 
@@ -1405,6 +1406,9 @@ const reactBindings = reactApi.createPresenceReactBindings(fakeReact);
 assert.equal(typeof reactBindings.usePresenceControlInputs, "function");
 assert.equal(typeof reactBindings.usePresenceFrameTime, "function");
 assert.equal(typeof reactBindings.PresenceRendererSlot, "function");
+assert.equal(typeof reactBindings.useVercelAIPresence, "function");
+assert.equal(typeof reactBindings.vercelAIPresenceEvidence, "function");
+assert.equal(typeof reactApi.vercelAIPresenceEvidence, "function");
 reactBindings.defaultRuntime.send(coreApi.PresenceEvent.SUBMIT);
 assert.equal(reactBindings.usePresenceControlInputs().latencyPhase, "before-output");
 const reactSlot = reactBindings.PresenceRendererSlot({
@@ -1421,6 +1425,9 @@ const reactEsmApi = await import(pathToFileURL(resolve(root, "packages/react/dis
 const reactEsmBindings = reactEsmApi.createPresenceReactBindings(fakeReact);
 assert.equal(typeof reactEsmBindings.usePresenceFrameTime, "function");
 assert.equal(typeof reactEsmBindings.PresenceRendererSlot, "function");
+assert.equal(typeof reactEsmBindings.useVercelAIPresence, "function");
+assert.equal(typeof reactEsmBindings.vercelAIPresenceEvidence, "function");
+assert.equal(typeof reactEsmApi.vercelAIPresenceEvidence, "function");
 assert.equal(reactEsmBindings.usePresenceFrameTime({ now: () => 1200 }), 1200);
 
 const reactTypes = readFileSync(resolve(root, "packages/react/src/presence-react.d.ts"), "utf8");
@@ -1432,6 +1439,9 @@ assert.match(reactTypes, /usePresenceFrameTime/);
 assert.match(reactTypes, /PresenceRendererSlotValue/);
 assert.match(reactTypes, /PresenceRendererSlotProps/);
 assert.match(reactTypes, /PresenceRendererSlot/);
+assert.match(reactTypes, /useVercelAIPresence/);
+assert.match(reactTypes, /VercelAIPresenceEvidence/);
+assert.match(reactTypes, /vercelAIPresenceEvidence/);
 
 const faceTypes = readFileSync(resolve(root, "packages/face/src/presence-face.d.ts"), "utf8");
 assert.match(faceTypes, /motionScale\?: number/);

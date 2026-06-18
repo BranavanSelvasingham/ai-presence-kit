@@ -14,6 +14,7 @@ function readText(path) {
 for (const requiredFile of [
   "README.md",
   "CONTRIBUTING.md",
+  "docs/ADOPTER_TRIAL.md",
   "docs/PUBLIC_RELEASE_GATE.md",
   "docs/RELEASE_RUNBOOK.md",
   "docs/RELEASE_READINESS.md",
@@ -53,6 +54,12 @@ assert.match(publicGate, /Do not paste/);
 assert.match(publicGate, /first-time/);
 assert.match(publicGate, /screenshot/);
 assert.match(publicGate, /CONTRIBUTING\.md/);
+
+const adopterTrial = readText("docs/ADOPTER_TRIAL.md");
+assert.match(adopterTrial, /React\/Vercel AI SDK/);
+assert.match(adopterTrial, /10 minutes or less/);
+assert.match(adopterTrial, /data-presence-before-output="true"/);
+assert.match(adopterTrial, /not.*emotion detection/i);
 
 const releaseRunbook = readText("docs/RELEASE_RUNBOOK.md");
 assert.match(releaseRunbook, /Fresh-Eyes Gate/);

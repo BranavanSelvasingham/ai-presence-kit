@@ -176,7 +176,7 @@ Intended public packages:
 @ai-presence/adapters
 ```
 
-First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence, `node examples/vercel-ai-sdk-presence.mjs` to see the documented Vercel AI SDK `useChat` status/message shape become `framework=vercel-ai-sdk` before-output evidence, `node examples/assistant-lifecycle-presence.mjs` to see a thread/run/message lifecycle surface expose the open run before assistant text exists, or `node examples/assistant-ui-external-store-presence.mjs` to see a documented assistant-ui ExternalStoreRuntime route map `onNew`, `isRunning`, and assistant message `status.type` into the same before-output proof.
+First-time integration path: see [`docs/INTEGRATION_QUICKSTART.md`](docs/INTEGRATION_QUICKSTART.md) for the minimal copyable path from published packages to runtime events, trace evidence, adapter mapping, and optional renderer handoff. For a design-partner trial, use [`docs/ADOPTER_TRIAL.md`](docs/ADOPTER_TRIAL.md) to ask a React/Vercel AI SDK app developer for a 10-minute integration and feedback on API friction. For no-network local proofs, run `node examples/quickstart-presence.mjs` to see generic chat lifecycle events become before-output trace evidence, `node examples/status-surface-presence.mjs` to see the same core/adapters path drive a framework-free non-face status surface, `node examples/composer-lane-presence.mjs` to see a real-app-style composer lane replace an empty-output wait with status, progress, and timeline evidence, `node examples/vercel-ai-sdk-presence.mjs` to see the documented Vercel AI SDK `useChat` status/message shape become `framework=vercel-ai-sdk` before-output evidence, `node examples/assistant-lifecycle-presence.mjs` to see a thread/run/message lifecycle surface expose the open run before assistant text exists, or `node examples/assistant-ui-external-store-presence.mjs` to see a documented assistant-ui ExternalStoreRuntime route map `onNew`, `isRunning`, and assistant message `status.type` into the same before-output proof.
 
 Minimal core usage:
 
@@ -256,8 +256,16 @@ const {
   PresenceRendererSlot,
   usePresenceFrameTime,
   usePresenceSnapshot,
+  useVercelAIPresence,
 } = AIPresenceReact.createPresenceReactBindings(React);
+
+function ChatPresence({ chat }) {
+  const presence = useVercelAIPresence(chat);
+  return React.createElement("section", presence.evidenceAttributes, chat.status);
+}
 ```
+
+`useVercelAIPresence(chat)` is the shortest production-shaped React path for Vercel AI SDK `useChat`: pass the plain `status` and `messages` shape, attach `presence.evidenceAttributes` to your status/composer surface, and inspect `data-presence-before-output="true"` with `data-first-output-ms="none"` while assistant text is still empty.
 
 `PresenceRendererSlot` gives custom React renderers the snapshot, shared control inputs, live frame time, and runtime in one render-prop payload while keeping the face renderer outside `@ai-presence/react`.
 
